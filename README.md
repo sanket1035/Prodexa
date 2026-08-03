@@ -103,7 +103,7 @@ prodexa/
 Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/prodexa.git
+git clone https://github.com/sanket1035/prodexa.git
 ```
 
 Install dependencies
