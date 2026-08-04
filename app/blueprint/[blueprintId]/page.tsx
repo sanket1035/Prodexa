@@ -22,6 +22,7 @@ import {
   GitCompare,
   Plus,
   Minus,
+  Check,
 } from "lucide-react";
 
 export default function BlueprintWorkspacePage() {
@@ -311,7 +312,7 @@ export default function BlueprintWorkspacePage() {
         </div>
       )}
 
-      {/* TAB 4: EXPORT & STARTER KIT */}
+      {/* TAB 4: EXPORT & STARTER KIT (With Visual File Checklist) */}
       {activeTab === "export" && (
         <div className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-6 space-y-6">
           <div className="space-y-1">
@@ -321,6 +322,28 @@ export default function BlueprintWorkspacePage() {
             <p className="text-xs text-[#8B8F97]">
               Download complete investor & developer documentation for {blueprint.name}.
             </p>
+          </div>
+
+          {/* Visual File Checklist */}
+          <div className="bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] p-4 space-y-2 font-mono text-xs">
+            <div className="text-[11px] text-[#D97B3F] font-bold uppercase tracking-wider mb-2">
+              Generated Starter Kit Package Contents:
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {[
+                "README.md ✔",
+                "PRD.md ✔",
+                "TRD.md ✔",
+                "schema.json ✔",
+                "api-spec.json ✔",
+                ".env.example ✔",
+              ].map((file, i) => (
+                <div key={i} className="flex items-center gap-2 bg-[#16181B] border border-[#2A2D31] p-2 rounded text-[#EDEDEF]">
+                  <Check className="w-3.5 h-3.5 text-[#5FA88A]" />
+                  <span>{file}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

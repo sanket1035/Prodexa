@@ -238,16 +238,16 @@ export default function AICofounderTab({
         </div>
       )}
 
-      {/* Quick Suggestion Chips */}
+      {/* Suggestion Chips as Horizontal Pill Buttons */}
       <div className="space-y-2">
-        <div className="text-xs font-mono uppercase text-[#8B8F97]">Suggested Advisor Questions:</div>
+        <div className="text-[10px] font-mono uppercase tracking-wider text-[#8B8F97]">Suggested Advisor Questions:</div>
         <div className="flex flex-wrap gap-2">
           {quickPrompts.map((q, idx) => (
             <button
               key={idx}
               onClick={() => sendMessage(q)}
               disabled={loading}
-              className="bg-[#0B0C0E] hover:bg-[#1E2124] text-[#EDEDEF] border border-[#2A2D31] hover:border-[#D97B3F]/50 px-3 py-1.5 rounded-[6px] text-xs font-mono transition-colors text-left disabled:opacity-50"
+              className="bg-[#0B0C0E] hover:bg-[#1E2124] text-[#EDEDEF] border border-[#2A2D31] hover:border-[#D97B3F]/50 px-3 py-1.5 rounded-full text-xs font-mono transition-colors text-left disabled:opacity-50"
             >
               "{q}"
             </button>
@@ -278,14 +278,14 @@ export default function AICofounderTab({
               }`}
             >
               {m.sender === "cofounder" && m.role && (
-                <div className="flex items-center gap-2 border-b border-[#2A2D31] pb-1.5 mb-1.5">
-                  <span className="font-mono text-[10px] uppercase font-bold text-[#D97B3F]">
-                    AI Co-Founder [{m.role.toUpperCase()}]
+                <div className="flex items-center gap-2 border-b border-[#2A2D31] pb-1.5 mb-1.5 font-mono">
+                  <span className="text-[10px] uppercase font-bold text-[#D97B3F] bg-[#D97B3F]/10 px-2 py-0.5 rounded border border-[#D97B3F]/20">
+                    [{m.role.toUpperCase()}]
                   </span>
                 </div>
               )}
 
-              <p className="whitespace-pre-wrap">{m.text}</p>
+              <p className="whitespace-pre-wrap font-sans text-xs">{m.text}</p>
 
               {m.actionableFix && (
                 <div className="mt-3 bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] p-3 space-y-2 font-mono">
@@ -296,7 +296,7 @@ export default function AICofounderTab({
                     </span>
                     <button
                       onClick={() => handleCopy(m.id, m.actionableFix!)}
-                      className="text-[#8B8F97] hover:text-[#EDEDEF] flex items-center gap-1"
+                      className="text-[#8B8F97] hover:text-[#EDEDEF] flex items-center gap-1 text-[11px]"
                     >
                       {copiedId === m.id ? (
                         <>
@@ -334,7 +334,7 @@ export default function AICofounderTab({
         )}
       </div>
 
-      {/* Input Field */}
+      {/* Input Field with Raycast/Linear 6px rounded borders */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
