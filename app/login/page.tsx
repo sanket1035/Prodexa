@@ -32,6 +32,16 @@ export default function LoginPage() {
     }
   }, [user, loading, router]);
 
+  const switchTab = (newMode: "signin" | "signup" | "magic") => {
+    setMode(newMode);
+    setName("");
+    setEmail("");
+    setPassword("");
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setShowResend(false);
+  };
+
   const handleGoogleClick = async () => {
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -62,7 +72,7 @@ export default function LoginPage() {
       const res = await signUpWithEmail(name, email, password);
       if (res.success) {
         setSuccessMsg(`Verification link sent to ${email}! Please check your email inbox and click the verification link before signing in.`);
-        setMode("signin");
+        switchTab("signin");
       } else {
         setErrorMsg(res.error || "Sign up failed.");
       }
@@ -136,12 +146,7 @@ export default function LoginPage() {
         {/* 3-Mode Tab Switcher */}
         <div className="grid grid-cols-3 bg-[#0B0C0E] border border-[#2A2D31] p-1 rounded-[6px] text-xs font-mono">
           <button
-            onClick={() => {
-              setMode("signin");
-              setErrorMsg(null);
-              setSuccessMsg(null);
-              setShowResend(false);
-            }}
+            onClick={() => switchTab("signin")}
             className={`py-1.5 rounded font-medium transition-colors ${
               mode === "signin" ? "bg-[#1E2124] text-[#D97B3F] font-bold" : "text-[#8B8F97] hover:text-[#EDEDEF]"
             }`}
@@ -149,12 +154,7 @@ export default function LoginPage() {
             Sign In
           </button>
           <button
-            onClick={() => {
-              setMode("signup");
-              setErrorMsg(null);
-              setSuccessMsg(null);
-              setShowResend(false);
-            }}
+            onClick={() => switchTab("signup")}
             className={`py-1.5 rounded font-medium transition-colors ${
               mode === "signup" ? "bg-[#1E2124] text-[#D97B3F] font-bold" : "text-[#8B8F97] hover:text-[#EDEDEF]"
             }`}
@@ -162,12 +162,7 @@ export default function LoginPage() {
             Sign Up
           </button>
           <button
-            onClick={() => {
-              setMode("magic");
-              setErrorMsg(null);
-              setSuccessMsg(null);
-              setShowResend(false);
-            }}
+            onClick={() => switchTab("magic")}
             className={`py-1.5 rounded font-medium transition-colors ${
               mode === "magic" ? "bg-[#1E2124] text-[#D97B3F] font-bold" : "text-[#8B8F97] hover:text-[#EDEDEF]"
             }`}
@@ -222,8 +217,8 @@ export default function LoginPage() {
           <div className="flex-grow border-t border-[#2A2D31]"></div>
         </div>
 
-        {/* Email Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Email Form with AutoComplete Disabled */}
+        <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
           {mode === "signup" && (
             <div className="space-y-1">
               <label className="text-xs font-mono text-[#EDEDEF] flex items-center gap-1.5">
@@ -233,6 +228,7 @@ export default function LoginPage() {
               <input
                 type="text"
                 required
+                autoComplete="off"
                 placeholder="e.g. Alex Rivera"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -249,6 +245,7 @@ export default function LoginPage() {
             <input
               type="email"
               required
+              autoComplete="off"
               placeholder="founder@startup.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -265,6 +262,7 @@ export default function LoginPage() {
               <input
                 type="password"
                 required
+                autoComplete="new-password"
                 placeholder="••••••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
