@@ -127,6 +127,8 @@ export default function DashboardPage() {
       if (data.success && data.project) {
         setProject(data.project);
         setShowAssetDrawer(false);
+        // Automatically re-run launch audit on the updated URLs
+        handleRevalidate();
       }
     } catch (err) {
       console.error(err);

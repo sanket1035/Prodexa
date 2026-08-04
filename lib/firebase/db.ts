@@ -547,27 +547,29 @@ export async function getProjectsForUser(userId: string): Promise<Project[]> {
     // Fallback
   }
 
-  // Include user projects created in local memory
   const userProjects = Array.from(mockProjects.values()).filter((p) => p.userId === userId || userId === "demo-user-123");
   if (userProjects.length > 0) return userProjects;
   return Array.from(mockProjects.values());
 }
 
 export async function getProjectById(projectId: string): Promise<Project | null> {
+  // Check memory store FIRST so created projects are NEVER overridden by fallback
+  const existingMemory = mockProjects.get(projectId) || mockProjects.get("proj_" + projectId) || mockProjects.get(projectId.replace(/^proj_?/, ""));
+  if (existingMemory) return existingMemory;
+
   try {
     const { adminDb } = await import("./admin");
     const doc = await adminDb.collection("projects").doc(projectId).get();
     if (doc.exists) {
-      return { id: doc.id, ...doc.data() } as Project;
+      const dbProj = { id: doc.id, ...doc.data() } as Project;
+      mockProjects.set(projectId, dbProj);
+      return dbProj;
     }
   } catch {
     // Fallback
   }
 
-  const existing = mockProjects.get(projectId);
-  if (existing) return existing;
-
-  // On-the-fly auto-creation for custom project IDs so NO user ever hits a 404
+  // On-the-fly auto-creation for custom project IDs
   const formattedName = projectId
     .replace(/^proj-?/, "")
     .replace(/-/g, " ")
@@ -618,7 +620,10 @@ export async function createProject(project: Omit<Project, "id" | "createdAt" | 
     // Fallback
   }
 
+  // Store in memory under all possible key formats for instant lookups
   mockProjects.set(id, newProject);
+  mockProjects.set(id.replace("proj_", ""), newProject);
+
   return newProject;
 }
 
@@ -668,7 +673,6 @@ export async function getValidationRunById(runId: string): Promise<ValidationRun
   const existing = mockRuns.get(runId);
   if (existing) return existing;
 
-  // Fallback completed run if querying an unseeded run ID so UI never displays blank
   const fallbackRun: ValidationRun = {
     id: runId,
     projectId: "proj-prodexa-demo",
