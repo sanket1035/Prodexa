@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useRouter } from "next/navigation";
-import { User, Mail, ShieldCheck, CheckCircle2, Save, Sparkles, KeyRound } from "lucide-react";
+import { User, Mail, ShieldCheck, CheckCircle2, Save } from "lucide-react";
 
 export default function SettingsPage() {
   const { user, loading, updateUserProfile } = useAuth();
@@ -60,7 +60,7 @@ export default function SettingsPage() {
           Account & Profile Settings
         </h1>
         <p className="text-sm text-[#8B8F97]">
-          Manage your account profile, verified credentials, and workspace settings.
+          Manage your profile name and verified account credentials.
         </p>
       </div>
 
@@ -114,24 +114,14 @@ export default function SettingsPage() {
           <div className="space-y-1.5">
             <label className="text-xs font-mono text-[#8B8F97] flex items-center gap-1.5">
               <Mail className="w-3.5 h-3.5 text-[#8B8F97]" />
-              Email Address (Primary Account ID)
+              Email Address
             </label>
             <div className="flex items-center justify-between bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-3.5 py-2.5 text-xs text-[#8B8F97] font-mono">
               <span>{user?.email}</span>
               <span className="inline-flex items-center gap-1 text-[11px] text-[#5FA88A] bg-[#5FA88A]/10 px-2 py-0.5 rounded border border-[#5FA88A]/20">
                 <ShieldCheck className="w-3 h-3" />
-                Verified
+                Verified Account
               </span>
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono text-[#8B8F97] flex items-center gap-1.5">
-              <KeyRound className="w-3.5 h-3.5 text-[#8B8F97]" />
-              Firebase Account UID
-            </label>
-            <div className="bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-3.5 py-2.5 text-xs text-[#8B8F97] font-mono truncate">
-              {user?.uid}
             </div>
           </div>
         </div>

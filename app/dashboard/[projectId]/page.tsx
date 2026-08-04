@@ -229,7 +229,11 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#2A2D31] pb-6">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-medium text-[#EDEDEF] tracking-tight">{project.name}</h1>
+            <h1 className="text-2xl font-medium text-[#EDEDEF] tracking-tight">
+              {project.name && !project.name.startsWith("_") && !project.name.startsWith("proj_")
+                ? project.name
+                : "Pramana AI Workspace"}
+            </h1>
             <span className="text-xs font-mono uppercase bg-[#1E2124] text-[#D97B3F] px-2.5 py-0.5 rounded border border-[#2A2D31]">
               Launch Report
             </span>
