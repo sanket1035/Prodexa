@@ -13,19 +13,9 @@ import AICofounderTab from "@/components/dashboard/AICofounderTab";
 import { generateMarkdownReport, downloadFile } from "@/lib/pdf/exporter";
 
 import {
-  RefreshCw,
-  Download,
-  FileCode2,
-  History,
-  TrendingUp,
-  Globe,
-  GitBranch,
-  Activity,
-  Lightbulb,
-  Bot,
-  CheckCircle2,
-  PlusCircle,
-  Sparkles,
+  RefreshCw, Download, FileCode2, History, TrendingUp,
+  Globe, GitBranch, Activity, Lightbulb, Bot,
+  CheckCircle2, PlusCircle, Sparkles, X, ChevronRight,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -41,23 +31,17 @@ export default function DashboardPage() {
   const [previousRun, setPreviousRun] = useState<ValidationRun | null>(null);
   const [loading, setLoading] = useState(true);
   const [revalidating, setRevalidating] = useState(false);
-
   const [activeTab, setActiveTab] = useState<"overview" | "cofounder">("overview");
-
-  // Asset Connector Modal/Drawer state
   const [showAssetDrawer, setShowAssetDrawer] = useState(false);
   const [inputWebsite, setInputWebsite] = useState("");
   const [inputGithub, setInputGithub] = useState("");
   const [updatingAssets, setUpdatingAssets] = useState(false);
 
-  // Poll active run status if status is running
   useEffect(() => {
     if (!projectId) return;
-
     let intervalId: NodeJS.Timeout | null = null;
 
     const loadData = async () => {
-      // 3-second timeout: page must respond within 3 seconds max
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 3000);
 
@@ -78,14 +62,9 @@ export default function DashboardPage() {
         const runs: ValidationRun[] = rRes.success ? rRes.runs : [];
 
         if (runs.length > 0) {
-          const activeRun = runIdParam
-            ? runs.find((r) => r.id === runIdParam) || runs[0]
-            : runs[0];
-
+          const activeRun = runIdParam ? runs.find((r) => r.id === runIdParam) || runs[0] : runs[0];
           setCurrentRun(activeRun);
-          if (runs.length > 1) {
-            setPreviousRun(runs[1]);
-          }
+          if (runs.length > 1) setPreviousRun(runs[1]);
 
           if (activeRun && activeRun.status === "running") {
             intervalId = setInterval(async () => {
@@ -102,7 +81,6 @@ export default function DashboardPage() {
         }
       } catch (e: any) {
         clearTimeout(timeout);
-        // AbortError means timeout — show the page with whatever we have
         if (e?.name !== "AbortError") console.error(e);
       } finally {
         setLoading(false);
@@ -110,64 +88,42 @@ export default function DashboardPage() {
     };
 
     loadData();
-
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
+    return () => { if (intervalId) clearInterval(intervalId); };
   }, [projectId, runIdParam]);
 
   const handleUpdateAssets = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!project) return;
-
     setUpdatingAssets(true);
     try {
       const res = await fetch(`/api/projects/${project.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          websiteUrl: inputWebsite,
-          githubRepoUrl: inputGithub,
-        }),
+        body: JSON.stringify({ websiteUrl: inputWebsite, githubRepoUrl: inputGithub }),
       });
-
       const data = await res.json();
       if (data.success && data.project) {
         setProject(data.project);
         setShowAssetDrawer(false);
-        // Automatically re-run launch audit on the updated URLs
         handleRevalidate();
       }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setUpdatingAssets(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setUpdatingAssets(false); }
   };
 
   const handleRevalidate = async () => {
     if (!project) return;
     setRevalidating(true);
-
     try {
       const res = await fetch("/api/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          projectId: project.id,
-          userId: project.userId,
-        }),
+        body: JSON.stringify({ projectId: project.id, userId: project.userId }),
       });
-
       const data = await res.json();
-      if (data.success && data.runId) {
-        router.push(`/dashboard/${project.id}?runId=${data.runId}`);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setRevalidating(false);
-    }
+      if (data.success && data.runId) router.push(`/dashboard/${project.id}?runId=${data.runId}`);
+    } catch (e) { console.error(e); }
+    finally { setRevalidating(false); }
   };
 
   const handleExportMarkdown = () => {
@@ -176,19 +132,20 @@ export default function DashboardPage() {
     downloadFile(`${project.name.toLowerCase().replace(/\s+/g, "-")}-readiness-report.md`, md, "text/markdown");
   };
 
-  const handleExportPdf = () => {
-    if (typeof window !== "undefined") {
-      window.print();
-    }
-  };
+  const handleExportPdf = () => { if (typeof window !== "undefined") window.print(); };
 
+  // Loading skeleton
   if (loading) {
     return (
-      <div className="p-8 space-y-8 max-w-6xl mx-auto w-full">
-        <div className="h-10 w-64 bg-[#16181B] rounded animate-pulse" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="h-64 bg-[#16181B] border border-[#2A2D31] rounded-[6px] animate-pulse" />
-          <div className="h-64 md:col-span-2 bg-[#16181B] border border-[#2A2D31] rounded-[6px] animate-pulse" />
+      <div className="p-6 md:p-8 space-y-6 max-w-6xl mx-auto w-full">
+        <div className="skeleton h-10 w-72 rounded-xl" />
+        <div className="skeleton h-6 w-96 rounded-xl" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="skeleton h-52 rounded-2xl" />
+          <div className="skeleton h-52 md:col-span-2 rounded-2xl" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="skeleton h-28 rounded-2xl" />)}
         </div>
       </div>
     );
@@ -196,11 +153,14 @@ export default function DashboardPage() {
 
   if (!project) {
     return (
-      <div className="p-12 text-center space-y-4">
-        <div className="text-[#8B8F97] font-mono text-sm">Project not found or removed.</div>
+      <div className="p-12 text-center space-y-4 animate-fade-in">
+        <div className="w-16 h-16 bg-[#18181B] border border-white/[0.08] rounded-2xl flex items-center justify-center mx-auto">
+          <Sparkles className="w-7 h-7 text-[#3F3F46]" />
+        </div>
+        <div className="text-[#A1A1AA] text-sm">Project not found or removed.</div>
         <Link
           href="/projects"
-          className="inline-flex items-center gap-2 bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-mono text-xs font-medium px-4 py-2 rounded-[6px] transition-colors"
+          className="inline-flex items-center gap-2 bg-[#D97706] hover:bg-[#F59E0B] text-[#09090B] font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors"
         >
           ← Back to Projects
         </Link>
@@ -214,201 +174,175 @@ export default function DashboardPage() {
   const currentOverall = currentRun?.overallScore;
   const previousOverall = previousRun?.overallScore;
   let scoreComparisonText: string | null = null;
-  if (
-    currentOverall !== undefined &&
-    currentOverall !== null &&
-    previousRun &&
-    previousOverall !== undefined &&
-    previousOverall !== null
-  ) {
+  if (currentOverall !== undefined && currentOverall !== null && previousRun && previousOverall !== undefined && previousOverall !== null) {
     const diff = currentOverall - previousOverall;
     const daysAgo = Math.max(1, Math.round((Date.now() - new Date(previousRun.createdAt).getTime()) / (1000 * 3600 * 24)));
-    scoreComparisonText = `You were ${previousOverall}% ready ${daysAgo} day${daysAgo > 1 ? "s" : ""} ago. Now you're ${currentOverall}%. (${diff >= 0 ? `+${diff}%` : `${diff}%`})`;
+    scoreComparisonText = `You were ${previousOverall} ${daysAgo}d ago → Now ${currentOverall} (${diff >= 0 ? `+${diff}` : diff} pts)`;
   }
 
-  // Calculate Product Health Progress Score
   let healthScore = project.healthScore || 25;
   if (currentRun?.status === "completed") healthScore = 100;
 
   const milestoneBadges = [
     { label: "Blueprint Accepted", target: 25, done: healthScore >= 25 },
     { label: "Website Connected", target: 50, done: healthScore >= 50 },
-    { label: "GitHub Repo Connected", target: 75, done: healthScore >= 75 },
-    { label: "Launch Audit Completed", target: 100, done: healthScore >= 100 },
+    { label: "GitHub Connected", target: 75, done: healthScore >= 75 },
+    { label: "Audit Completed", target: 100, done: healthScore >= 100 },
   ];
 
+  const getScoreColor = (score: number | null) => {
+    if (score === null) return "#71717A";
+    if (score >= 80) return "#22C55E";
+    if (score >= 60) return "#F59E0B";
+    return "#EF4444";
+  };
+
   return (
-    <div className="p-6 md:p-8 space-y-8 max-w-6xl mx-auto w-full">
-      {/* Top Action Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#2A2D31] pb-6">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-medium text-[#EDEDEF] tracking-tight">
+    <div className="p-5 md:p-7 space-y-6 max-w-6xl mx-auto w-full animate-fade-in">
+      {/* ── Top Header ── */}
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-white/[0.08] pb-5">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-xl font-semibold text-[#FAFAFA] tracking-tight">
               {project.name || "Untitled Project"}
             </h1>
-
-            <span className="text-xs font-mono uppercase bg-[#1E2124] text-[#D97B3F] px-2.5 py-0.5 rounded border border-[#2A2D31]">
+            <span className="text-[10px] font-mono uppercase tracking-widest bg-[#D97706]/10 text-[#D97706] px-2.5 py-1 rounded-lg border border-[#D97706]/20">
               Launch Report
             </span>
             {project.blueprintId && (
               <Link
                 href={`/blueprint/${project.blueprintId}`}
-                className="text-[10px] font-mono uppercase bg-[#5FA88A]/10 text-[#5FA88A] px-2 py-0.5 rounded border border-[#5FA88A]/20 flex items-center gap-1 hover:underline"
+                className="text-[10px] font-mono uppercase bg-[#22C55E]/10 text-[#22C55E] px-2.5 py-1 rounded-lg border border-[#22C55E]/20 flex items-center gap-1 hover:bg-[#22C55E]/20 transition-colors"
               >
                 <Lightbulb className="w-3 h-3" />
-                Linked AI Blueprint
+                Blueprint
               </Link>
             )}
           </div>
 
-          <div className="flex items-center gap-4 text-xs font-mono text-[#8B8F97] mt-1.5 flex-wrap">
-            <a
-              href={project.websiteUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1 hover:text-[#EDEDEF] transition-colors"
-            >
-              <Globe className="w-3.5 h-3.5 text-[#D97B3F]" />
-              {project.websiteUrl}
-            </a>
+          <div className="flex items-center gap-4 text-xs text-[#71717A] font-mono flex-wrap">
+            {project.websiteUrl && (
+              <a href={project.websiteUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-[#A1A1AA] transition-colors">
+                <Globe className="w-3.5 h-3.5 text-[#D97706]" />
+                {project.websiteUrl.replace(/^https?:\/\//, "")}
+              </a>
+            )}
             {project.githubRepoUrl ? (
-              <a
-                href={project.githubRepoUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1 hover:text-[#EDEDEF] transition-colors"
-              >
-                <GitBranch className="w-3.5 h-3.5 text-[#6E7B8B]" />
+              <a href={project.githubRepoUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-[#A1A1AA] transition-colors">
+                <GitBranch className="w-3.5 h-3.5" />
                 {project.githubRepoUrl.replace("https://github.com/", "")}
               </a>
             ) : (
-              <button
-                onClick={() => setShowAssetDrawer(true)}
-                className="text-[#D97B3F] hover:underline flex items-center gap-1"
-              >
+              <button onClick={() => setShowAssetDrawer(true)} className="flex items-center gap-1 text-[#D97706] hover:text-[#F59E0B] transition-colors">
                 <PlusCircle className="w-3 h-3" />
-                Connect GitHub Repo
+                Connect GitHub
               </button>
             )}
           </div>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
           <button
             onClick={() => setShowAssetDrawer(!showAssetDrawer)}
-            className="flex items-center gap-1.5 bg-[#16181B] hover:bg-[#1E2124] text-[#EDEDEF] border border-[#2A2D31] px-3 py-2 rounded-[6px] text-xs font-mono transition-colors"
+            className="flex items-center gap-1.5 bg-[#18181B] hover:bg-[#1C1C1F] border border-white/[0.10] text-[#A1A1AA] hover:text-[#FAFAFA] px-3 py-2 rounded-lg text-xs font-medium transition-all"
           >
-            <PlusCircle className="w-3.5 h-3.5 text-[#D97B3F]" />
-            Connect Assets
+            <PlusCircle className="w-3.5 h-3.5 text-[#D97706]" />
+            Assets
           </button>
-
-          <Link
-            href={`/dashboard/${project.id}/history`}
-            className="flex items-center gap-1.5 bg-[#16181B] hover:bg-[#1E2124] text-[#EDEDEF] border border-[#2A2D31] px-3 py-2 rounded-[6px] text-xs font-mono transition-colors"
-          >
-            <History className="w-3.5 h-3.5 text-[#8B8F97]" />
-            History
-          </Link>
-
           <button
             onClick={handleExportMarkdown}
-            className="flex items-center gap-1.5 bg-[#16181B] hover:bg-[#1E2124] text-[#EDEDEF] border border-[#2A2D31] px-3 py-2 rounded-[6px] text-xs font-mono transition-colors"
+            className="flex items-center gap-1.5 bg-[#18181B] hover:bg-[#1C1C1F] border border-white/[0.10] text-[#A1A1AA] hover:text-[#FAFAFA] px-3 py-2 rounded-lg text-xs font-medium transition-all"
           >
-            <FileCode2 className="w-3.5 h-3.5 text-[#5FA88A]" />
-            Export Markdown
+            <FileCode2 className="w-3.5 h-3.5 text-[#22C55E]" />
+            Export
           </button>
-
           <button
             onClick={handleRevalidate}
             disabled={revalidating || isRunning}
-            className="flex items-center gap-1.5 bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] px-4 py-2 rounded-[6px] text-xs font-mono font-medium transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 bg-[#D97706] hover:bg-[#F59E0B] text-[#09090B] px-4 py-2 rounded-lg text-xs font-semibold transition-all hover:shadow-[0_0_12px_rgba(217,119,6,0.3)] disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${revalidating || isRunning ? "animate-spin" : ""}`} />
-            Run Launch Audit
+            Run Audit
           </button>
         </div>
       </div>
 
-      {/* Product Health Progress Milestone Card */}
-      <div className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Activity className="w-5 h-5 text-[#5FA88A]" />
-            <div>
-              <div className="text-xs font-mono uppercase text-[#EDEDEF] font-medium">Product Health Progress</div>
-              <div className="text-xs text-[#8B8F97]">Continuous lifecycle progress from Day 0 Blueprint to Launch Audit</div>
-            </div>
+      {/* ── Product Health Milestone Bar ── */}
+      <div className="bg-[#111113] border border-white/[0.08] rounded-2xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4 text-[#22C55E]" />
+            <span className="text-sm font-semibold text-[#FAFAFA]">Product Health</span>
           </div>
-
-          <div className="flex items-center gap-4">
-            <div className="w-48 bg-[#0B0C0E] border border-[#2A2D31] rounded-full h-2 overflow-hidden">
-              <div className="bg-[#5FA88A] h-full transition-all duration-500" style={{ width: `${healthScore}%` }} />
-            </div>
-            <span className="font-mono text-sm font-bold text-[#5FA88A]">{healthScore}%</span>
-          </div>
+          <span className="text-sm font-bold text-[#22C55E] font-mono">{healthScore}%</span>
         </div>
-
-        {/* Milestone Badges */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-[#2A2D31]/50 text-xs font-mono">
+        <div className="w-full bg-[#27272A] rounded-full h-2 overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-700"
+            style={{
+              width: `${healthScore}%`,
+              background: "linear-gradient(90deg, #D97706, #22C55E)",
+            }}
+          />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
           {milestoneBadges.map((m, idx) => (
             <div
               key={idx}
-              className={`p-2.5 rounded-[6px] border flex items-center justify-between ${
+              className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs transition-all ${
                 m.done
-                  ? "bg-[#5FA88A]/10 border-[#5FA88A]/30 text-[#5FA88A]"
-                  : "bg-[#0B0C0E] border-[#2A2D31] text-[#8B8F97] opacity-60"
+                  ? "bg-[#22C55E]/8 border-[#22C55E]/20 text-[#22C55E]"
+                  : "bg-[#18181B] border-white/[0.06] text-[#3F3F46]"
               }`}
             >
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className={`w-3.5 h-3.5 ${m.done ? "text-[#5FA88A]" : "text-[#8B8F97]"}`} />
-                <span className="font-medium text-[11px]">{m.label}</span>
-              </div>
-              <span className="font-semibold text-[10px]">{m.target}%</span>
+              <CheckCircle2 className={`w-3.5 h-3.5 flex-shrink-0 ${m.done ? "text-[#22C55E]" : "text-[#3F3F46]"}`} />
+              <span className="font-medium truncate">{m.label}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Asset Connector Form Drawer */}
+      {/* ── Asset Connector Drawer ── */}
       {showAssetDrawer && (
-        <form onSubmit={handleUpdateAssets} className="bg-[#16181B] border border-[#D97B3F]/40 rounded-[6px] p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-[#2A2D31] pb-3">
-            <h3 className="text-sm font-medium text-[#EDEDEF] font-mono uppercase tracking-wider flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#D97B3F]" />
-              Connect Project Website & GitHub Repo
-            </h3>
-            <button
-              type="button"
-              onClick={() => setShowAssetDrawer(false)}
-              className="text-xs font-mono text-[#8B8F97] hover:text-[#EDEDEF]"
-            >
-              Close
+        <form onSubmit={handleUpdateAssets} className="bg-[#111113] border border-[#D97706]/30 rounded-2xl p-5 space-y-4 animate-fade-in">
+          <div className="flex items-center justify-between pb-3 border-b border-white/[0.07]">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#D97706]" />
+              <h3 className="text-sm font-semibold text-[#FAFAFA]">Connect Project Assets</h3>
+            </div>
+            <button type="button" onClick={() => setShowAssetDrawer(false)} className="text-[#71717A] hover:text-[#FAFAFA] transition-colors">
+              <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="block text-[#EDEDEF]">Landing Page Website URL (+25% Health)</label>
-              <input
-                type="url"
-                required
-                placeholder="https://your-landing-page.com"
-                value={inputWebsite}
-                onChange={(e) => setInputWebsite(e.target.value)}
-                className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-3 py-2 text-[#EDEDEF] focus:border-[#D97B3F] outline-none"
-              />
+              <label className="text-xs font-medium text-[#A1A1AA]">Landing Page URL</label>
+              <div className="relative">
+                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#3F3F46]" />
+                <input
+                  type="url"
+                  required
+                  placeholder="https://your-landing-page.com"
+                  value={inputWebsite}
+                  onChange={(e) => setInputWebsite(e.target.value)}
+                  className="w-full bg-[#18181B] border border-white/[0.10] focus:border-[#D97706]/60 rounded-xl pl-9 pr-3 py-2.5 text-sm text-[#FAFAFA] placeholder-[#3F3F46] outline-none transition-colors font-mono"
+                />
+              </div>
             </div>
-
             <div className="space-y-1.5">
-              <label className="block text-[#EDEDEF]">GitHub Repository URL (+25% Health)</label>
-              <input
-                type="url"
-                placeholder="https://github.com/username/repository"
-                value={inputGithub}
-                onChange={(e) => setInputGithub(e.target.value)}
-                className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-3 py-2 text-[#EDEDEF] focus:border-[#D97B3F] outline-none"
-              />
+              <label className="text-xs font-medium text-[#A1A1AA]">GitHub Repository URL</label>
+              <div className="relative">
+                <GitBranch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#3F3F46]" />
+                <input
+                  type="url"
+                  placeholder="https://github.com/username/repo"
+                  value={inputGithub}
+                  onChange={(e) => setInputGithub(e.target.value)}
+                  className="w-full bg-[#18181B] border border-white/[0.10] focus:border-[#D97706]/60 rounded-xl pl-9 pr-3 py-2.5 text-sm text-[#FAFAFA] placeholder-[#3F3F46] outline-none transition-colors font-mono"
+                />
+              </div>
             </div>
           </div>
 
@@ -416,45 +350,42 @@ export default function DashboardPage() {
             <button
               type="submit"
               disabled={updatingAssets}
-              className="bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-medium px-4 py-2 rounded-[6px] text-xs font-mono transition-colors"
+              className="flex items-center gap-2 bg-[#D97706] hover:bg-[#F59E0B] text-[#09090B] font-semibold text-xs px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
             >
-              {updatingAssets ? "Connecting..." : "Save & Update Health Progress"}
+              {updatingAssets ? "Saving..." : "Save & Run Audit"}
             </button>
           </div>
         </form>
       )}
 
-      {/* Main Tabs Navigation: Overview vs AI Co-Founder Advisor */}
-      <div className="border-b border-[#2A2D31] flex items-center gap-2">
-        <button
-          onClick={() => setActiveTab("overview")}
-          className={`px-4 py-3 border-b-2 text-xs font-mono uppercase tracking-wider font-semibold transition-colors flex items-center gap-2 ${
-            activeTab === "overview"
-              ? "border-[#D97B3F] text-[#D97B3F] bg-[#D97B3F]/5"
-              : "border-transparent text-[#8B8F97] hover:text-[#EDEDEF]"
-          }`}
-        >
-          <Activity className="w-3.5 h-3.5" />
-          Readiness Report & Fixes
-        </button>
-
-        <button
-          onClick={() => setActiveTab("cofounder")}
-          className={`px-4 py-3 border-b-2 text-xs font-mono uppercase tracking-wider font-semibold transition-colors flex items-center gap-2 ${
-            activeTab === "cofounder"
-              ? "border-[#D97B3F] text-[#D97B3F] bg-[#D97B3F]/5"
-              : "border-transparent text-[#8B8F97] hover:text-[#EDEDEF]"
-          }`}
-        >
-          <Bot className="w-3.5 h-3.5 text-[#5FA88A]" />
-          <span>AI Co-Founder</span>
-          <span className="text-[10px] bg-[#5FA88A]/20 text-[#5FA88A] px-1.5 py-0.2 rounded font-normal">
-            New
-          </span>
-        </button>
+      {/* ── Main Tab Navigation ── */}
+      <div className="border-b border-white/[0.08] flex items-center gap-1">
+        {[
+          { id: "overview" as const, label: "Readiness Report", icon: Activity },
+          { id: "cofounder" as const, label: "AI Co-Founder", icon: Bot, badge: "AI" },
+        ].map(({ id, label, icon: Icon, badge }) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={`flex items-center gap-2 px-4 py-3 text-xs font-medium transition-all relative ${
+              activeTab === id
+                ? "text-[#FAFAFA]"
+                : "text-[#71717A] hover:text-[#A1A1AA]"
+            }`}
+          >
+            {activeTab === id && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D97706] rounded-t-full" />
+            )}
+            <Icon className={`w-3.5 h-3.5 ${id === "cofounder" ? "text-[#22C55E]" : activeTab === id ? "text-[#D97706]" : ""}`} />
+            {label}
+            {badge && (
+              <span className="text-[9px] font-mono bg-[#22C55E]/15 text-[#22C55E] px-1.5 py-0.5 rounded-md">{badge}</span>
+            )}
+          </button>
+        ))}
       </div>
 
-      {/* TAB: AI CO-FOUNDER ADVISOR */}
+      {/* ── TAB: AI CO-FOUNDER ── */}
       {activeTab === "cofounder" && (
         <AICofounderTab
           projectId={project.id}
@@ -464,40 +395,36 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* TAB: READINESS OVERVIEW & FIXES */}
+      {/* ── TAB: OVERVIEW ── */}
       {activeTab === "overview" && (
-        <div className="space-y-8">
-          {/* Score Comparison Banner if previous runs exist */}
+        <div className="space-y-6">
+          {/* Score Improvement Banner */}
           {scoreComparisonText && (
-            <div className="bg-[#5FA88A]/10 border border-[#5FA88A]/30 text-[#5FA88A] rounded-[6px] p-3.5 text-xs font-mono flex items-center justify-between">
+            <div className="bg-[#22C55E]/8 border border-[#22C55E]/20 text-[#22C55E] rounded-xl p-3.5 text-xs font-mono flex items-center justify-between animate-fade-in">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4" />
                 <span>{scoreComparisonText}</span>
               </div>
-              <Link href={`/dashboard/${project.id}/history`} className="underline font-semibold">
+              <Link href={`/dashboard/${project.id}/history`} className="underline font-semibold hover:text-[#4ADE80] transition-colors">
                 View Trend
               </Link>
             </div>
           )}
 
-          {/* Main Hero Grid: Radial Score + Progress Tracker or Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Overall Score Radial Card */}
-            <div className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-6 flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="text-xs font-mono uppercase tracking-wider text-[#8B8F97]">
-                Overall Readiness Score
-              </div>
-
-              <ScoreRadial score={currentRun?.overallScore ?? null} size={150} strokeWidth={6} />
-
-              <div className="text-xs text-[#8B8F97] max-w-xs leading-relaxed">
+          {/* Score Hero + Pipeline Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Score Card */}
+            <div className="bg-[#111113] border border-white/[0.08] rounded-2xl p-6 flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="text-xs font-medium text-[#71717A] uppercase tracking-widest">Launch Score</div>
+              <ScoreRadial score={currentRun?.overallScore ?? null} size={140} strokeWidth={5} />
+              <div className="text-xs text-[#71717A] max-w-[180px] leading-relaxed">
                 {currentRun?.overallScore !== null
-                  ? "Calculated deterministically across completed analysis modules."
-                  : "Analysis running — score will compute upon completion."}
+                  ? "Deterministic score across 6 analysis modules"
+                  : "Run a launch audit to compute your score"}
               </div>
             </div>
 
-            {/* Live Progress Tracker or Module Summary */}
+            {/* Pipeline Summary */}
             <div className="md:col-span-2">
               {isRunning ? (
                 <ProgressTracker
@@ -505,52 +432,54 @@ export default function DashboardPage() {
                   status={currentRun?.status ?? "pending"}
                 />
               ) : (
-                <div className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-6 space-y-4">
-                  <div className="flex items-center justify-between border-b border-[#2A2D31] pb-3">
-                    <h3 className="text-sm font-medium text-[#EDEDEF] uppercase font-mono tracking-wider">
-                      Analysis Pipeline Summary
-                    </h3>
-                    <span className="text-xs font-mono text-[#5FA88A] bg-[#5FA88A]/10 px-2 py-0.5 rounded border border-[#5FA88A]/20">
-                      Run Completed
-                    </span>
+                <div className="bg-[#111113] border border-white/[0.08] rounded-2xl p-6 h-full space-y-5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-[#FAFAFA]">Analysis Summary</h3>
+                    {currentRun?.status === "completed" && (
+                      <span className="text-[10px] font-mono uppercase text-[#22C55E] bg-[#22C55E]/10 border border-[#22C55E]/20 px-2.5 py-1 rounded-lg">
+                        Completed
+                      </span>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs font-mono">
-                    <div>
-                      <div className="text-[#8B8F97]">Issues Identified</div>
-                      <div className="text-lg font-bold text-[#EDEDEF] mt-0.5">
-                        {currentRun?.issues?.length || 0}
+                  <div className="grid grid-cols-3 gap-4">
+                    {[
+                      { label: "Issues Found", value: currentRun?.issues?.length || 0, color: "#A1A1AA" },
+                      { label: "Critical Gaps", value: currentRun?.issues?.filter((i) => i.severity === "critical").length || 0, color: "#EF4444" },
+                      { label: "Roadmap Tasks", value: currentRun?.roadmap?.length || 0, color: "#D97706" },
+                    ].map((stat) => (
+                      <div key={stat.label} className="bg-[#18181B] border border-white/[0.07] rounded-xl p-3.5 text-center">
+                        <div className="text-2xl font-bold" style={{ color: stat.color }}>{stat.value}</div>
+                        <div className="text-[11px] text-[#71717A] mt-1">{stat.label}</div>
                       </div>
-                    </div>
-                    <div>
-                      <div className="text-[#8B8F97]">Critical Gaps</div>
-                      <div className="text-lg font-bold text-[#C25A4D] mt-0.5">
-                        {currentRun?.issues?.filter((i) => i.severity === "critical").length || 0}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[#8B8F97]">Roadmap Tasks</div>
-                      <div className="text-lg font-bold text-[#D97B3F] mt-0.5">
-                        {currentRun?.roadmap?.length || 0}
-                      </div>
-                    </div>
+                    ))}
                   </div>
 
-                  <p className="text-xs text-[#8B8F97] leading-relaxed pt-2">
-                    All 6 specialized readiness modules executed deterministically. Review prioritized action items below and click <span className="text-[#D97B3F] font-mono">Copy Fix</span> to resolve gaps before launch day.
+                  <p className="text-xs text-[#71717A] leading-relaxed">
+                    {currentRun
+                      ? "All 6 modules executed deterministically. Review prioritized issues below and use Copy Fix to resolve gaps."
+                      : "No audit run yet. Click Run Audit to analyze your product across 6 specialized readiness modules."}
                   </p>
+
+                  {!currentRun && (
+                    <button
+                      onClick={handleRevalidate}
+                      disabled={revalidating}
+                      className="flex items-center gap-2 bg-[#D97706] hover:bg-[#F59E0B] text-[#09090B] font-semibold text-xs px-4 py-2.5 rounded-xl transition-all hover:shadow-[0_0_12px_rgba(217,119,6,0.3)] disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${revalidating ? "animate-spin" : ""}`} />
+                      {revalidating ? "Starting..." : "Run First Audit"}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* 6 Category Score Cards */}
+          {/* 6 Module Score Cards */}
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-[#EDEDEF] uppercase font-mono tracking-wider">
-              Module Category Scores
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <h3 className="text-sm font-semibold text-[#FAFAFA]">Module Scores</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <CategoryCard
                 title="Product Understanding"
                 score={scores?.productUnderstanding ?? null}
@@ -584,39 +513,48 @@ export default function DashboardPage() {
                 score={scores?.business ?? null}
                 status={currentRun?.moduleStatus?.business?.status}
                 reason={currentRun?.moduleStatus?.business?.reason}
-                description="Pricing model clarity, contact transparency, and market differentiation."
+                description="Pricing clarity, contact transparency, and market differentiation."
               />
               <CategoryCard
                 title="Launch Planner"
                 score={currentRun?.overallScore ?? null}
                 status="completed"
-                description="Prioritized effort-reward roadmap aggregation across all modules."
+                description="Prioritized effort-reward roadmap across all modules."
               />
             </div>
           </div>
 
-          {/* Prioritized Issue List with Copy Fix */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-[#EDEDEF] uppercase font-mono tracking-wider">
-                Prioritized Gaps & Deterministic Fixes ({currentRun?.issues?.length || 0})
-              </h3>
+          {/* Issues */}
+          {currentRun && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-[#FAFAFA]">
+                  Prioritized Gaps &amp; Fixes
+                  {currentRun.issues?.length > 0 && (
+                    <span className="ml-2 text-[11px] font-mono text-[#71717A] bg-white/[0.05] px-2 py-0.5 rounded-lg">
+                      {currentRun.issues.length}
+                    </span>
+                  )}
+                </h3>
+              </div>
+
+              {currentRun.issues?.length === 0 ? (
+                <div className="bg-[#111113] border border-[#22C55E]/20 rounded-2xl p-8 text-center space-y-2">
+                  <CheckCircle2 className="w-8 h-8 text-[#22C55E] mx-auto" />
+                  <div className="text-sm font-semibold text-[#22C55E]">Zero critical gaps detected!</div>
+                  <div className="text-xs text-[#71717A]">Your product is launch-ready.</div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {currentRun.issues.map((issue) => (
+                    <IssueRow key={issue.id} issue={issue} />
+                  ))}
+                </div>
+              )}
             </div>
+          )}
 
-            {currentRun?.issues?.length === 0 ? (
-              <div className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-8 text-center text-xs text-[#8B8F97] font-mono">
-                Zero critical gaps detected! Your product is launch-ready.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {currentRun?.issues?.map((issue) => (
-                  <IssueRow key={issue.id} issue={issue} />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Launch Roadmap Section */}
+          {/* Roadmap */}
           {currentRun?.roadmap && currentRun.roadmap.length > 0 && (
             <RoadmapSection items={currentRun.roadmap} />
           )}

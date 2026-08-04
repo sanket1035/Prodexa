@@ -3,7 +3,16 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { Globe, GitBranch, ArrowRight, AlertCircle, Sparkles } from "lucide-react";
+import { Globe, GitBranch, ArrowRight, AlertCircle, Sparkles, CheckCircle2, Loader2, FileText } from "lucide-react";
+
+const STEPS = [
+  "Analyzing Problem & Solution Statement...",
+  "Evaluating Competitor Landscape & Market Gaps...",
+  "Structuring Core MVP Feature Architecture...",
+  "Recommending Production Tech Stack & Risk Matrix...",
+  "Designing Firestore Database & API Payload Contract...",
+  "Computing Blueprint Quality Score & Mermaid System Diagram...",
+];
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -28,7 +37,6 @@ export default function NewProjectPage() {
     setLoading(true);
 
     try {
-      // 1. Create project
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -47,7 +55,6 @@ export default function NewProjectPage() {
 
       const projectId = data.project.id;
 
-      // 2. Trigger validation run
       const valRes = await fetch("/api/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -61,129 +68,155 @@ export default function NewProjectPage() {
       const valData = await valRes.json();
       const runId = valData.runId;
 
-      // 3. Redirect to dashboard with active run status
       router.push(`/dashboard/${projectId}?runId=${runId || ""}`);
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred during submission");
+      setError(err.message || "An unexpected error occurred");
       setLoading(false);
     }
   };
 
-  return (
-    <div className="p-6 md:p-10 max-w-3xl mx-auto w-full space-y-8">
-      <div>
-        <div className="inline-flex items-center gap-2 text-xs font-mono tracking-wider uppercase text-[#D97B3F] bg-[#D97B3F]/10 px-2.5 py-1 rounded-[4px] border border-[#D97B3F]/20 mb-2">
-          <Sparkles className="w-3.5 h-3.5" />
-          Module Submission
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="max-w-sm w-full bg-[#111113] border border-white/[0.08] rounded-2xl p-8 space-y-6 text-center animate-fade-in">
+          <div className="w-14 h-14 bg-[#D97706]/10 border border-[#D97706]/20 rounded-2xl flex items-center justify-center mx-auto">
+            <Loader2 className="w-6 h-6 text-[#D97706] animate-spin" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-[#FAFAFA] mb-1">Initializing Analysis</h3>
+            <p className="text-xs text-[#71717A] font-mono">Running 6 readiness modules...</p>
+          </div>
+          <div className="space-y-2.5 text-left pt-2 border-t border-white/[0.08]">
+            {STEPS.map((st, idx) => (
+              <div key={idx} className="flex items-center gap-2.5 text-xs">
+                <div className="flex-shrink-0">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#D97706] animate-pulse" />
+                </div>
+                <span className="text-[#71717A] font-mono">{st.replace("...", "")}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <h1 className="text-2xl font-medium text-[#EDEDEF] tracking-tight">
-          Validate New Product
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 md:p-8 max-w-3xl mx-auto w-full space-y-8 animate-fade-in">
+      {/* Header */}
+      <div>
+        <div className="inline-flex items-center gap-2 text-[11px] font-mono tracking-widest uppercase text-[#D97706] bg-[#D97706]/10 border border-[#D97706]/20 px-3 py-1.5 rounded-full mb-4">
+          <Sparkles className="w-3 h-3" />
+          Option B — Launch Audit
+        </div>
+        <h1 className="text-2xl font-semibold text-[#FAFAFA] tracking-tight mb-2">
+          Validate Your Product
         </h1>
-        <p className="text-sm text-[#8B8F97] mt-1">
-          Submit target URLs and metadata to initiate 6 deterministic readiness analysis modules.
+        <p className="text-sm text-[#71717A] leading-relaxed max-w-lg">
+          Submit your website URL and GitHub repo to run 6 deterministic readiness analysis modules with copy-pasteable fixes.
         </p>
       </div>
 
       {error && (
-        <div className="bg-[#C25A4D]/10 border border-[#C25A4D]/30 text-[#C25A4D] rounded-[6px] p-4 text-sm flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          <div>{error}</div>
+        <div className="bg-[#EF4444]/8 border border-[#EF4444]/20 text-[#EF4444] rounded-xl p-4 text-sm flex items-start gap-3 animate-fade-in">
+          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <span>{error}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* Project Name */}
-        <div className="space-y-2">
-          <label className="block text-xs font-mono uppercase tracking-wider text-[#EDEDEF]">
-            Project Name <span className="text-[#8B8F97] font-sans normal-case">(optional)</span>
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-[#A1A1AA]">
+            Project Name <span className="text-[#3F3F46]">(optional — auto-detected from URL)</span>
           </label>
           <input
             type="text"
-            placeholder="e.g. Prodexa AI"
+            placeholder="e.g. Pramana AI"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-3.5 py-2.5 text-sm text-[#EDEDEF] placeholder-[#8B8F97]/50 focus:border-[#D97B3F] outline-none transition-colors"
+            className="w-full bg-[#111113] border border-white/[0.10] hover:border-white/[0.16] focus:border-[#D97706]/60 rounded-xl px-4 py-3 text-sm text-[#FAFAFA] placeholder-[#3F3F46] outline-none transition-colors"
           />
         </div>
 
         {/* Website URL */}
-        <div className="space-y-2">
-          <label className="block text-xs font-mono uppercase tracking-wider text-[#EDEDEF]">
-            Website / Landing Page URL <span className="text-[#D97B3F]">*</span>
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-[#A1A1AA]">
+            Website / Landing Page URL <span className="text-[#EF4444]">*</span>
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8B8F97]">
-              <Globe className="w-4 h-4" />
-            </div>
+            <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3F3F46]" />
             <input
               type="url"
               required
               placeholder="https://your-landing-page.com"
               value={websiteUrl}
               onChange={(e) => setWebsiteUrl(e.target.value)}
-              className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] pl-10 pr-3.5 py-2.5 text-sm text-[#EDEDEF] placeholder-[#8B8F97]/50 focus:border-[#D97B3F] outline-none transition-colors font-mono"
+              className="w-full bg-[#111113] border border-white/[0.10] hover:border-white/[0.16] focus:border-[#D97706]/60 rounded-xl pl-10 pr-4 py-3 text-sm text-[#FAFAFA] placeholder-[#3F3F46] outline-none transition-colors font-mono"
             />
           </div>
-          <p className="text-xs text-[#8B8F97]">
+          <p className="text-xs text-[#71717A]">
             Scraped for CTA contrast, meta tags, value prop positioning, and Lighthouse performance.
           </p>
         </div>
 
         {/* GitHub Repo URL */}
-        <div className="space-y-2">
-          <label className="block text-xs font-mono uppercase tracking-wider text-[#EDEDEF]">
-            GitHub Repository URL <span className="text-[#8B8F97] font-sans normal-case">(Recommended for Engineering Analysis)</span>
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-[#A1A1AA]">
+            GitHub Repository URL <span className="text-[#3F3F46]">(recommended)</span>
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8B8F97]">
-              <GitBranch className="w-4 h-4" />
-            </div>
+            <GitBranch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3F3F46]" />
             <input
               type="url"
               placeholder="https://github.com/owner/repo"
               value={githubRepoUrl}
               onChange={(e) => setGithubRepoUrl(e.target.value)}
-              className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] pl-10 pr-3.5 py-2.5 text-sm text-[#EDEDEF] placeholder-[#8B8F97]/50 focus:border-[#D97B3F] outline-none transition-colors font-mono"
+              className="w-full bg-[#111113] border border-white/[0.10] hover:border-white/[0.16] focus:border-[#D97706]/60 rounded-xl pl-10 pr-4 py-3 text-sm text-[#FAFAFA] placeholder-[#3F3F46] outline-none transition-colors font-mono"
             />
           </div>
-          <p className="text-xs text-[#8B8F97]">
+          <p className="text-xs text-[#71717A]">
             Checked read-only for README structure, LICENSE presence, commit freshness, and package manifest.
           </p>
         </div>
 
-        {/* Optional Pitch Deck Notes / Text */}
-        <div className="space-y-2">
-          <label className="block text-xs font-mono uppercase tracking-wider text-[#EDEDEF]">
-            Pitch Deck Summary / Notes <span className="text-[#8B8F97] font-sans normal-case">(optional for Business Review)</span>
+        {/* Pitch Deck Notes */}
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-[#A1A1AA] flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5" />
+            Pitch Deck / Notes <span className="text-[#3F3F46]">(optional — improves Business Review)</span>
           </label>
-          <div className="relative">
-            <textarea
-              rows={3}
-              placeholder="Paste value proposition, market sizing, target customer, or pitch text..."
-              value={pitchDeckText}
-              onChange={(e) => setPitchDeckText(e.target.value)}
-              className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] p-3 text-sm text-[#EDEDEF] placeholder-[#8B8F97]/50 focus:border-[#D97B3F] outline-none transition-colors"
-            />
+          <textarea
+            rows={3}
+            placeholder="Paste value proposition, market sizing, target customer, or pitch text..."
+            value={pitchDeckText}
+            onChange={(e) => setPitchDeckText(e.target.value)}
+            className="w-full bg-[#111113] border border-white/[0.10] hover:border-white/[0.16] focus:border-[#D97706]/60 rounded-xl px-4 py-3 text-sm text-[#FAFAFA] placeholder-[#3F3F46] outline-none transition-colors resize-none"
+          />
+        </div>
+
+        {/* What Gets Analyzed */}
+        <div className="bg-[#111113] border border-white/[0.07] rounded-xl p-4">
+          <div className="text-xs font-medium text-[#71717A] mb-3">6 Analysis Modules</div>
+          <div className="grid grid-cols-2 gap-2">
+            {["Product Understanding", "Engineering Quality", "UX & Design", "Performance", "Accessibility", "Business Viability"].map((m) => (
+              <div key={m} className="flex items-center gap-2 text-xs text-[#A1A1AA]">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E] flex-shrink-0" />
+                {m}
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Submit CTA */}
-        <div className="pt-2">
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-medium py-3 px-6 rounded-[6px] text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-[#D97B3F]"
-          >
-            {loading ? (
-              <span className="font-mono text-sm">Initiating Analysis Pipeline...</span>
-            ) : (
-              <>
-                Validate Product
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-        </div>
+        {/* Submit */}
+        <button
+          type="submit"
+          className="w-full flex items-center justify-center gap-2.5 bg-[#D97706] hover:bg-[#F59E0B] text-[#09090B] font-semibold py-3.5 px-6 rounded-xl text-sm transition-all hover:shadow-[0_0_20px_rgba(217,119,6,0.4)]"
+        >
+          <Sparkles className="w-4 h-4" />
+          Run Launch Audit
+          <ArrowRight className="w-4 h-4" />
+        </button>
       </form>
     </div>
   );

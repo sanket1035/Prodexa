@@ -4,9 +4,8 @@ import { AuthProvider } from "@/lib/auth/AuthContext";
 import Sidebar from "@/components/Sidebar";
 
 export const metadata: Metadata = {
-  title: "Prodexa — Autonomous Pre-Launch Readiness Platform",
-  description:
-    "Runs your product through 6 specialized analysis modules combining real deterministic signals—Lighthouse, GitHub metadata, page structure—to generate a single Launch Readiness Score with copy-pasteable fixes.",
+  title: "Prodexa — AI Product Operating System",
+  description: "From idea to launch-ready product. Prodexa guides founders through AI Blueprint generation, system architecture, and launch readiness auditing.",
 };
 
 export default function RootLayout({
@@ -16,7 +15,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className="bg-[#0B0C0E] text-[#EDEDEF] antialiased min-h-screen flex flex-col md:flex-row font-sans">
+      <body className="bg-[#09090B] text-[#FAFAFA] antialiased min-h-screen flex flex-col md:flex-row">
         <AuthProvider>
           <Sidebar />
           <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
