@@ -1,5 +1,5 @@
 import { Project, ValidationRun } from "@/lib/types/schema";
-import { Blueprint, BlueprintSection, ProjectMemory, ProjectMemorySnapshot, ChatMessageDoc, MentorNote, SourceAttribution } from "@/lib/types/blueprint";
+import { Blueprint, BlueprintSection, ProjectMemory, ProjectMemorySnapshot, ChatMessageDoc, MentorNote } from "@/lib/types/blueprint";
 
 // In-memory store fallbacks for zero-config local dev & demo safety
 const mockProjects: Map<string, Project> = new Map();
@@ -34,7 +34,7 @@ const demoBlueprint: Blueprint = {
       marketReadiness: 87,
     },
     strengths: [
-      "Bridges the critical gap between Day 0 idea planning and Day 30 launch audit",
+      "Bridges the critical gap between Day 0 idea creation and Day 30 launch audit",
       "Combines real deterministic checks (Lighthouse, GitHub) with structured AI reasoning",
       "Stores bounded context memory packages to eliminate prompt re-querying",
     ],
@@ -185,26 +185,6 @@ const demoProject: Project = {
   latestScore: 84,
 };
 
-const pramanaProject: Project = {
-  id: "proj-pramana-ai",
-  userId: demoUserId,
-  name: "Pramana AI Workspace",
-  websiteUrl: "https://pramana.ai",
-  githubRepoUrl: "https://github.com/sanket1035/prodexa",
-  pitchDeckUrl: null,
-  screenshotUrls: [],
-  blueprintId: demoBlueprintId,
-  contextPackage: {
-    ...demoBlueprint.contextPackage,
-    projectName: "Pramana AI Workspace",
-    oneLineSummary: "An AI-powered truth & verification engine for software projects.",
-  },
-  healthScore: 100,
-  createdAt: new Date().toISOString(),
-  lastValidatedAt: new Date().toISOString(),
-  latestScore: 88,
-};
-
 const demoMemory: ProjectMemory = {
   projectId: demoProjectId,
   projectSummary: "Prodexa is an Autonomous AI Product Operating System that takes founders from Day 0 Idea Blueprint to Launch Readiness.",
@@ -275,12 +255,9 @@ const demoRun: ValidationRun = {
 };
 
 mockProjects.set(demoProjectId, demoProject);
-mockProjects.set("proj-pramana-ai", pramanaProject);
 mockRuns.set(demoRunId, demoRun);
-mockRuns.set("run-pramana-1", { ...demoRun, id: "run-pramana-1", projectId: "proj-pramana-ai", overallScore: 88 });
 mockBlueprints.set(demoBlueprintId, demoBlueprint);
 mockMemories.set(demoProjectId, demoMemory);
-mockMemories.set("proj-pramana-ai", { ...demoMemory, projectId: "proj-pramana-ai" });
 
 // --- Memory History Snapshots & Source Attribution Methods ---
 
@@ -433,7 +410,7 @@ export async function getMentorNotes(projectId: string): Promise<MentorNote[]> {
     const { adminDb } = await import("./admin");
     const snapshot = await adminDb.collection("projects").doc(projectId).collection("mentorNotes").orderBy("createdAt", "desc").get();
     if (!snapshot.empty) {
-      return snapshot.docs.map((doc) => doc.data() as MentorNote);
+      return snapshot.docs.map((doc: { data: () => any }) => doc.data() as MentorNote);
     }
   } catch {
     // Fallback
@@ -570,7 +547,9 @@ export async function getProjectsForUser(userId: string): Promise<Project[]> {
     // Fallback
   }
 
-  // Always include mock/seeded projects so logged in users can view workspace projects
+  // Include user projects created in local memory
+  const userProjects = Array.from(mockProjects.values()).filter((p) => p.userId === userId || userId === "demo-user-123");
+  if (userProjects.length > 0) return userProjects;
   return Array.from(mockProjects.values());
 }
 
@@ -588,7 +567,7 @@ export async function getProjectById(projectId: string): Promise<Project | null>
   const existing = mockProjects.get(projectId);
   if (existing) return existing;
 
-  // On-the-fly auto-creation for custom project IDs (e.g. pramana-ai) so NO user ever gets 404
+  // On-the-fly auto-creation for custom project IDs so NO user ever hits a 404
   const formattedName = projectId
     .replace(/^proj-?/, "")
     .replace(/-/g, " ")
@@ -597,17 +576,17 @@ export async function getProjectById(projectId: string): Promise<Project | null>
   const autoProject: Project = {
     id: projectId,
     userId: demoUserId,
-    name: formattedName || "Pramana AI Workspace",
-    websiteUrl: "https://pramana.ai",
-    githubRepoUrl: "https://github.com/sanket1035/prodexa",
+    name: formattedName || "New Startup Workspace",
+    websiteUrl: "https://example.com",
+    githubRepoUrl: null,
     pitchDeckUrl: null,
     screenshotUrls: [],
     blueprintId: demoBlueprintId,
     contextPackage: demoBlueprint.contextPackage,
-    healthScore: 100,
+    healthScore: 75,
     createdAt: new Date().toISOString(),
     lastValidatedAt: new Date().toISOString(),
-    latestScore: 86,
+    latestScore: 84,
   };
 
   mockProjects.set(projectId, autoProject);
@@ -708,6 +687,6 @@ export async function getValidationRunsForProject(projectId: string): Promise<Va
   }
 
   return Array.from(mockRuns.values())
-    .filter((r) => r.projectId === projectId || projectId.includes("pramana"))
+    .filter((r) => r.projectId === projectId || projectId.includes("demo"))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
