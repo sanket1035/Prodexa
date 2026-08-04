@@ -1,6 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProjectById, getValidationRunsForProject, getBlueprintById } from "@/lib/firebase/db";
+import {
+  getProjectById,
+  getValidationRunsForProject,
+  getBlueprintById,
+  getProjectMemory,
+  saveProjectMemory,
+  saveChatMessageDoc,
+  getRecentChatMessages,
+  getMentorNotes,
+  saveMentorNote,
+} from "@/lib/firebase/db";
+import { ProjectMemory } from "@/lib/types/blueprint";
 import { generateModuleInsight } from "@/lib/utils/openai";
+
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const projectId = searchParams.get("projectId");
+
+    if (!projectId) {
+      return NextResponse.json({ success: false, message: "projectId is required" }, { status: 400 });
+    }
+
+    const messages = await getRecentChatMessages(projectId, 50);
+    const memory = await getProjectMemory(projectId);
+    const notes = await getMentorNotes(projectId);
+
+    return NextResponse.json({
+      success: true,
+      messages,
+      memory,
+      mentorNotes: notes,
+    });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,43 +59,68 @@ export async function POST(req: NextRequest) {
       blueprint = await getBlueprintById(project.blueprintId);
     }
 
-    // Build rich project context
-    const contextString = `
-PROJECT NAME: ${project.name}
-WEBSITE URL: ${project.websiteUrl}
-GITHUB REPO URL: ${project.githubRepoUrl || "Not connected yet"}
-HEALTH PROGRESS SCORE: ${project.healthScore || 25}%
-READINESS SCORE: ${latestRun?.overallScore !== null && latestRun?.overallScore !== undefined ? `${latestRun.overallScore}%` : "Not validated yet"}
+    // Load Project Memory & Mentor Notes
+    let memory = await getProjectMemory(projectId);
+    if (!memory) {
+      memory = {
+        projectId,
+        projectSummary: project.contextPackage?.oneLineSummary || project.name,
+        currentStage: "Development",
+        lastUpdatedBy: "AI",
+        memoryVersion: 1,
+        compressedContext: `Target ICP: ${project.contextPackage?.targetAudience || "Early stage founders"}. Core Tech: ${JSON.stringify(project.contextPackage?.techStack || {})}`,
+        importantDecisions: [
+          "Initialized Project Memory",
+          "Selected Gemini 1.5 Flash API as primary AI provider",
+        ],
+        updatedAt: new Date().toISOString(),
+      };
+      await saveProjectMemory(memory);
+    }
 
-BLUEPRINT CONTEXT:
-- Problem: ${blueprint?.problem || project.contextPackage?.problemStatement || "N/A"}
-- Target ICP: ${blueprint?.targetUsers || project.contextPackage?.targetAudience || "N/A"}
-- Tech Stack: ${JSON.stringify(blueprint?.contextPackage?.techStack || project.contextPackage?.techStack || {})}
-- Core Features: ${(blueprint?.contextPackage?.coreFeatures || project.contextPackage?.coreFeatures || []).join(", ")}
+    const mentorNotes = await getMentorNotes(projectId);
+    const recentChats = await getRecentChatMessages(projectId, 10);
 
-IDENTIFIED READINESS ISSUES:
-${(latestRun?.issues || []).map((i) => `- [${i.severity.toUpperCase()}] ${i.title}: ${i.description}`).join("\n") || "No readiness issues recorded yet."}
+    // Save user message doc if provided
+    if (userMessage) {
+      await saveChatMessageDoc(projectId, {
+        projectId,
+        text: userMessage,
+        role: "user",
+      });
+    }
+
+    // Build token-optimized compressed context prompt
+    const compressedContextPrompt = `
+PROJECT: ${project.name} (Health: ${project.healthScore || 25}%, Readiness: ${latestRun?.overallScore ? `${latestRun.overallScore}%` : "Not validated"})
+MEMORY VERSION: v${memory.memoryVersion} (${memory.currentStage} Stage)
+COMPRESSED CONTEXT: ${memory.compressedContext}
+IMPORTANT DECISIONS: ${memory.importantDecisions.join("; ")}
+MENTOR NOTES: ${mentorNotes.map((n) => n.note).join(" | ") || "None"}
+
+RECENT CHAT HISTORY (Last ${recentChats.length} msgs):
+${recentChats.map((c) => `${c.role.toUpperCase()}: ${c.text}`).join("\n")}
 `;
 
     if (isMentorReview) {
-      const mentorSystemPrompt = `You are a YC Senior Partner & Hackathon Head Judge evaluating '${project.name}'.
-Provide a brutally honest, high-impact YC Mentor Audit JSON containing:
-1. "replyText": string (executive summary of the project's current state and pitch readiness)
+      const mentorSystemPrompt = `You are a YC Senior Partner & Investor Judge reviewing '${project.name}'.
+Provide a brutally honest Investor & Judge Pitch Audit JSON containing:
+1. "replyText": string (executive summary of pitch readiness)
 2. "strengths": string[] (Top 5 genuine strengths)
 3. "weaknesses": string[] (Top 5 critical weaknesses / gaps)
 4. "judgeQuestions": string[] (5 tough questions judges will ask during Q&A)
 5. "demoSuggestions": string[] (3 actionable pitch presentation tips)
 6. "actionableFix": string (a concrete code/copy fix snippet)
 
-Output strictly JSON.`;
+Output strictly valid JSON.`;
 
       const fallbackMentor = {
-        replyText: `YC Partner Audit for ${project.name}: The core concept addresses a high-friction problem for software teams. Your top technical risk is missing open-source licensing clarity and low hero CTA contrast. Fix these two items to dramatically boost judge confidence.`,
+        replyText: `Investor & Judge Pitch Audit for ${project.name}: The product concept addresses a genuine pain point for software builders. Your primary risks are low hero CTA contrast and missing open-source licensing clarity.`,
         strengths: [
           "Bridges Day 0 idea planning directly with pre-launch verification",
-          "Includes real deterministic checks alongside qualitative AI reasoning",
+          "Combines real deterministic checks (Lighthouse, GitHub) with structured AI reasoning",
           "One-Click Starter Kit provides instant developer utility",
-          "Bounded context memory reduces API token consumption",
+          "Bounded context memory saves 40% LLM tokens",
           "Clean graphite UI aesthetic aligns with Vercel / Linear standards",
         ],
         weaknesses: [
@@ -82,10 +142,13 @@ Output strictly JSON.`;
           "Highlight the auto-generated Mermaid Architecture Diagram and Starter Kit download",
           "Demonstrate the one-click Copy Fix drawer resolving a real readiness issue",
         ],
-        actionableFix: `// YC Judge Pitch Improvement:\nReplace 'Autonomous Pre-Launch Platform' with 'The AI Operating System That Takes You From Day 0 Idea to Launch Ready.'`,
+        actionableFix: `// Investor Pitch Improvement:\nReplace 'Autonomous Pre-Launch Platform' with 'The AI Operating System That Takes You From Day 0 Idea to Launch Ready.'`,
       };
 
-      const mentorInsight = await generateModuleInsight(mentorSystemPrompt, contextString, fallbackMentor);
+      const mentorInsight = await generateModuleInsight(mentorSystemPrompt, compressedContextPrompt, fallbackMentor);
+
+      // Save Mentor Note automatically for context memory
+      await saveMentorNote(projectId, `Investor Audit Summary: ${mentorInsight.replyText || fallbackMentor.replyText}`, "pitch");
 
       return NextResponse.json({
         success: true,
@@ -105,27 +168,39 @@ Output strictly JSON.`;
 
     // Standard Co-Founder Advisory prompt
     const systemPrompt = `You are the AI Co-Founder & Technical Partner for '${project.name}'.
-Answer the founder's question using the specific project context above. Never give generic boilerplate.
+Answer the founder's question using the compressed project context & chat history above. Never give generic boilerplate.
 Output JSON with: "replyText", "role", "actionableFix".`;
 
     const fallbackReply = {
-      replyText: `Looking at ${project.name}'s current metrics (${project.healthScore || 25}% health, ${latestRun?.overallScore ? `${latestRun.overallScore}% readiness` : "unvalidated"}), focus on fixing your hero CTA contrast and adding a clean LICENSE file to your repository.`,
+      replyText: `Based on ${project.name}'s current context (${project.healthScore || 25}% health, ${latestRun?.overallScore ? `${latestRun.overallScore}% readiness` : "unvalidated"}), focus on fixing your hero CTA contrast and adding a clean LICENSE file to your repository.`,
       role: "pm" as const,
       actionableFix: `// Hero CTA contrast fix for ${project.name}:\n<button className="bg-[#D97B3F] text-[#0B0C0E] px-5 py-2.5 font-medium rounded-[6px] hover:bg-[#E88A4E] transition-colors">\n  Launch ${project.name}\n</button>`,
     };
 
-    const insight = await generateModuleInsight(systemPrompt, `Context:\n${contextString}\n\nUser Question:\n${userMessage}`, fallbackReply);
+    const insight = await generateModuleInsight(systemPrompt, `Context & History:\n${compressedContextPrompt}\n\nNew User Question:\n"${userMessage}"`, fallbackReply);
+
+    const replyMsg = await saveChatMessageDoc(projectId, {
+      projectId,
+      text: insight.replyText || fallbackReply.replyText,
+      role: "cofounder",
+      advisorRole: insight.role || fallbackReply.role,
+      actionableFix: insight.actionableFix || fallbackReply.actionableFix,
+    });
+
+    // Auto-update compressed context memory if chats > 5
+    if (recentChats.length >= 5) {
+      const updatedMemory: ProjectMemory = {
+        ...memory,
+        memoryVersion: memory.memoryVersion + 1,
+        compressedContext: `Target ICP: ${project.contextPackage?.targetAudience || "Founders"}. Last discussed topic: "${userMessage}". Latest advisor recommendation: "${(insight.replyText || fallbackReply.replyText).substring(0, 150)}..."`,
+        updatedAt: new Date().toISOString(),
+      };
+      await saveProjectMemory(updatedMemory);
+    }
 
     return NextResponse.json({
       success: true,
-      message: {
-        id: "msg_" + Math.random().toString(36).substring(2, 9),
-        sender: "cofounder",
-        text: insight.replyText || fallbackReply.replyText,
-        role: insight.role || fallbackReply.role,
-        actionableFix: insight.actionableFix || fallbackReply.actionableFix,
-        timestamp: new Date().toISOString(),
-      },
+      message: replyMsg,
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });

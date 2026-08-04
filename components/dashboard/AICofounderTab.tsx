@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { CoFounderMessage } from "@/lib/types/cofounder";
 import { Bot, Send, User, Sparkles, Copy, Check, ShieldAlert, Award, Code2, AlertTriangle, CheckCircle2, HelpCircle, Lightbulb } from "lucide-react";
 
@@ -42,6 +42,28 @@ export default function AICofounderTab({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Fetch persistent chat messages from Firestore /api/cofounder?projectId=xxx on mount
+  useEffect(() => {
+    if (!projectId) return;
+
+    fetch(`/api/cofounder?projectId=${projectId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.messages) && data.messages.length > 0) {
+          const loadedMsgs: CoFounderMessage[] = data.messages.map((m: any) => ({
+            id: m.id,
+            sender: m.role === "user" ? "user" : "cofounder",
+            text: m.text,
+            role: m.advisorRole || "advisor",
+            actionableFix: m.actionableFix,
+            timestamp: m.createdAt || new Date().toISOString(),
+          }));
+          setMessages(loadedMsgs);
+        }
+      })
+      .catch(() => {});
+  }, [projectId]);
 
   const quickPrompts = [
     "What will hackathon judges criticize about this project?",
@@ -99,7 +121,17 @@ export default function AICofounderTab({
 
       const data = await res.json();
       if (data.success && data.message) {
-        setMessages((prev) => [...prev, data.message]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: data.message.id,
+            sender: data.message.role === "user" ? "user" : "cofounder",
+            text: data.message.text,
+            role: data.message.advisorRole || "advisor",
+            actionableFix: data.message.actionableFix,
+            timestamp: data.message.createdAt || new Date().toISOString(),
+          },
+        ]);
       } else {
         throw new Error(data.message || "Failed to get AI Co-Founder response");
       }
@@ -136,11 +168,11 @@ export default function AICofounderTab({
             <div className="flex items-center gap-2">
               <h3 className="text-base font-medium text-[#EDEDEF]">AI Co-Founder & Strategy Advisor</h3>
               <span className="text-[10px] font-mono uppercase bg-[#5FA88A]/10 text-[#5FA88A] px-2 py-0.5 rounded border border-[#5FA88A]/20">
-                Project Bounded
+                Firestore Memory Persisted
               </span>
             </div>
             <p className="text-xs text-[#8B8F97] mt-0.5">
-              Project-specific advice backed by real blueprint memory, GitHub analysis, and launch readiness scores.
+              Project-specific advice backed by real blueprint memory, GitHub analysis, and compressed context memory.
             </p>
           </div>
         </div>
@@ -334,7 +366,7 @@ export default function AICofounderTab({
         )}
       </div>
 
-      {/* Input Field with Raycast/Linear 6px rounded borders */}
+      {/* Input Field */}
       <form
         onSubmit={(e) => {
           e.preventDefault();

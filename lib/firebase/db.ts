@@ -1,10 +1,13 @@
 import { Project, ValidationRun } from "@/lib/types/schema";
-import { Blueprint, BlueprintSection } from "@/lib/types/blueprint";
+import { Blueprint, BlueprintSection, ProjectMemory, ChatMessageDoc, MentorNote } from "@/lib/types/blueprint";
 
-// In-memory store fallback for zero-config local dev & demo safety
+// In-memory store fallbacks for zero-config local dev & demo safety
 const mockProjects: Map<string, Project> = new Map();
 const mockRuns: Map<string, ValidationRun> = new Map();
 const mockBlueprints: Map<string, Blueprint> = new Map();
+const mockMemories: Map<string, ProjectMemory> = new Map();
+const mockChatDocs: Map<string, ChatMessageDoc[]> = new Map();
+const mockNotes: Map<string, MentorNote[]> = new Map();
 
 // Seed initial demo data for instant dashboard preview
 const demoUserId = "demo-user-123";
@@ -45,7 +48,7 @@ const demoBlueprint: Blueprint = {
     API --> Engine["6 Blueprint & Readiness Engine Modules"]
     API --> DB["Firebase Firestore & Context Memory"]
     Engine --> Scraper["Cheerio Scraper & GitHub API"]
-    Engine --> OpenAI["OpenAI GPT-4o-mini"]`,
+    Engine --> OpenAI["OpenAI GPT-4o-mini / Gemini 1.5"]`,
   sections: [
     {
       id: "sec-1",
@@ -98,7 +101,7 @@ const demoBlueprint: Blueprint = {
           frontend: "Next.js 14 (App Router), React, TypeScript, Tailwind CSS",
           backend: "Next.js Server API Routes, Firebase Admin SDK",
           database: "Firebase Firestore with Memory Fallback Store",
-          ai: "OpenAI GPT-4o-mini for structured JSON inference"
+          ai: "Gemini 1.5 Flash Primary / GPT-4o-mini Fallback"
         },
         riskAnalysis: [
           { risk: "Target landing page blocks web scraping", mitigation: "Graceful degradation to 'Unable to analyze' status without pipeline failure" },
@@ -115,6 +118,7 @@ const demoBlueprint: Blueprint = {
         collections: [
           { name: "blueprints", fields: "id, userId, name, qualityScore, mermaidDiagram, contextPackage" },
           { name: "projects", fields: "id, userId, name, websiteUrl, githubRepoUrl, blueprintId, healthScore" },
+          { name: "projectMemory", fields: "projectId, projectSummary, currentStage, memoryVersion, compressedContext" },
           { name: "validationRuns", fields: "id, projectId, status, overallScore, moduleScores, issues" }
         ],
         endpoints: [
@@ -155,7 +159,7 @@ const demoBlueprint: Blueprint = {
       frontend: "Next.js 14, Tailwind CSS",
       backend: "Next.js Server API Routes",
       database: "Firebase Firestore",
-      ai: "OpenAI GPT-4o-mini"
+      ai: "Gemini 1.5 Flash Primary / GPT-4o-mini Fallback"
     },
     keyCompetitors: ["Generic AI Chatbots", "Linear / Notion"],
     generatedAt: new Date().toISOString(),
@@ -178,6 +182,21 @@ const demoProject: Project = {
   createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
   lastValidatedAt: new Date().toISOString(),
   latestScore: 84,
+};
+
+const demoMemory: ProjectMemory = {
+  projectId: demoProjectId,
+  projectSummary: "Prodexa is an Autonomous AI Product Operating System that takes founders from Day 0 Idea Blueprint to Launch Readiness.",
+  currentStage: "InvestorReady",
+  lastUpdatedBy: "AI",
+  memoryVersion: 3,
+  compressedContext: "Prodexa targets early-stage software founders. Core tech stack is Next.js 14, Firebase Firestore, Tailwind CSS, and Gemini 1.5 Flash API. Identified gaps include hero CTA contrast and MIT license additions.",
+  importantDecisions: [
+    "Switched primary AI engine to Gemini 1.5 Flash with OpenAI fallback",
+    "Added Investor & Judge Review pitch audit module",
+    "Positioned as AI Product Operating System (Idea -> Build -> Launch)",
+  ],
+  updatedAt: new Date().toISOString(),
 };
 
 const demoRun: ValidationRun = {
@@ -250,22 +269,114 @@ const demoRun: ValidationRun = {
 mockProjects.set(demoProjectId, demoProject);
 mockRuns.set(demoRunId, demoRun);
 mockBlueprints.set(demoBlueprintId, demoBlueprint);
+mockMemories.set(demoProjectId, demoMemory);
+
+// --- Context Memory & Persistent Chat Sub-collection Operations ---
+
+export async function saveProjectMemory(memory: ProjectMemory): Promise<ProjectMemory> {
+  const updatedMemory = { ...memory, updatedAt: new Date().toISOString() };
+  try {
+    const { adminDb } = await import("./admin");
+    await adminDb.collection("projectMemory").doc(memory.projectId).set(updatedMemory, { merge: true });
+  } catch {
+    // Memory fallback
+  }
+  mockMemories.set(memory.projectId, updatedMemory);
+  return updatedMemory;
+}
+
+export async function getProjectMemory(projectId: string): Promise<ProjectMemory | null> {
+  try {
+    const { adminDb } = await import("./admin");
+    const doc = await adminDb.collection("projectMemory").doc(projectId).get();
+    if (doc.exists) {
+      return doc.data() as ProjectMemory;
+    }
+  } catch {
+    // Fallback
+  }
+  return mockMemories.get(projectId) || null;
+}
+
+export async function saveChatMessageDoc(projectId: string, msg: Omit<ChatMessageDoc, "id" | "createdAt">): Promise<ChatMessageDoc> {
+  const id = "msg_" + Math.random().toString(36).substring(2, 9);
+  const now = new Date().toISOString();
+  const chatDoc: ChatMessageDoc = { ...msg, id, projectId, createdAt: now };
+
+  try {
+    const { adminDb } = await import("./admin");
+    await adminDb.collection("projects").doc(projectId).collection("chats").doc(id).set(chatDoc);
+  } catch {
+    // Fallback
+  }
+
+  const existing = mockChatDocs.get(projectId) || [];
+  mockChatDocs.set(projectId, [...existing, chatDoc]);
+  return chatDoc;
+}
+
+export async function getRecentChatMessages(projectId: string, limitCount = 20): Promise<ChatMessageDoc[]> {
+  try {
+    const { adminDb } = await import("./admin");
+    const snapshot = await adminDb
+      .collection("projects")
+      .doc(projectId)
+      .collection("chats")
+      .orderBy("createdAt", "asc")
+      .limit(limitCount)
+      .get();
+    
+    if (!snapshot.empty) {
+      return snapshot.docs.map((doc) => doc.data() as ChatMessageDoc);
+    }
+  } catch {
+    // Fallback
+  }
+
+  return mockChatDocs.get(projectId) || [];
+}
+
+export async function saveMentorNote(projectId: string, noteText: string, category: "pitch" | "engineering" | "ux" | "business" = "pitch"): Promise<MentorNote> {
+  const id = "note_" + Math.random().toString(36).substring(2, 9);
+  const now = new Date().toISOString();
+  const note: MentorNote = { id, projectId, note: noteText, category, createdAt: now };
+
+  try {
+    const { adminDb } = await import("./admin");
+    await adminDb.collection("projects").doc(projectId).collection("mentorNotes").doc(id).set(note);
+  } catch {
+    // Fallback
+  }
+
+  const existing = mockNotes.get(projectId) || [];
+  mockNotes.set(projectId, [...existing, note]);
+  return note;
+}
+
+export async function getMentorNotes(projectId: string): Promise<MentorNote[]> {
+  try {
+    const { adminDb } = await import("./admin");
+    const snapshot = await adminDb.collection("projects").doc(projectId).collection("mentorNotes").orderBy("createdAt", "desc").get();
+    if (!snapshot.empty) {
+      return snapshot.docs.map((doc) => doc.data() as MentorNote);
+    }
+  } catch {
+    // Fallback
+  }
+  return mockNotes.get(projectId) || [];
+}
 
 // Blueprint operations
 export async function createBlueprint(bp: Omit<Blueprint, "id" | "createdAt">): Promise<Blueprint> {
   const id = "bp_" + Math.random().toString(36).substring(2, 9);
   const now = new Date().toISOString();
-  const newBp: Blueprint = {
-    ...bp,
-    id,
-    createdAt: now,
-  };
+  const newBp: Blueprint = { ...bp, id, createdAt: now };
 
   try {
     const { adminDb } = await import("./admin");
     await adminDb.collection("blueprints").doc(id).set(newBp);
   } catch {
-    // Memory fallback
+    // Fallback
   }
 
   mockBlueprints.set(id, newBp);
@@ -282,7 +393,6 @@ export async function getBlueprintById(blueprintId: string): Promise<Blueprint |
   } catch {
     // Fallback
   }
-
   return mockBlueprints.get(blueprintId) || null;
 }
 
@@ -334,16 +444,34 @@ export async function convertBlueprintToProject(blueprintId: string): Promise<Pr
     latestScore: null,
   };
 
+  // Initialize Project Memory
+  const initialMemory: ProjectMemory = {
+    projectId,
+    projectSummary: bp.contextPackage.oneLineSummary || bp.idea,
+    currentStage: "Blueprint",
+    lastUpdatedBy: "AI",
+    memoryVersion: 1,
+    compressedContext: `Target Audience: ${bp.contextPackage.targetAudience}. Core Tech: ${JSON.stringify(bp.contextPackage.techStack)}. Key Features: ${bp.contextPackage.coreFeatures.join(", ")}.`,
+    importantDecisions: [
+      "Generated AI Product Blueprint with Quality Score",
+      "Selected Next.js 14 and Firebase stack",
+      "Positioned product for early-stage software founders",
+    ],
+    updatedAt: now,
+  };
+
   try {
     const { adminDb } = await import("./admin");
     await adminDb.collection("projects").doc(projectId).set(newProj);
     await adminDb.collection("blueprints").doc(blueprintId).update({ status: "accepted" });
+    await adminDb.collection("projectMemory").doc(projectId).set(initialMemory);
   } catch {
     // Fallback
   }
 
   mockProjects.set(projectId, newProj);
   mockBlueprints.set(blueprintId, { ...bp, status: "accepted" });
+  mockMemories.set(projectId, initialMemory);
 
   return newProj;
 }
@@ -386,11 +514,10 @@ export async function createProject(project: Omit<Project, "id" | "createdAt" | 
   const id = "proj_" + Math.random().toString(36).substring(2, 9);
   const now = new Date().toISOString();
 
-  // Compute health score based on milestones
-  let healthScore = 25; // Base Blueprint/Name created
-  if (project.websiteUrl && !project.websiteUrl.includes("example-landing-page.com")) healthScore += 25; // 50%
-  if (project.githubRepoUrl) healthScore += 25; // 75%
-  if (project.pitchDeckUrl) healthScore += 25; // 100%
+  let healthScore = 25;
+  if (project.websiteUrl && !project.websiteUrl.includes("example-landing-page.com")) healthScore += 25;
+  if (project.githubRepoUrl) healthScore += 25;
+  if (project.pitchDeckUrl) healthScore += 25;
 
   const newProject: Project = {
     ...project,
@@ -415,15 +542,12 @@ export async function createProject(project: Omit<Project, "id" | "createdAt" | 
 export async function createValidationRun(run: Omit<ValidationRun, "id" | "createdAt">): Promise<ValidationRun> {
   const id = "run_" + Math.random().toString(36).substring(2, 9);
   const now = new Date().toISOString();
-  const newRun: ValidationRun = {
-    ...run,
-    id,
-    createdAt: now,
-  };
+  const newRun: ValidationRun = { ...run, id, createdAt: now };
 
   try {
     const { adminDb } = await import("./admin");
     await adminDb.collection("validationRuns").doc(id).set(newRun);
+    await adminDb.collection("projects").doc(run.projectId).collection("auditHistory").doc(id).set(newRun);
   } catch {
     // Fallback
   }

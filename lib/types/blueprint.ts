@@ -38,6 +38,41 @@ export interface ContextPackage {
   generatedAt: string;
 }
 
+export interface ImportantDecision {
+  id: string;
+  decision: string;
+  timestamp: string;
+}
+
+export interface ProjectMemory {
+  projectId: string;
+  projectSummary: string;
+  currentStage: "Blueprint" | "Development" | "AuditReady" | "InvestorReady";
+  lastUpdatedBy: "AI" | "Mentor" | "User";
+  memoryVersion: number;
+  compressedContext: string;
+  importantDecisions: string[];
+  updatedAt: string;
+}
+
+export interface MentorNote {
+  id: string;
+  projectId: string;
+  note: string;
+  category: "pitch" | "engineering" | "ux" | "business";
+  createdAt: string;
+}
+
+export interface ChatMessageDoc {
+  id: string;
+  projectId: string;
+  text: string;
+  role: "user" | "cofounder";
+  advisorRole?: "advisor" | "pm" | "architect" | "judge";
+  actionableFix?: string;
+  createdAt: string;
+}
+
 export interface BlueprintSection {
   id: string;
   title: string;
