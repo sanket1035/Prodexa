@@ -1,19 +1,74 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { ShieldCheck, ArrowRight } from "lucide-react";
+import { ShieldCheck, ArrowRight, Mail, Lock, User, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function LoginPage() {
-  const { user, loading, signInWithGoogle, signInAsDemoUser } = useAuth();
+  const { user, loading, signInWithGoogle, signUpWithEmail, signInWithEmail, signInAsDemoUser } = useAuth();
   const router = useRouter();
+
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
       router.push("/projects");
     }
   }, [user, loading, router]);
+
+  const handleGoogleClick = async () => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setSubmitting(true);
+
+    const res = await signInWithGoogle();
+    if (res.success) {
+      router.push("/projects");
+    } else {
+      setErrorMsg(res.error || "Google sign-in failed.");
+    }
+    setSubmitting(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setSubmitting(true);
+
+    if (mode === "signup") {
+      if (!name.trim()) {
+        setErrorMsg("Please enter your full name.");
+        setSubmitting(false);
+        return;
+      }
+      const res = await signUpWithEmail(name, email, password);
+      if (res.success) {
+        setSuccessMsg(`Verification email sent to ${email}! Please check your inbox and verify your account before signing in.`);
+        setMode("signin");
+      } else {
+        setErrorMsg(res.error || "Sign up failed.");
+      }
+    } else {
+      const res = await signInWithEmail(email, password);
+      if (res.success) {
+        router.push("/projects");
+      } else if (res.requiresVerification) {
+        setErrorMsg("Email not verified! We sent a verification link to your inbox. Please verify before signing in.");
+      } else {
+        setErrorMsg(res.error || "Invalid email or password.");
+      }
+    }
+    setSubmitting(false);
+  };
 
   if (loading) {
     return (
@@ -24,47 +79,154 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0C0E] text-[#EDEDEF] flex flex-col justify-center items-center px-4">
+    <div className="min-h-screen bg-[#0B0C0E] text-[#EDEDEF] flex flex-col justify-center items-center px-4 font-sans py-12">
       <div className="w-full max-w-md bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-8 space-y-6">
+        {/* Header */}
         <div className="space-y-2 text-center">
-          <div className="inline-flex items-center gap-2 text-xs font-mono tracking-wider uppercase text-[#D97B3F] bg-[#D97B3F]/10 px-2.5 py-1 rounded-[4px] border border-[#D97B3F]/20">
+          <div className="inline-flex items-center gap-2 text-xs font-mono tracking-wider uppercase text-[#D97B3F] bg-[#D97B3F]/10 px-3 py-1 rounded-[4px] border border-[#D97B3F]/20">
             <ShieldCheck className="w-3.5 h-3.5" />
             Prodexa Authentication
           </div>
           <h1 className="text-2xl font-medium tracking-tight text-[#EDEDEF]">
-            Sign in to Prodexa
+            {mode === "signin" ? "Sign in to Prodexa" : "Create your Prodexa Account"}
           </h1>
-          <p className="text-sm text-[#8B8F97]">
-            Autonomous Pre-Launch Readiness Platform
+          <p className="text-xs text-[#8B8F97] font-mono">
+            Autonomous Pre-Launch AI Operating System
           </p>
         </div>
 
-        <div className="space-y-3 pt-2">
+        {/* Tab Switcher */}
+        <div className="grid grid-cols-2 bg-[#0B0C0E] border border-[#2A2D31] p-1 rounded-[6px] text-xs font-mono">
           <button
-            onClick={signInWithGoogle}
-            className="w-full flex items-center justify-center gap-3 bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-medium py-2.5 px-4 rounded-[6px] transition-colors focus-visible:outline-2 focus-visible:outline-[#D97B3F]"
+            onClick={() => {
+              setMode("signin");
+              setErrorMsg(null);
+              setSuccessMsg(null);
+            }}
+            className={`py-1.5 rounded font-medium transition-colors ${
+              mode === "signin" ? "bg-[#1E2124] text-[#D97B3F] font-bold" : "text-[#8B8F97] hover:text-[#EDEDEF]"
+            }`}
           >
-            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-              <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
-            </svg>
-            Sign in with Google
+            Sign In
           </button>
+          <button
+            onClick={() => {
+              setMode("signup");
+              setErrorMsg(null);
+              setSuccessMsg(null);
+            }}
+            className={`py-1.5 rounded font-medium transition-colors ${
+              mode === "signup" ? "bg-[#1E2124] text-[#D97B3F] font-bold" : "text-[#8B8F97] hover:text-[#EDEDEF]"
+            }`}
+          >
+            Sign Up
+          </button>
+        </div>
 
+        {/* Alert Notifications */}
+        {errorMsg && (
+          <div className="bg-[#C25A4D]/10 border border-[#C25A4D]/30 text-[#C25A4D] p-3 rounded-[6px] text-xs font-mono flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {successMsg && (
+          <div className="bg-[#5FA88A]/10 border border-[#5FA88A]/30 text-[#5FA88A] p-3 rounded-[6px] text-xs font-mono flex items-start gap-2">
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>{successMsg}</span>
+          </div>
+        )}
+
+        {/* Google OAuth Button */}
+        <button
+          type="button"
+          onClick={handleGoogleClick}
+          disabled={submitting}
+          className="w-full flex items-center justify-center gap-3 bg-[#1E2124] hover:bg-[#25292E] text-[#EDEDEF] font-mono text-xs font-medium py-2.5 px-4 rounded-[6px] border border-[#2A2D31] transition-colors disabled:opacity-50"
+        >
+          <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+            <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
+          </svg>
+          {submitting ? "Signing in..." : "Continue with Google"}
+        </button>
+
+        <div className="relative flex py-1 items-center">
+          <div className="flex-grow border-t border-[#2A2D31]"></div>
+          <span className="flex-shrink mx-3 text-[11px] font-mono uppercase text-[#8B8F97]">or email</span>
+          <div className="flex-grow border-t border-[#2A2D31]"></div>
+        </div>
+
+        {/* Email & Password Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === "signup" && (
+            <div className="space-y-1">
+              <label className="text-xs font-mono text-[#EDEDEF] flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-[#8B8F97]" />
+                Full Name
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Alex Rivera"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-3.5 py-2 text-xs text-[#EDEDEF] placeholder-[#8B8F97]/50 focus:border-[#D97B3F] outline-none font-mono"
+              />
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <label className="text-xs font-mono text-[#EDEDEF] flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5 text-[#8B8F97]" />
+              Email Address
+            </label>
+            <input
+              type="email"
+              required
+              placeholder="founder@startup.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-3.5 py-2 text-xs text-[#EDEDEF] placeholder-[#8B8F97]/50 focus:border-[#D97B3F] outline-none font-mono"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-mono text-[#EDEDEF] flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5 text-[#8B8F97]" />
+              Password
+            </label>
+            <input
+              type="password"
+              required
+              placeholder="••••••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-3.5 py-2 text-xs text-[#EDEDEF] placeholder-[#8B8F97]/50 focus:border-[#D97B3F] outline-none font-mono"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-mono text-xs font-medium py-2.5 px-4 rounded-[6px] transition-colors disabled:opacity-50"
+          >
+            {submitting ? "Processing..." : mode === "signup" ? "Sign Up & Send Verification Email" : "Sign In"}
+          </button>
+        </form>
+
+        {/* Demo Fast Access Option */}
+        <div className="pt-2 border-t border-[#2A2D31] text-center">
           <button
             onClick={() => {
               signInAsDemoUser();
               router.push("/projects");
             }}
-            className="w-full flex items-center justify-center gap-2 bg-[#1E2124] hover:bg-[#25292E] text-[#EDEDEF] font-medium py-2.5 px-4 rounded-[6px] border border-[#2A2D31] transition-colors text-sm"
+            className="inline-flex items-center gap-2 text-xs font-mono text-[#D97B3F] hover:underline"
           >
-            Continue as Instant Demo Guest
-            <ArrowRight className="w-4 h-4 text-[#8B8F97]" />
+            <span>Instant Demo Guest Access (No Email Required)</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
-        </div>
-
-        <div className="border-t border-[#2A2D31] pt-4 text-center text-xs text-[#8B8F97] space-y-1">
-          <p>Read-only analysis engine • No repository write access</p>
-          <p className="font-mono text-[11px] text-[#8B8F97]/70">Deterministically backed by Lighthouse & GitHub signals</p>
         </div>
       </div>
     </div>
