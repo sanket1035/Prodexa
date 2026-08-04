@@ -2,11 +2,30 @@
 
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CheckCircle2, Zap, Sparkles, FolderGit2, Lightbulb, ShieldCheck, Award } from "lucide-react";
+import { ArrowRight, Zap, Sparkles, FolderGit2, Lightbulb } from "lucide-react";
 
 export default function LandingPage() {
-  const { user, signInWithGoogle, signInAsDemoUser } = useAuth();
+  const { user, signInAsDemoUser } = useAuth();
   const router = useRouter();
+
+  const handleNavigateBlueprint = () => {
+    if (!user) {
+      signInAsDemoUser();
+    }
+    router.push("/blueprint/new");
+  };
+
+  const handleNavigateAudit = () => {
+    if (!user) {
+      signInAsDemoUser();
+    }
+    router.push("/projects/new");
+  };
+
+  const handleNavigateDemo = () => {
+    signInAsDemoUser();
+    router.push("/blueprint/bp-prodexa-demo");
+  };
 
   return (
     <div className="min-h-screen bg-[#0B0C0E] text-[#EDEDEF] flex flex-col font-sans">
@@ -83,15 +102,9 @@ export default function LandingPage() {
 
         {/* Dual Entry Option Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl text-left">
-          {/* Option B: Idea Only */}
+          {/* Option A: Idea Only (Left Card) */}
           <div
-            onClick={() => {
-              if (user) {
-                router.push("/blueprint/new");
-              } else {
-                signInWithGoogle();
-              }
-            }}
+            onClick={handleNavigateBlueprint}
             className="bg-[#16181B] border border-[#D97B3F]/50 hover:border-[#D97B3F] rounded-[6px] p-5 space-y-3 cursor-pointer transition-all hover:bg-[#1E2124] group relative overflow-hidden"
           >
             <div className="flex items-center justify-between">
@@ -99,7 +112,7 @@ export default function LandingPage() {
                 <Lightbulb className="w-4 h-4" />
               </div>
               <span className="text-[10px] font-mono uppercase bg-[#D97B3F]/20 text-[#D97B3F] px-2 py-0.5 rounded font-semibold">
-                Option B — New Idea
+                Option A — New Idea
               </span>
             </div>
 
@@ -118,15 +131,9 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Option A: Already Built Product */}
+          {/* Option B: Already Built Product (Right Card) */}
           <div
-            onClick={() => {
-              if (user) {
-                router.push("/projects/new");
-              } else {
-                signInWithGoogle();
-              }
-            }}
+            onClick={handleNavigateAudit}
             className="bg-[#16181B] border border-[#2A2D31] hover:border-[#3A3E45] rounded-[6px] p-5 space-y-3 cursor-pointer transition-all hover:bg-[#1E2124] group"
           >
             <div className="flex items-center justify-between">
@@ -134,7 +141,7 @@ export default function LandingPage() {
                 <FolderGit2 className="w-4 h-4" />
               </div>
               <span className="text-[10px] font-mono uppercase bg-[#1E2124] text-[#8B8F97] px-2 py-0.5 rounded border border-[#2A2D31]">
-                Option A — Launch Audit
+                Option B — Launch Audit
               </span>
             </div>
 
@@ -154,14 +161,11 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Demo Fast Access Button */}
+        {/* Instant Demo Button */}
         <div className="pt-2">
           <button
-            onClick={() => {
-              signInAsDemoUser();
-              router.push("/blueprint/bp-prodexa-demo");
-            }}
-            className="inline-flex items-center gap-2 bg-[#16181B] hover:bg-[#1E2124] text-[#EDEDEF] border border-[#2A2D31] font-medium py-2 px-4 rounded-[6px] text-xs font-mono transition-colors"
+            onClick={handleNavigateDemo}
+            className="inline-flex items-center gap-2 bg-[#16181B] hover:bg-[#1E2124] text-[#EDEDEF] border border-[#2A2D31] font-medium py-2 px-4 rounded-[6px] text-xs font-mono transition-colors cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#D97B3F]" />
             View Sample AI Blueprint (Instant Demo)
