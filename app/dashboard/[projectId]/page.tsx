@@ -9,6 +9,7 @@ import ProgressTracker from "@/components/dashboard/ProgressTracker";
 import CategoryCard from "@/components/dashboard/CategoryCard";
 import IssueRow from "@/components/dashboard/IssueRow";
 import RoadmapSection from "@/components/dashboard/RoadmapSection";
+import AICofounderTab from "@/components/dashboard/AICofounderTab";
 import { generateMarkdownReport, downloadFile } from "@/lib/pdf/exporter";
 
 import {
@@ -21,6 +22,10 @@ import {
   GitBranch,
   Activity,
   Lightbulb,
+  Bot,
+  CheckCircle2,
+  PlusCircle,
+  Sparkles,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -37,6 +42,14 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [revalidating, setRevalidating] = useState(false);
 
+  const [activeTab, setActiveTab] = useState<"overview" | "cofounder">("overview");
+
+  // Asset Connector Modal/Drawer state
+  const [showAssetDrawer, setShowAssetDrawer] = useState(false);
+  const [inputWebsite, setInputWebsite] = useState("");
+  const [inputGithub, setInputGithub] = useState("");
+  const [updatingAssets, setUpdatingAssets] = useState(false);
+
   // Poll active run status if status is running
   useEffect(() => {
     if (!projectId) return;
@@ -50,7 +63,11 @@ export default function DashboardPage() {
           fetch(`/api/projects/${projectId}/history`).then((r) => r.json()),
         ]);
 
-        if (pRes.success) setProject(pRes.project);
+        if (pRes.success) {
+          setProject(pRes.project);
+          setInputWebsite(pRes.project.websiteUrl || "");
+          setInputGithub(pRes.project.githubRepoUrl || "");
+        }
 
         const runs: ValidationRun[] = rRes.success ? rRes.runs : [];
 
@@ -90,6 +107,33 @@ export default function DashboardPage() {
       if (intervalId) clearInterval(intervalId);
     };
   }, [projectId, runIdParam]);
+
+  const handleUpdateAssets = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!project) return;
+
+    setUpdatingAssets(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          websiteUrl: inputWebsite,
+          githubRepoUrl: inputGithub,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.project) {
+        setProject(data.project);
+        setShowAssetDrawer(false);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUpdatingAssets(false);
+    }
+  };
 
   const handleRevalidate = async () => {
     if (!project) return;
@@ -166,8 +210,16 @@ export default function DashboardPage() {
     scoreComparisonText = `You were ${previousOverall}% ready ${daysAgo} day${daysAgo > 1 ? "s" : ""} ago. Now you're ${currentOverall}%. (${diff >= 0 ? `+${diff}%` : `${diff}%`})`;
   }
 
-  // Calculate Product Health Score
-  const healthScore = project.healthScore || (currentRun?.status === "completed" ? 100 : 50);
+  // Calculate Product Health Progress Score
+  let healthScore = project.healthScore || 25;
+  if (currentRun?.status === "completed") healthScore = 100;
+
+  const milestoneBadges = [
+    { label: "Blueprint Accepted", target: 25, done: healthScore >= 25 },
+    { label: "Website Connected", target: 50, done: healthScore >= 50 },
+    { label: "GitHub Repo Connected", target: 75, done: healthScore >= 75 },
+    { label: "Launch Audit Completed", target: 100, done: healthScore >= 100 },
+  ];
 
   return (
     <div className="p-6 md:p-8 space-y-8 max-w-6xl mx-auto w-full">
@@ -200,7 +252,7 @@ export default function DashboardPage() {
               <Globe className="w-3.5 h-3.5 text-[#D97B3F]" />
               {project.websiteUrl}
             </a>
-            {project.githubRepoUrl && (
+            {project.githubRepoUrl ? (
               <a
                 href={project.githubRepoUrl}
                 target="_blank"
@@ -210,12 +262,28 @@ export default function DashboardPage() {
                 <GitBranch className="w-3.5 h-3.5 text-[#6E7B8B]" />
                 {project.githubRepoUrl.replace("https://github.com/", "")}
               </a>
+            ) : (
+              <button
+                onClick={() => setShowAssetDrawer(true)}
+                className="text-[#D97B3F] hover:underline flex items-center gap-1"
+              >
+                <PlusCircle className="w-3 h-3" />
+                Connect GitHub Repo
+              </button>
             )}
           </div>
         </div>
 
         {/* Action Controls */}
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setShowAssetDrawer(!showAssetDrawer)}
+            className="flex items-center gap-1.5 bg-[#16181B] hover:bg-[#1E2124] text-[#EDEDEF] border border-[#2A2D31] px-3 py-2 rounded-[6px] text-xs font-mono transition-colors"
+          >
+            <PlusCircle className="w-3.5 h-3.5 text-[#D97B3F]" />
+            Connect Assets
+          </button>
+
           <Link
             href={`/dashboard/${project.id}/history`}
             className="flex items-center gap-1.5 bg-[#16181B] hover:bg-[#1E2124] text-[#EDEDEF] border border-[#2A2D31] px-3 py-2 rounded-[6px] text-xs font-mono transition-colors"
@@ -233,194 +301,307 @@ export default function DashboardPage() {
           </button>
 
           <button
-            onClick={handleExportPdf}
-            className="flex items-center gap-1.5 bg-[#16181B] hover:bg-[#1E2124] text-[#EDEDEF] border border-[#2A2D31] px-3 py-2 rounded-[6px] text-xs font-mono transition-colors"
-          >
-            <Download className="w-3.5 h-3.5 text-[#6E7B8B]" />
-            Export PDF
-          </button>
-
-          <button
             onClick={handleRevalidate}
             disabled={revalidating || isRunning}
             className="flex items-center gap-1.5 bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] px-4 py-2 rounded-[6px] text-xs font-mono font-medium transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${revalidating || isRunning ? "animate-spin" : ""}`} />
-            Re-validate
+            Run Launch Audit
           </button>
         </div>
       </div>
 
-      {/* Product Health Progress Tracker */}
-      <div className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Activity className="w-5 h-5 text-[#5FA88A]" />
-          <div>
-            <div className="text-xs font-mono uppercase text-[#EDEDEF] font-medium">Product Health Progress</div>
-            <div className="text-xs text-[#8B8F97]">Continuous lifecycle tracking from Day 0 Blueprint to Launch Audit</div>
+      {/* Product Health Progress Milestone Card */}
+      <div className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Activity className="w-5 h-5 text-[#5FA88A]" />
+            <div>
+              <div className="text-xs font-mono uppercase text-[#EDEDEF] font-medium">Product Health Progress</div>
+              <div className="text-xs text-[#8B8F97]">Continuous lifecycle progress from Day 0 Blueprint to Launch Audit</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="w-48 bg-[#0B0C0E] border border-[#2A2D31] rounded-full h-2 overflow-hidden">
+              <div className="bg-[#5FA88A] h-full transition-all duration-500" style={{ width: `${healthScore}%` }} />
+            </div>
+            <span className="font-mono text-sm font-bold text-[#5FA88A]">{healthScore}%</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="w-48 bg-[#0B0C0E] border border-[#2A2D31] rounded-full h-2 overflow-hidden">
-            <div className="bg-[#5FA88A] h-full transition-all duration-500" style={{ width: `${healthScore}%` }} />
-          </div>
-          <span className="font-mono text-sm font-bold text-[#5FA88A]">{healthScore}%</span>
+        {/* Milestone Badges */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-[#2A2D31]/50 text-xs font-mono">
+          {milestoneBadges.map((m, idx) => (
+            <div
+              key={idx}
+              className={`p-2.5 rounded-[6px] border flex items-center justify-between ${
+                m.done
+                  ? "bg-[#5FA88A]/10 border-[#5FA88A]/30 text-[#5FA88A]"
+                  : "bg-[#0B0C0E] border-[#2A2D31] text-[#8B8F97] opacity-60"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className={`w-3.5 h-3.5 ${m.done ? "text-[#5FA88A]" : "text-[#8B8F97]"}`} />
+                <span className="font-medium text-[11px]">{m.label}</span>
+              </div>
+              <span className="font-semibold text-[10px]">{m.target}%</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Re-validation Comparison Banner if score history exists */}
-      {scoreComparisonText && (
-        <div className="bg-[#5FA88A]/10 border border-[#5FA88A]/30 text-[#5FA88A] rounded-[6px] p-3.5 text-xs font-mono flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />
-            <span>{scoreComparisonText}</span>
+      {/* Asset Connector Form Drawer */}
+      {showAssetDrawer && (
+        <form onSubmit={handleUpdateAssets} className="bg-[#16181B] border border-[#D97B3F]/40 rounded-[6px] p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-[#2A2D31] pb-3">
+            <h3 className="text-sm font-medium text-[#EDEDEF] font-mono uppercase tracking-wider flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#D97B3F]" />
+              Connect Project Website & GitHub Repo
+            </h3>
+            <button
+              type="button"
+              onClick={() => setShowAssetDrawer(false)}
+              className="text-xs font-mono text-[#8B8F97] hover:text-[#EDEDEF]"
+            >
+              Close
+            </button>
           </div>
-          <Link href={`/dashboard/${project.id}/history`} className="underline font-semibold">
-            View Trend
-          </Link>
-        </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+            <div className="space-y-1.5">
+              <label className="block text-[#EDEDEF]">Landing Page Website URL (+25% Health)</label>
+              <input
+                type="url"
+                required
+                placeholder="https://your-landing-page.com"
+                value={inputWebsite}
+                onChange={(e) => setInputWebsite(e.target.value)}
+                className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-3 py-2 text-[#EDEDEF] focus:border-[#D97B3F] outline-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-[#EDEDEF]">GitHub Repository URL (+25% Health)</label>
+              <input
+                type="url"
+                placeholder="https://github.com/username/repository"
+                value={inputGithub}
+                onChange={(e) => setInputGithub(e.target.value)}
+                className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-3 py-2 text-[#EDEDEF] focus:border-[#D97B3F] outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={updatingAssets}
+              className="bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-medium px-4 py-2 rounded-[6px] text-xs font-mono transition-colors"
+            >
+              {updatingAssets ? "Connecting..." : "Save & Update Health Progress"}
+            </button>
+          </div>
+        </form>
       )}
 
-      {/* Main Hero Grid: Radial Score + Progress Tracker or Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Overall Score Radial Card */}
-        <div className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-6 flex flex-col items-center justify-center space-y-4 text-center">
-          <div className="text-xs font-mono uppercase tracking-wider text-[#8B8F97]">
-            Overall Readiness Score
-          </div>
+      {/* Main Tabs Navigation: Overview vs AI Co-Founder Advisor */}
+      <div className="border-b border-[#2A2D31] flex items-center gap-2">
+        <button
+          onClick={() => setActiveTab("overview")}
+          className={`px-4 py-3 border-b-2 text-xs font-mono uppercase tracking-wider font-semibold transition-colors flex items-center gap-2 ${
+            activeTab === "overview"
+              ? "border-[#D97B3F] text-[#D97B3F] bg-[#D97B3F]/5"
+              : "border-transparent text-[#8B8F97] hover:text-[#EDEDEF]"
+          }`}
+        >
+          <Activity className="w-3.5 h-3.5" />
+          Readiness Report & Fixes
+        </button>
 
-          <ScoreRadial score={currentRun?.overallScore ?? null} size={150} strokeWidth={6} />
+        <button
+          onClick={() => setActiveTab("cofounder")}
+          className={`px-4 py-3 border-b-2 text-xs font-mono uppercase tracking-wider font-semibold transition-colors flex items-center gap-2 ${
+            activeTab === "cofounder"
+              ? "border-[#D97B3F] text-[#D97B3F] bg-[#D97B3F]/5"
+              : "border-transparent text-[#8B8F97] hover:text-[#EDEDEF]"
+          }`}
+        >
+          <Bot className="w-3.5 h-3.5 text-[#5FA88A]" />
+          <span>AI Co-Founder</span>
+          <span className="text-[10px] bg-[#5FA88A]/20 text-[#5FA88A] px-1.5 py-0.2 rounded font-normal">
+            New
+          </span>
+        </button>
+      </div>
 
-          <div className="text-xs text-[#8B8F97] max-w-xs leading-relaxed">
-            {currentRun?.overallScore !== null
-              ? "Calculated deterministically across completed analysis modules."
-              : "Analysis running — score will compute upon completion."}
-          </div>
-        </div>
+      {/* TAB: AI CO-FOUNDER ADVISOR */}
+      {activeTab === "cofounder" && (
+        <AICofounderTab
+          projectId={project.id}
+          projectName={project.name}
+          healthScore={healthScore}
+          readinessScore={currentRun?.overallScore ?? null}
+        />
+      )}
 
-        {/* Live Progress Tracker or Module Summary */}
-        <div className="md:col-span-2">
-          {isRunning ? (
-            <ProgressTracker
-              currentModule={currentRun?.currentModule ?? null}
-              status={currentRun?.status ?? "pending"}
-            />
-          ) : (
-            <div className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-[#2A2D31] pb-3">
-                <h3 className="text-sm font-medium text-[#EDEDEF] uppercase font-mono tracking-wider">
-                  Analysis Pipeline Summary
-                </h3>
-                <span className="text-xs font-mono text-[#5FA88A] bg-[#5FA88A]/10 px-2 py-0.5 rounded border border-[#5FA88A]/20">
-                  Run Completed
-                </span>
+      {/* TAB: READINESS OVERVIEW & FIXES */}
+      {activeTab === "overview" && (
+        <div className="space-y-8">
+          {/* Score Comparison Banner if previous runs exist */}
+          {scoreComparisonText && (
+            <div className="bg-[#5FA88A]/10 border border-[#5FA88A]/30 text-[#5FA88A] rounded-[6px] p-3.5 text-xs font-mono flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
+                <span>{scoreComparisonText}</span>
               </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs font-mono">
-                <div>
-                  <div className="text-[#8B8F97]">Issues Identified</div>
-                  <div className="text-lg font-bold text-[#EDEDEF] mt-0.5">
-                    {currentRun?.issues?.length || 0}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[#8B8F97]">Critical Gaps</div>
-                  <div className="text-lg font-bold text-[#C25A4D] mt-0.5">
-                    {currentRun?.issues?.filter((i) => i.severity === "critical").length || 0}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[#8B8F97]">Roadmap Tasks</div>
-                  <div className="text-lg font-bold text-[#D97B3F] mt-0.5">
-                    {currentRun?.roadmap?.length || 0}
-                  </div>
-                </div>
-              </div>
-
-              <p className="text-xs text-[#8B8F97] leading-relaxed pt-2">
-                All 6 specialized readiness modules executed deterministically. Review prioritized action items below and click <span className="text-[#D97B3F] font-mono">Copy Fix</span> to resolve gaps before launch day.
-              </p>
+              <Link href={`/dashboard/${project.id}/history`} className="underline font-semibold">
+                View Trend
+              </Link>
             </div>
           )}
-        </div>
-      </div>
 
-      {/* 6 Category Score Cards */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-[#EDEDEF] uppercase font-mono tracking-wider">
-          Module Category Scores
-        </h3>
+          {/* Main Hero Grid: Radial Score + Progress Tracker or Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Overall Score Radial Card */}
+            <div className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-6 flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="text-xs font-mono uppercase tracking-wider text-[#8B8F97]">
+                Overall Readiness Score
+              </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          <CategoryCard
-            title="Product Understanding"
-            score={scores?.productUnderstanding ?? null}
-            status={currentRun?.moduleStatus?.productUnderstanding?.status}
-            reason={currentRun?.moduleStatus?.productUnderstanding?.reason}
-            description="Value prop positioning, meta tags, and target audience definition."
-          />
-          <CategoryCard
-            title="Engineering Analysis"
-            score={scores?.engineering ?? null}
-            status={currentRun?.moduleStatus?.engineering?.status}
-            reason={currentRun?.moduleStatus?.engineering?.reason}
-            description="GitHub metadata, LICENSE, README completeness, and commit health."
-          />
-          <CategoryCard
-            title="UX Validation"
-            score={scores?.ux ?? null}
-            status={currentRun?.moduleStatus?.ux?.status}
-            reason={currentRun?.moduleStatus?.ux?.reason}
-            description="Mobile viewport, primary CTA visibility, and heading hierarchy."
-          />
-          <CategoryCard
-            title="Performance Audit"
-            score={scores?.performance ?? null}
-            status={currentRun?.moduleStatus?.performance?.status}
-            reason={currentRun?.moduleStatus?.performance?.reason}
-            description="Latency timings, server response, and script overhead."
-          />
-          <CategoryCard
-            title="Business Review"
-            score={scores?.business ?? null}
-            status={currentRun?.moduleStatus?.business?.status}
-            reason={currentRun?.moduleStatus?.business?.reason}
-            description="Pricing model clarity, contact transparency, and market differentiation."
-          />
-          <CategoryCard
-            title="Launch Planner"
-            score={currentRun?.overallScore ?? null}
-            status="completed"
-            description="Prioritized effort-reward roadmap aggregation across all modules."
-          />
-        </div>
-      </div>
+              <ScoreRadial score={currentRun?.overallScore ?? null} size={150} strokeWidth={6} />
 
-      {/* Prioritized Issue List with Copy Fix */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-[#EDEDEF] uppercase font-mono tracking-wider">
-            Prioritized Gaps & Deterministic Fixes ({currentRun?.issues?.length || 0})
-          </h3>
-        </div>
+              <div className="text-xs text-[#8B8F97] max-w-xs leading-relaxed">
+                {currentRun?.overallScore !== null
+                  ? "Calculated deterministically across completed analysis modules."
+                  : "Analysis running — score will compute upon completion."}
+              </div>
+            </div>
 
-        {currentRun?.issues?.length === 0 ? (
-          <div className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-8 text-center text-xs text-[#8B8F97] font-mono">
-            Zero critical gaps detected! Your product is launch-ready.
+            {/* Live Progress Tracker or Module Summary */}
+            <div className="md:col-span-2">
+              {isRunning ? (
+                <ProgressTracker
+                  currentModule={currentRun?.currentModule ?? null}
+                  status={currentRun?.status ?? "pending"}
+                />
+              ) : (
+                <div className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-6 space-y-4">
+                  <div className="flex items-center justify-between border-b border-[#2A2D31] pb-3">
+                    <h3 className="text-sm font-medium text-[#EDEDEF] uppercase font-mono tracking-wider">
+                      Analysis Pipeline Summary
+                    </h3>
+                    <span className="text-xs font-mono text-[#5FA88A] bg-[#5FA88A]/10 px-2 py-0.5 rounded border border-[#5FA88A]/20">
+                      Run Completed
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs font-mono">
+                    <div>
+                      <div className="text-[#8B8F97]">Issues Identified</div>
+                      <div className="text-lg font-bold text-[#EDEDEF] mt-0.5">
+                        {currentRun?.issues?.length || 0}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[#8B8F97]">Critical Gaps</div>
+                      <div className="text-lg font-bold text-[#C25A4D] mt-0.5">
+                        {currentRun?.issues?.filter((i) => i.severity === "critical").length || 0}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[#8B8F97]">Roadmap Tasks</div>
+                      <div className="text-lg font-bold text-[#D97B3F] mt-0.5">
+                        {currentRun?.roadmap?.length || 0}
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-[#8B8F97] leading-relaxed pt-2">
+                    All 6 specialized readiness modules executed deterministically. Review prioritized action items below and click <span className="text-[#D97B3F] font-mono">Copy Fix</span> to resolve gaps before launch day.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        ) : (
+
+          {/* 6 Category Score Cards */}
           <div className="space-y-3">
-            {currentRun?.issues?.map((issue) => (
-              <IssueRow key={issue.id} issue={issue} />
-            ))}
-          </div>
-        )}
-      </div>
+            <h3 className="text-sm font-medium text-[#EDEDEF] uppercase font-mono tracking-wider">
+              Module Category Scores
+            </h3>
 
-      {/* Launch Roadmap Section */}
-      {currentRun?.roadmap && currentRun.roadmap.length > 0 && (
-        <RoadmapSection items={currentRun.roadmap} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <CategoryCard
+                title="Product Understanding"
+                score={scores?.productUnderstanding ?? null}
+                status={currentRun?.moduleStatus?.productUnderstanding?.status}
+                reason={currentRun?.moduleStatus?.productUnderstanding?.reason}
+                description="Value prop positioning, meta tags, and target audience definition."
+              />
+              <CategoryCard
+                title="Engineering Analysis"
+                score={scores?.engineering ?? null}
+                status={currentRun?.moduleStatus?.engineering?.status}
+                reason={currentRun?.moduleStatus?.engineering?.reason}
+                description="GitHub metadata, LICENSE, README completeness, and commit health."
+              />
+              <CategoryCard
+                title="UX Validation"
+                score={scores?.ux ?? null}
+                status={currentRun?.moduleStatus?.ux?.status}
+                reason={currentRun?.moduleStatus?.ux?.reason}
+                description="Mobile viewport, primary CTA visibility, and heading hierarchy."
+              />
+              <CategoryCard
+                title="Performance Audit"
+                score={scores?.performance ?? null}
+                status={currentRun?.moduleStatus?.performance?.status}
+                reason={currentRun?.moduleStatus?.performance?.reason}
+                description="Latency timings, server response, and script overhead."
+              />
+              <CategoryCard
+                title="Business Review"
+                score={scores?.business ?? null}
+                status={currentRun?.moduleStatus?.business?.status}
+                reason={currentRun?.moduleStatus?.business?.reason}
+                description="Pricing model clarity, contact transparency, and market differentiation."
+              />
+              <CategoryCard
+                title="Launch Planner"
+                score={currentRun?.overallScore ?? null}
+                status="completed"
+                description="Prioritized effort-reward roadmap aggregation across all modules."
+              />
+            </div>
+          </div>
+
+          {/* Prioritized Issue List with Copy Fix */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-[#EDEDEF] uppercase font-mono tracking-wider">
+                Prioritized Gaps & Deterministic Fixes ({currentRun?.issues?.length || 0})
+              </h3>
+            </div>
+
+            {currentRun?.issues?.length === 0 ? (
+              <div className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-8 text-center text-xs text-[#8B8F97] font-mono">
+                Zero critical gaps detected! Your product is launch-ready.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {currentRun?.issues?.map((issue) => (
+                  <IssueRow key={issue.id} issue={issue} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Launch Roadmap Section */}
+          {currentRun?.roadmap && currentRun.roadmap.length > 0 && (
+            <RoadmapSection items={currentRun.roadmap} />
+          )}
+        </div>
       )}
     </div>
   );
