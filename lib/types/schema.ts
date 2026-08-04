@@ -1,3 +1,5 @@
+import { ContextPackage } from "./blueprint";
+
 export type IssueCategory =
   | "engineering"
   | "ux"
@@ -39,6 +41,9 @@ export interface Project {
   githubRepoUrl: string | null;
   pitchDeckUrl: string | null;
   screenshotUrls: string[];
+  blueprintId?: string | null;
+  contextPackage?: ContextPackage | null;
+  healthScore?: number; // Project Health Progress (0-100%)
   createdAt: string;
   lastValidatedAt: string | null;
   latestScore: number | null;
