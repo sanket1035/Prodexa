@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { CoFounderMessage } from "@/lib/types/cofounder";
-import { Bot, Send, User, Sparkles, Copy, Check, ShieldAlert, Award, Code2, AlertTriangle, CheckCircle2, HelpCircle, Lightbulb } from "lucide-react";
+import { Bot, Send, User, Sparkles, Copy, Check, Award, AlertTriangle, CheckCircle2, HelpCircle, Lightbulb, RefreshCw } from "lucide-react";
 
 interface MentorReviewData {
   summary: string;
@@ -42,8 +42,8 @@ export default function AICofounderTab({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch persistent chat messages from Firestore /api/cofounder?projectId=xxx on mount
   useEffect(() => {
     if (!projectId) return;
 
@@ -64,6 +64,10 @@ export default function AICofounderTab({
       })
       .catch(() => {});
   }, [projectId]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
   const quickPrompts = [
     "What will hackathon judges criticize about this project?",
@@ -157,21 +161,21 @@ export default function AICofounderTab({
   };
 
   return (
-    <div className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-6 space-y-6">
+    <div className="card p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#2A2D31] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4" style={{ borderColor: "var(--border)" }}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#D97B3F]/10 border border-[#D97B3F]/30 rounded-[6px] flex items-center justify-center text-[#D97B3F]">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(217,119,6,0.12)", border: "1px solid rgba(217,119,6,0.2)", color: "var(--accent)" }}>
             <Bot className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-medium text-[#EDEDEF]">AI Co-Founder & Strategy Advisor</h3>
-              <span className="text-[10px] font-mono uppercase bg-[#5FA88A]/10 text-[#5FA88A] px-2 py-0.5 rounded border border-[#5FA88A]/20">
-                Firestore Memory Persisted
+              <h3 className="text-base font-semibold" style={{ color: "var(--text)" }}>AI Co-Founder & Strategy Advisor</h3>
+              <span className="badge badge-green">
+                Memory Persisted
               </span>
             </div>
-            <p className="text-xs text-[#8B8F97] mt-0.5">
+            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
               Project-specific advice backed by real blueprint memory, GitHub analysis, and compressed context memory.
             </p>
           </div>
@@ -181,40 +185,49 @@ export default function AICofounderTab({
           <button
             onClick={requestMentorReview}
             disabled={loadingMentor}
-            className="flex items-center gap-1.5 bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] px-3.5 py-2 rounded-[6px] text-xs font-mono font-medium transition-colors disabled:opacity-50"
+            className="btn btn-primary btn-sm"
           >
-            <Award className="w-4 h-4" />
-            {loadingMentor ? "Auditing Investor Review..." : "Investor Review"}
+            {loadingMentor ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 anim-spin" />
+                Auditing Investor Review...
+              </>
+            ) : (
+              <>
+                <Award className="w-3.5 h-3.5" />
+                Investor Review
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      {/* Structured Investor & Judge Review Card if requested */}
+      {/* Structured Investor & Judge Review Card */}
       {mentorReview && (
-        <div className="bg-[#0B0C0E] border border-[#D97B3F]/40 rounded-[6px] p-5 space-y-5">
-          <div className="flex items-center justify-between border-b border-[#2A2D31] pb-3">
-            <div className="flex items-center gap-2 font-mono text-sm text-[#D97B3F] font-bold">
+        <div className="rounded-xl p-5 space-y-5 anim-fade-up" style={{ background: "var(--bg)", border: "1px solid rgba(217,119,6,0.3)" }}>
+          <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--border)" }}>
+            <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--accent)" }}>
               <Award className="w-4 h-4" />
               Investor & Judge Pitch Audit ({projectName})
             </div>
-            <span className="text-[10px] font-mono text-[#8B8F97] bg-[#16181B] px-2 py-0.5 rounded border border-[#2A2D31]">
-              Live Advisor Feedback
+            <span className="badge badge-muted font-mono text-[10px]">
+              Live Feedback
             </span>
           </div>
 
-          <p className="text-xs text-[#EDEDEF] leading-relaxed font-sans">{mentorReview.summary}</p>
+          <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>{mentorReview.summary}</p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Top Strengths */}
-            <div className="bg-[#16181B] border border-[#2A2D31] p-4 rounded-[6px] space-y-2">
-              <div className="text-xs font-mono uppercase text-[#5FA88A] flex items-center gap-1.5 font-semibold">
+            <div className="card p-4 space-y-2">
+              <div className="text-xs font-semibold flex items-center gap-1.5" style={{ color: "var(--success)" }}>
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                Top 5 Key Strengths
+                Top Key Strengths
               </div>
-              <ul className="space-y-1 text-xs text-[#8B8F97]">
+              <ul className="space-y-1 text-xs" style={{ color: "var(--text-muted)" }}>
                 {mentorReview.strengths.map((s, idx) => (
                   <li key={idx} className="flex items-start gap-1.5">
-                    <span className="text-[#5FA88A]">•</span>
+                    <span style={{ color: "var(--success)" }}>•</span>
                     <span>{s}</span>
                   </li>
                 ))}
@@ -222,15 +235,15 @@ export default function AICofounderTab({
             </div>
 
             {/* Top Weaknesses */}
-            <div className="bg-[#16181B] border border-[#2A2D31] p-4 rounded-[6px] space-y-2">
-              <div className="text-xs font-mono uppercase text-[#C25A4D] flex items-center gap-1.5 font-semibold">
+            <div className="card p-4 space-y-2">
+              <div className="text-xs font-semibold flex items-center gap-1.5" style={{ color: "var(--error)" }}>
                 <AlertTriangle className="w-3.5 h-3.5" />
-                Top 5 Weaknesses & Gaps
+                Top Weaknesses & Gaps
               </div>
-              <ul className="space-y-1 text-xs text-[#8B8F97]">
+              <ul className="space-y-1 text-xs" style={{ color: "var(--text-muted)" }}>
                 {mentorReview.weaknesses.map((w, idx) => (
                   <li key={idx} className="flex items-start gap-1.5">
-                    <span className="text-[#C25A4D]">•</span>
+                    <span style={{ color: "var(--error)" }}>•</span>
                     <span>{w}</span>
                   </li>
                 ))}
@@ -239,13 +252,13 @@ export default function AICofounderTab({
           </div>
 
           {/* Tough Judge Questions & Presentation Suggestions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-[#2A2D31]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t" style={{ borderColor: "var(--border)" }}>
             <div className="space-y-2">
-              <div className="text-xs font-mono uppercase text-[#C9A44C] flex items-center gap-1.5 font-semibold">
+              <div className="text-xs font-semibold flex items-center gap-1.5" style={{ color: "var(--warning)" }}>
                 <HelpCircle className="w-3.5 h-3.5" />
-                5 Questions Hackathon & VC Judges Will Ask
+                5 Tough Judge Questions
               </div>
-              <ol className="space-y-1 text-xs text-[#8B8F97] list-decimal list-inside font-mono">
+              <ol className="space-y-1 text-xs list-decimal list-inside font-mono" style={{ color: "var(--text-muted)" }}>
                 {mentorReview.judgeQuestions.map((q, idx) => (
                   <li key={idx} className="leading-relaxed">{q}</li>
                 ))}
@@ -253,15 +266,15 @@ export default function AICofounderTab({
             </div>
 
             <div className="space-y-2">
-              <div className="text-xs font-mono uppercase text-[#D97B3F] flex items-center gap-1.5 font-semibold">
+              <div className="text-xs font-semibold flex items-center gap-1.5" style={{ color: "var(--accent)" }}>
                 <Lightbulb className="w-3.5 h-3.5" />
-                Demo Pitch Presentation Tips
+                Demo & Presentation Tips
               </div>
-              <ul className="space-y-1 text-xs text-[#8B8F97]">
-                {mentorReview.demoSuggestions.map((tip, idx) => (
+              <ul className="space-y-1 text-xs" style={{ color: "var(--text-muted)" }}>
+                {mentorReview.demoSuggestions.map((d, idx) => (
                   <li key={idx} className="flex items-start gap-1.5">
-                    <span className="text-[#D97B3F]">→</span>
-                    <span>{tip}</span>
+                    <span style={{ color: "var(--accent)" }}>•</span>
+                    <span>{d}</span>
                   </li>
                 ))}
               </ul>
@@ -270,103 +283,104 @@ export default function AICofounderTab({
         </div>
       )}
 
-      {/* Suggestion Chips as Horizontal Pill Buttons */}
+      {/* Suggested Prompts Chips */}
       <div className="space-y-2">
-        <div className="text-[10px] font-mono uppercase tracking-wider text-[#8B8F97]">Suggested Advisor Questions:</div>
+        <div className="text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: "var(--text-faint)" }}>
+          <Sparkles className="w-3 h-3" style={{ color: "var(--accent)" }} />
+          Suggested Advisor Prompts
+        </div>
         <div className="flex flex-wrap gap-2">
-          {quickPrompts.map((q, idx) => (
+          {quickPrompts.map((prompt, i) => (
             <button
-              key={idx}
-              onClick={() => sendMessage(q)}
+              key={i}
+              onClick={() => sendMessage(prompt)}
               disabled={loading}
-              className="bg-[#0B0C0E] hover:bg-[#1E2124] text-[#EDEDEF] border border-[#2A2D31] hover:border-[#D97B3F]/50 px-3 py-1.5 rounded-full text-xs font-mono transition-colors text-left disabled:opacity-50"
+              className="btn btn-secondary btn-sm text-xs font-normal"
             >
-              "{q}"
+              {prompt}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Messages Stream */}
-      <div className="space-y-4 max-h-[450px] overflow-y-auto p-4 bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px]">
-        {messages.map((m) => (
+      {/* Chat Thread Container */}
+      <div className="rounded-xl p-4 space-y-4 max-h-[500px] overflow-y-auto" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
+        {messages.map((msg) => (
           <div
-            key={m.id}
-            className={`flex gap-3 text-xs leading-relaxed ${
-              m.sender === "user" ? "justify-end" : "justify-start"
+            key={msg.id}
+            className={`flex gap-3 text-xs leading-relaxed anim-fade-up ${
+              msg.sender === "user" ? "flex-row-reverse" : "flex-row"
             }`}
           >
-            {m.sender === "cofounder" && (
-              <div className="w-7 h-7 bg-[#D97B3F]/10 border border-[#D97B3F]/30 rounded-[4px] flex items-center justify-center text-[#D97B3F] flex-shrink-0 mt-0.5">
-                <Bot className="w-4 h-4" />
-              </div>
-            )}
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-semibold"
+              style={{
+                background: msg.sender === "user" ? "var(--surface)" : "rgba(217,119,6,0.15)",
+                color: msg.sender === "user" ? "var(--text)" : "var(--accent)",
+                border: "1px solid var(--border)"
+              }}
+            >
+              {msg.sender === "user" ? <User className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
+            </div>
 
             <div
-              className={`max-w-2xl rounded-[6px] p-4 space-y-2 border ${
-                m.sender === "user"
-                  ? "bg-[#D97B3F]/10 text-[#EDEDEF] border-[#D97B3F]/30"
-                  : "bg-[#16181B] text-[#EDEDEF] border-[#2A2D31]"
-              }`}
+              className="max-w-[85%] rounded-xl p-3.5 space-y-2"
+              style={{
+                background: msg.sender === "user" ? "var(--surface-hover)" : "var(--surface)",
+                border: "1px solid var(--border)",
+                color: "var(--text)"
+              }}
             >
-              {m.sender === "cofounder" && m.role && (
-                <div className="flex items-center gap-2 border-b border-[#2A2D31] pb-1.5 mb-1.5 font-mono">
-                  <span className="text-[10px] uppercase font-bold text-[#D97B3F] bg-[#D97B3F]/10 px-2 py-0.5 rounded border border-[#D97B3F]/20">
-                    [{m.role.toUpperCase()}]
-                  </span>
-                </div>
-              )}
+              <div className="flex items-center justify-between gap-4 border-b pb-1.5 mb-1.5" style={{ borderColor: "var(--border)" }}>
+                <span className="font-semibold capitalize text-[11px]" style={{ color: "var(--accent)" }}>
+                  {msg.sender === "user" ? "You" : `Co-Founder (${msg.role || "Advisor"})`}
+                </span>
+                <span className="text-[10px] font-mono" style={{ color: "var(--text-faint)" }}>
+                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
 
-              <p className="whitespace-pre-wrap font-sans text-xs">{m.text}</p>
+              <p className="whitespace-pre-wrap text-xs" style={{ color: "var(--text-secondary)" }}>{msg.text}</p>
 
-              {m.actionableFix && (
-                <div className="mt-3 bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] p-3 space-y-2 font-mono">
-                  <div className="flex items-center justify-between text-[11px] text-[#5FA88A]">
-                    <span className="flex items-center gap-1">
-                      <Code2 className="w-3.5 h-3.5" />
-                      Recommended Actionable Fix
-                    </span>
+              {/* Actionable Code Fix box if provided */}
+              {msg.actionableFix && (
+                <div className="rounded-lg p-3 space-y-2 mt-2" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
+                  <div className="flex items-center justify-between font-mono text-[10px]" style={{ color: "var(--accent)" }}>
+                    <span>Suggested Actionable Code Fix:</span>
                     <button
-                      onClick={() => handleCopy(m.id, m.actionableFix!)}
-                      className="text-[#8B8F97] hover:text-[#EDEDEF] flex items-center gap-1 text-[11px]"
+                      onClick={() => handleCopy(msg.id, msg.actionableFix!)}
+                      className="btn btn-ghost btn-sm text-[10px]"
                     >
-                      {copiedId === m.id ? (
+                      {copiedId === msg.id ? (
                         <>
-                          <Check className="w-3 h-3 text-[#5FA88A]" />
-                          <span className="text-[#5FA88A]">Copied</span>
+                          <Check className="w-3 h-3 text-green-500" />
+                          <span>Copied</span>
                         </>
                       ) : (
                         <>
                           <Copy className="w-3 h-3" />
-                          <span>Copy</span>
+                          <span>Copy Fix</span>
                         </>
                       )}
                     </button>
                   </div>
-                  <pre className="text-[11px] text-[#EDEDEF] overflow-x-auto whitespace-pre-wrap">
-                    {m.actionableFix}
-                  </pre>
+                  <pre className="code-block text-[11px] whitespace-pre-wrap overflow-x-auto">{msg.actionableFix}</pre>
                 </div>
               )}
             </div>
-
-            {m.sender === "user" && (
-              <div className="w-7 h-7 bg-[#1E2124] border border-[#2A2D31] rounded-[4px] flex items-center justify-center text-[#8B8F97] flex-shrink-0 mt-0.5">
-                <User className="w-4 h-4" />
-              </div>
-            )}
           </div>
         ))}
 
         {loading && (
-          <div className="flex gap-3 items-center text-xs font-mono text-[#D97B3F] p-2">
-            <Bot className="w-4 h-4 animate-bounce" />
-            <span>AI Co-Founder is analyzing project context...</span>
+          <div className="flex items-center gap-2.5 text-xs text-muted p-2 font-mono">
+            <div className="w-4 h-4 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+            <span>AI Co-Founder is reflecting on product context...</span>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Field */}
+      {/* Input Box */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -376,18 +390,19 @@ export default function AICofounderTab({
       >
         <input
           type="text"
-          placeholder="Ask your AI Co-Founder anything about landing page, tech stack, roadmap, or pitch..."
+          placeholder={`Ask AI Co-Founder about ${projectName}...`}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          className="flex-1 bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-4 py-2.5 text-xs text-[#EDEDEF] placeholder-[#8B8F97]/50 focus:border-[#D97B3F] outline-none"
+          disabled={loading}
+          className="input flex-1"
         />
         <button
           type="submit"
           disabled={loading || !input.trim()}
-          className="bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-medium px-4 py-2.5 rounded-[6px] text-xs font-mono flex items-center gap-1.5 transition-colors disabled:opacity-50"
+          className="btn btn-primary"
         >
           <Send className="w-3.5 h-3.5" />
-          <span>Ask Advisor</span>
+          <span>Send</span>
         </button>
       </form>
     </div>

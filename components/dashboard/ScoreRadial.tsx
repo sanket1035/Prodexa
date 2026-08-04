@@ -20,7 +20,7 @@ export default function ScoreRadial({
   useEffect(() => {
     if (score === null) return;
     let start = 0;
-    const duration = 1000; // 1 second count-up
+    const duration = 1000;
     const stepTime = 20;
     const steps = duration / stepTime;
     const increment = finalScore / steps;
@@ -43,10 +43,10 @@ export default function ScoreRadial({
   const strokeDashoffset = circumference - (animatedScore / 100) * circumference;
 
   const getColor = (s: number | null) => {
-    if (s === null) return "#8B8F97";
-    if (s >= 80) return "#5FA88A"; // Sage green
-    if (s >= 60) return "#C9A44C"; // Ochre
-    return "#C25A4D"; // Brick red
+    if (s === null) return "var(--text-faint)";
+    if (s >= 80) return "var(--success)";
+    if (s >= 60) return "var(--warning)";
+    return "var(--error)";
   };
 
   const currentColor = getColor(score);
@@ -54,16 +54,14 @@ export default function ScoreRadial({
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="transform -rotate-90">
-        {/* Background Track */}
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke="#2A2D31"
+          stroke="var(--border)"
           strokeWidth={strokeWidth}
           fill="transparent"
         />
-        {/* Animated Score Ring */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -78,12 +76,11 @@ export default function ScoreRadial({
         />
       </svg>
 
-      {/* Center Monospace Score */}
       <div className="absolute inset-0 flex flex-col items-center justify-center font-mono">
-        <span className="text-3xl font-bold tracking-tight text-[#EDEDEF]">
+        <span className="text-3xl font-bold tracking-tight" style={{ color: "var(--text)" }}>
           {score !== null ? `${animatedScore}%` : "—"}
         </span>
-        <span className="text-[10px] text-[#8B8F97] uppercase tracking-wider font-sans mt-0.5">
+        <span className="text-[10px] uppercase tracking-wider font-sans mt-0.5" style={{ color: "var(--text-muted)" }}>
           Readiness
         </span>
       </div>

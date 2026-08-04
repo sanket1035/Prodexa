@@ -9,57 +9,50 @@ interface RoadmapSectionProps {
 }
 
 export default function RoadmapSection({ items }: RoadmapSectionProps) {
-  const getBadgeColor = (p: string) => {
+  const getBadgeClass = (p: string) => {
     switch (p) {
-      case "critical":
-        return "text-[#C25A4D] bg-[#C25A4D]/10 border-[#C25A4D]/20";
-      case "high":
-        return "text-[#C9A44C] bg-[#C9A44C]/10 border-[#C9A44C]/20";
-      case "medium":
-        return "text-[#6E7B8B] bg-[#6E7B8B]/10 border-[#6E7B8B]/20";
-      default:
-        return "text-[#5FA88A] bg-[#5FA88A]/10 border-[#5FA88A]/20";
+      case "critical": return "badge badge-red";
+      case "high": return "badge badge-amber";
+      case "medium": return "badge badge-yellow";
+      default: return "badge badge-green";
     }
   };
 
   return (
-    <div className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-6 space-y-4">
-      <div className="flex items-center justify-between border-b border-[#2A2D31] pb-3">
-        <h3 className="text-sm font-medium text-[#EDEDEF] uppercase font-mono tracking-wider flex items-center gap-2">
-          <CheckSquare className="w-4 h-4 text-[#D97B3F]" />
+    <div className="card p-6 space-y-4">
+      <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--border)" }}>
+        <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: "var(--text)" }}>
+          <CheckSquare className="w-4 h-4" style={{ color: "var(--accent)" }} />
           Prioritized Launch Roadmap
         </h3>
-        <span className="text-xs font-mono text-[#8B8F97]">
-          {items.length} prioritized tasks
+        <span className="badge badge-muted font-mono">
+          {items.length} tasks
         </span>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {items.map((item, idx) => (
           <div
             key={idx}
-            className="flex items-center justify-between gap-4 p-3 bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px]"
+            className="flex items-center justify-between gap-4 p-3.5 rounded-xl border transition-all"
+            style={{ background: "var(--bg)", borderColor: "var(--border)" }}
           >
             <div className="flex items-center gap-3 min-w-0">
-              <span className="font-mono text-xs text-[#8B8F97] font-semibold w-5">
+              <span className="font-mono text-xs font-semibold w-5" style={{ color: "var(--accent)" }}>
                 0{idx + 1}
               </span>
-              <span className="text-sm text-[#EDEDEF] truncate font-medium">
+              <span className="text-sm font-medium truncate" style={{ color: "var(--text)" }}>
                 {item.title}
               </span>
             </div>
 
             <div className="flex items-center gap-3 flex-shrink-0">
-              <span
-                className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase font-semibold border ${getBadgeColor(
-                  item.priority
-                )}`}
-              >
+              <span className={`font-mono font-semibold uppercase text-[10px] ${getBadgeClass(item.priority)}`}>
                 {item.priority}
               </span>
 
-              <div className="flex items-center gap-1 text-xs font-mono text-[#8B8F97] bg-[#16181B] px-2 py-0.5 rounded border border-[#2A2D31]">
-                <Clock className="w-3 h-3 text-[#D97B3F]" />
+              <div className="flex items-center gap-1 text-xs font-mono px-2 py-1 rounded-md border" style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-muted)" }}>
+                <Clock className="w-3 h-3" style={{ color: "var(--accent)" }} />
                 {item.estimatedEffort}
               </div>
             </div>

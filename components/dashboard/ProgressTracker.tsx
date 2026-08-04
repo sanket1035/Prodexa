@@ -21,12 +21,12 @@ export default function ProgressTracker({ currentModule, status }: ProgressTrack
   const currentIndex = currentModule ? MODULES.indexOf(currentModule) : status === "completed" ? 6 : 0;
 
   return (
-    <div className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-6 space-y-5">
-      <div className="flex items-center justify-between border-b border-[#2A2D31] pb-3">
-        <h3 className="text-sm font-medium text-[#EDEDEF] uppercase font-mono tracking-wider">
+    <div className="card p-6 space-y-5">
+      <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--border)" }}>
+        <h3 className="text-sm font-semibold" style={{ color: "var(--text)" }}>
           Analysis Pipeline Progress
         </h3>
-        <span className="text-xs font-mono text-[#D97B3F] bg-[#D97B3F]/10 px-2 py-0.5 rounded border border-[#D97B3F]/20">
+        <span className="badge badge-amber font-mono">
           {status === "completed" ? "Completed (6/6)" : status === "running" ? `Executing...` : "Pending"}
         </span>
       </div>
@@ -39,27 +39,24 @@ export default function ProgressTracker({ currentModule, status }: ProgressTrack
           return (
             <div
               key={modName}
-              className={`flex items-center gap-3 transition-all ${
-                isCurrent
-                  ? "text-[#EDEDEF] font-medium"
-                  : isCompleted
-                  ? "text-[#8B8F97]"
-                  : "opacity-40 text-[#8B8F97]"
-              }`}
+              className="flex items-center gap-3 transition-all"
+              style={{
+                color: isCurrent ? "var(--text)" : isCompleted ? "var(--text-secondary)" : "var(--text-faint)"
+              }}
             >
               <div className="flex-shrink-0">
                 {isCompleted ? (
-                  <CheckCircle2 className="w-4 h-4 text-[#5FA88A]" />
+                  <CheckCircle2 className="w-4 h-4" style={{ color: "var(--success)" }} />
                 ) : isCurrent ? (
-                  <Loader2 className="w-4 h-4 text-[#D97B3F] animate-spin" />
+                  <Loader2 className="w-4 h-4 anim-spin" style={{ color: "var(--accent)" }} />
                 ) : (
-                  <Circle className="w-4 h-4 text-[#2A2D31]" />
+                  <Circle className="w-4 h-4" style={{ color: "var(--border)" }} />
                 )}
               </div>
 
               <div className="flex-1 flex items-center justify-between text-sm">
-                <span className="font-sans">{modName}</span>
-                <span className="font-mono text-xs text-[#8B8F97]">
+                <span className="font-medium">{modName}</span>
+                <span className="font-mono text-xs" style={{ color: "var(--text-muted)" }}>
                   {isCompleted ? "Done" : isCurrent ? "Running..." : "Queued"}
                 </span>
               </div>
