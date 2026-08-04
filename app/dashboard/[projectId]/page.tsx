@@ -57,11 +57,17 @@ export default function DashboardPage() {
     let intervalId: NodeJS.Timeout | null = null;
 
     const loadData = async () => {
+      // 3-second timeout: page must respond within 3 seconds max
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3000);
+
       try {
         const [pRes, rRes] = await Promise.all([
-          fetch(`/api/projects/${projectId}`).then((r) => r.json()),
-          fetch(`/api/projects/${projectId}/history`).then((r) => r.json()),
+          fetch(`/api/projects/${projectId}`, { signal: controller.signal }).then((r) => r.json()),
+          fetch(`/api/projects/${projectId}/history`, { signal: controller.signal }).then((r) => r.json()),
         ]);
+
+        clearTimeout(timeout);
 
         if (pRes.success) {
           setProject(pRes.project);
@@ -94,8 +100,10 @@ export default function DashboardPage() {
             }, 1500);
           }
         }
-      } catch (e) {
-        console.error(e);
+      } catch (e: any) {
+        clearTimeout(timeout);
+        // AbortError means timeout — show the page with whatever we have
+        if (e?.name !== "AbortError") console.error(e);
       } finally {
         setLoading(false);
       }
@@ -188,8 +196,14 @@ export default function DashboardPage() {
 
   if (!project) {
     return (
-      <div className="p-12 text-center text-[#8B8F97] font-mono">
-        Project not found or removed.
+      <div className="p-12 text-center space-y-4">
+        <div className="text-[#8B8F97] font-mono text-sm">Project not found or removed.</div>
+        <Link
+          href="/projects"
+          className="inline-flex items-center gap-2 bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-mono text-xs font-medium px-4 py-2 rounded-[6px] transition-colors"
+        >
+          ← Back to Projects
+        </Link>
       </div>
     );
   }
@@ -230,10 +244,9 @@ export default function DashboardPage() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-medium text-[#EDEDEF] tracking-tight">
-              {project.name && !project.name.startsWith("_") && !project.name.startsWith("proj_")
-                ? project.name
-                : "Pramana AI Workspace"}
+              {project.name || "Untitled Project"}
             </h1>
+
             <span className="text-xs font-mono uppercase bg-[#1E2124] text-[#D97B3F] px-2.5 py-0.5 rounded border border-[#2A2D31]">
               Launch Report
             </span>

@@ -531,6 +531,11 @@ export async function convertBlueprintToProject(blueprintId: string): Promise<Pr
 }
 
 export async function getProjectsForUser(userId: string): Promise<Project[]> {
+  // Check in-memory store first (fast, no cold-start)
+  const memoryProjects = Array.from(mockProjects.values()).filter(
+    (p) => p.userId === userId && p.id !== demoProjectId
+  );
+
   try {
     const { adminDb } = await import("./admin");
     const snapshot = await adminDb
@@ -541,21 +546,28 @@ export async function getProjectsForUser(userId: string): Promise<Project[]> {
     
     if (!snapshot.empty) {
       const dbProjects = snapshot.docs.map((doc: { id: string; data: () => any }) => ({ id: doc.id, ...doc.data() } as Project));
+      // Merge db results into memory store
+      dbProjects.forEach((p) => mockProjects.set(p.id, p));
       return dbProjects;
     }
   } catch {
-    // Fallback
+    // Fallback to memory
   }
 
-  const userProjects = Array.from(mockProjects.values()).filter((p) => p.userId === userId || userId === "demo-user-123");
-  if (userProjects.length > 0) return userProjects;
-  return Array.from(mockProjects.values());
+  // Return only the real user's projects (never return demo data to real users)
+  if (memoryProjects.length > 0) return memoryProjects;
+  // If demo user, return demo projects
+  if (userId === demoUserId) return Array.from(mockProjects.values()).filter((p) => p.userId === demoUserId);
+  return [];
 }
 
 export async function getProjectById(projectId: string): Promise<Project | null> {
-  // Check memory store FIRST so created projects are NEVER overridden by fallback
-  const existingMemory = mockProjects.get(projectId) || mockProjects.get("proj_" + projectId) || mockProjects.get(projectId.replace(/^proj_?/, ""));
-  if (existingMemory) return existingMemory;
+  // Check memory store FIRST (instant, no Firebase cold-start delay)
+  const cached =
+    mockProjects.get(projectId) ||
+    mockProjects.get("proj_" + projectId) ||
+    mockProjects.get(projectId.replace(/^proj_?/, ""));
+  if (cached) return cached;
 
   try {
     const { adminDb } = await import("./admin");
@@ -566,33 +578,15 @@ export async function getProjectById(projectId: string): Promise<Project | null>
       return dbProj;
     }
   } catch {
-    // Fallback
+    // Fallback to null — do NOT auto-create a fake project
   }
 
-  // On-the-fly auto-creation for custom project IDs
-  const formattedName = projectId
-    .replace(/^proj-?/, "")
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  // Only the hardcoded demo project IDs get auto-created
+  if (projectId === demoProjectId || projectId === "proj-prodexa-demo") {
+    return mockProjects.get(demoProjectId) || null;
+  }
 
-  const autoProject: Project = {
-    id: projectId,
-    userId: demoUserId,
-    name: formattedName || "New Startup Workspace",
-    websiteUrl: "https://example.com",
-    githubRepoUrl: null,
-    pitchDeckUrl: null,
-    screenshotUrls: [],
-    blueprintId: demoBlueprintId,
-    contextPackage: demoBlueprint.contextPackage,
-    healthScore: 100,
-    createdAt: new Date().toISOString(),
-    lastValidatedAt: new Date().toISOString(),
-    latestScore: 84,
-  };
-
-  mockProjects.set(projectId, autoProject);
-  return autoProject;
+  return null;
 }
 
 export async function createProject(project: Omit<Project, "id" | "createdAt" | "lastValidatedAt" | "latestScore">): Promise<Project> {
@@ -660,53 +654,32 @@ export async function updateValidationRun(runId: string, updates: Partial<Valida
 }
 
 export async function getValidationRunById(runId: string): Promise<ValidationRun | null> {
+  // Check memory first (fast)
+  const cached = mockRuns.get(runId);
+  if (cached) return cached;
+
   try {
     const { adminDb } = await import("./admin");
     const doc = await adminDb.collection("validationRuns").doc(runId).get();
     if (doc.exists) {
-      return { id: doc.id, ...doc.data() } as ValidationRun;
+      const run = { id: doc.id, ...doc.data() } as ValidationRun;
+      mockRuns.set(runId, run);
+      return run;
     }
   } catch {
     // Fallback
   }
 
-  const existing = mockRuns.get(runId);
-  if (existing) return existing;
-
-  const fallbackRun: ValidationRun = {
-    id: runId,
-    projectId: "proj-prodexa-demo",
-    userId: demoUserId,
-    status: "completed",
-    currentModule: null,
-    overallScore: 84,
-    moduleScores: {
-      productUnderstanding: 88,
-      engineering: 82,
-      ux: 85,
-      performance: 90,
-      accessibility: 78,
-      business: 82,
-    },
-    moduleStatus: {
-      productUnderstanding: { status: "completed" },
-      engineering: { status: "completed" },
-      ux: { status: "completed" },
-      performance: { status: "completed" },
-      accessibility: { status: "completed" },
-      business: { status: "completed" },
-    },
-    issues: demoRun.issues,
-    roadmap: demoRun.roadmap,
-    createdAt: new Date().toISOString(),
-    completedAt: new Date().toISOString(),
-  };
-
-  mockRuns.set(runId, fallbackRun);
-  return fallbackRun;
+  // Return null — do NOT auto-create a fake demo run for unknown IDs
+  return null;
 }
 
 export async function getValidationRunsForProject(projectId: string): Promise<ValidationRun[]> {
+  // Check memory first (fast)
+  const memoryRuns = Array.from(mockRuns.values())
+    .filter((r) => r.projectId === projectId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
   try {
     const { adminDb } = await import("./admin");
     const snapshot = await adminDb
@@ -716,16 +689,14 @@ export async function getValidationRunsForProject(projectId: string): Promise<Va
       .get();
     
     if (!snapshot.empty) {
-      return snapshot.docs.map((doc: { id: string; data: () => any }) => ({ id: doc.id, ...doc.data() } as ValidationRun));
+      const dbRuns = snapshot.docs.map((doc: { id: string; data: () => any }) => ({ id: doc.id, ...doc.data() } as ValidationRun));
+      dbRuns.forEach((r) => mockRuns.set(r.id, r));
+      return dbRuns;
     }
   } catch {
-    // Fallback
+    // Fallback to memory
   }
 
-  const projectRuns = Array.from(mockRuns.values())
-    .filter((r) => r.projectId === projectId)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-  if (projectRuns.length > 0) return projectRuns;
-  return Array.from(mockRuns.values());
+  // Return only runs for this specific project (never cross-contaminate with other projects)
+  return memoryRuns;
 }
