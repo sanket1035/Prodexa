@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { Project } from "@/lib/types/schema";
-import { PlusCircle, ExternalLink, ArrowRight, FolderGit2 } from "lucide-react";
+import { PlusCircle, ExternalLink, ArrowRight, FolderGit2, Sparkles } from "lucide-react";
 
 export default function ProjectsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -68,13 +68,23 @@ export default function ProjectsPage() {
           </p>
         </div>
 
-        <Link
-          href="/projects/new"
-          className="inline-flex items-center gap-2 bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-medium px-4 py-2.5 rounded-[6px] text-sm transition-colors focus-visible:outline-2 focus-visible:outline-[#D97B3F]"
-        >
-          <PlusCircle className="w-4 h-4" />
-          New Validation
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/blueprint/new"
+            className="inline-flex items-center gap-2 bg-[#1E2124] hover:bg-[#25292E] text-[#D97B3F] font-mono text-xs font-medium px-3.5 py-2.5 rounded-[6px] border border-[#D97B3F]/30 transition-colors"
+          >
+            <Sparkles className="w-4 h-4 text-[#D97B3F]" />
+            Option A — New Idea
+          </Link>
+
+          <Link
+            href="/projects/new"
+            className="inline-flex items-center gap-2 bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-medium px-4 py-2.5 rounded-[6px] text-xs font-mono transition-colors focus-visible:outline-2 focus-visible:outline-[#D97B3F]"
+          >
+            <PlusCircle className="w-4 h-4" />
+            Option B — Launch Audit
+          </Link>
+        </div>
       </div>
 
       {/* Empty State */}
@@ -86,16 +96,24 @@ export default function ProjectsPage() {
           <div className="space-y-1">
             <h3 className="text-base font-medium text-[#EDEDEF]">No projects validated yet</h3>
             <p className="text-xs text-[#8B8F97]">
-              Submit your website URL & GitHub repository to get a 6-module Launch Readiness Report.
+              Start by building an AI Product Blueprint (Option A) or auditing an existing product (Option B).
             </p>
           </div>
-          <div className="pt-2">
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Link
+              href="/blueprint/new"
+              className="inline-flex items-center gap-2 bg-[#1E2124] hover:bg-[#25292E] text-[#D97B3F] font-mono text-xs font-medium px-4 py-2.5 rounded-[6px] border border-[#D97B3F]/30 transition-colors"
+            >
+              <Sparkles className="w-4 h-4" />
+              Option A — New Idea
+            </Link>
+
             <Link
               href="/projects/new"
-              className="inline-flex items-center gap-2 bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-medium px-4 py-2.5 rounded-[6px] text-sm transition-colors"
+              className="inline-flex items-center gap-2 bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-medium px-4 py-2.5 rounded-[6px] text-xs font-mono transition-colors"
             >
-              Validate your first product
-              <ArrowRight className="w-4 h-4" />
+              <PlusCircle className="w-4 h-4" />
+              Option B — Launch Audit
             </Link>
           </div>
         </div>

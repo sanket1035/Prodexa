@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import {
   FolderGit2,
   PlusCircle,
+  Sparkles,
   LogOut,
   Menu,
   X,
@@ -35,7 +36,13 @@ export default function Sidebar() {
       active: pathname === "/projects",
     },
     {
-      name: "New Validation",
+      name: "Option A — New Idea Blueprint",
+      href: "/blueprint/new",
+      icon: Sparkles,
+      active: pathname === "/blueprint/new",
+    },
+    {
+      name: "Option B — Launch Audit",
       href: "/projects/new",
       icon: PlusCircle,
       active: pathname === "/projects/new",
