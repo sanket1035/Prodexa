@@ -9,6 +9,9 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
   updateProfile,
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase/client";
@@ -25,8 +28,10 @@ interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   signInWithGoogle: () => Promise<{ success: boolean; error?: string }>;
-  signUpWithEmail: (name: string, email: string, pass: string) => Promise<{ success: boolean; error?: string; requiresVerification?: boolean }>;
+  signUpWithEmail: (name: string, email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   signInWithEmail: (email: string, pass: string) => Promise<{ success: boolean; error?: string; requiresVerification?: boolean }>;
+  resendVerification: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
+  sendMagicLink: (email: string) => Promise<{ success: boolean; error?: string }>;
   signInAsDemoUser: () => void;
   signOut: () => Promise<void>;
 }
@@ -37,6 +42,8 @@ const AuthContext = createContext<AuthContextType>({
   signInWithGoogle: async () => ({ success: false }),
   signUpWithEmail: async () => ({ success: false }),
   signInWithEmail: async () => ({ success: false }),
+  resendVerification: async () => ({ success: false }),
+  sendMagicLink: async () => ({ success: false }),
   signInAsDemoUser: () => {},
   signOut: async () => {},
 });
@@ -63,19 +70,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: User | null) => {
+    // Complete Email Link (Magic Link) sign-in if URL contains link
+    if (typeof window !== "undefined" && isSignInWithEmailLink(auth, window.location.href)) {
+      let email = window.localStorage.getItem("prodexa_emailForSignIn");
+      if (!email) {
+        email = window.prompt("Please provide your email for confirmation");
+      }
+      if (email) {
+        signInWithEmailLink(auth, email, window.location.href)
+          .then((result) => {
+            window.localStorage.removeItem("prodexa_emailForSignIn");
+            setUser({
+              uid: result.user.uid,
+              email: result.user.email,
+              displayName: result.user.displayName,
+              photoURL: result.user.photoURL,
+              emailVerified: true,
+            });
+          })
+          .catch((err) => console.error("Email link sign-in error:", err));
+      }
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: User | null) => {
       if (firebaseUser) {
-        // Clear demo session if real Firebase user logs in
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("prodexa_demo_user");
+        // Enforce strict email verification for password auth
+        await firebaseUser.reload();
+        
+        // Google OAuth or verified email
+        const isOAuth = firebaseUser.providerData.some((p) => p.providerId === "google.com");
+        if (firebaseUser.emailVerified || isOAuth) {
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("prodexa_demo_user");
+          }
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
+            emailVerified: true,
+          });
+        } else {
+          // Unverified user -> force sign out
+          await firebaseSignOut(auth);
+          setUser(null);
         }
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-          emailVerified: firebaseUser.emailVerified,
-        });
       } else {
         const demoStored = typeof window !== "undefined" ? localStorage.getItem("prodexa_demo_user") : null;
         if (demoStored) {
@@ -101,7 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: result.user.email,
         displayName: result.user.displayName,
         photoURL: result.user.photoURL,
-        emailVerified: true, // Google OAuth accounts are pre-verified
+        emailVerified: true, // Google accounts are pre-verified by Google
       };
       if (typeof window !== "undefined") {
         localStorage.removeItem("prodexa_demo_user");
@@ -119,12 +158,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!auth) throw new Error("Firebase Auth not initialized.");
       const cred = await createUserWithEmailAndPassword(auth, email, pass);
       await updateProfile(cred.user, { displayName: name });
-      await sendEmailVerification(cred.user);
-
-      return {
-        success: true,
-        requiresVerification: true,
+      
+      // Send verification link with redirect to /login
+      const actionCodeSettings = {
+        url: typeof window !== "undefined" ? `${window.location.origin}/login?verified=true` : "http://localhost:3000/login",
+        handleCodeInApp: true,
       };
+      await sendEmailVerification(cred.user, actionCodeSettings);
+
+      // Force sign out until email is verified by user clicking link
+      await firebaseSignOut(auth);
+      setUser(null);
+
+      return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message || "Sign up failed." };
     }
@@ -135,13 +181,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!auth) throw new Error("Firebase Auth not initialized.");
       const cred = await signInWithEmailAndPassword(auth, email, pass);
       
-      // Reload user status to verify email
       await cred.user.reload();
       if (!cred.user.emailVerified) {
+        await firebaseSignOut(auth);
+        setUser(null);
         return {
           success: false,
           requiresVerification: true,
-          error: "Email not verified. Please check your inbox for the verification link.",
+          error: "Email not verified! We sent a verification link to your email. Please click the link in your inbox before signing in.",
         };
       }
 
@@ -158,7 +205,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(authUser);
       return { success: true };
     } catch (error: any) {
-      return { success: false, error: error.message || "Email login failed." };
+      return { success: false, error: error.message || "Invalid email or password." };
+    }
+  };
+
+  const resendVerification = async (email: string, pass: string) => {
+    try {
+      if (!auth) throw new Error("Firebase Auth not initialized.");
+      const cred = await signInWithEmailAndPassword(auth, email, pass);
+      const actionCodeSettings = {
+        url: typeof window !== "undefined" ? `${window.location.origin}/login?verified=true` : "http://localhost:3000/login",
+        handleCodeInApp: true,
+      };
+      await sendEmailVerification(cred.user, actionCodeSettings);
+      await firebaseSignOut(auth);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || "Failed to resend verification link." };
+    }
+  };
+
+  const sendMagicLink = async (email: string) => {
+    try {
+      if (!auth) throw new Error("Firebase Auth not initialized.");
+      const actionCodeSettings = {
+        url: typeof window !== "undefined" ? `${window.location.origin}/login` : "http://localhost:3000/login",
+        handleCodeInApp: true,
+      };
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("prodexa_emailForSignIn", email);
+      }
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || "Failed to send magic link." };
     }
   };
 
@@ -198,6 +278,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithGoogle,
         signUpWithEmail,
         signInWithEmail,
+        resendVerification,
+        sendMagicLink,
         signInAsDemoUser,
         signOut,
       }}

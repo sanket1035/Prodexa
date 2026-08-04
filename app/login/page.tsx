@@ -2,21 +2,29 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { useRouter } from "next/navigation";
-import { ShieldCheck, ArrowRight, Mail, Lock, User, AlertCircle, CheckCircle2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ShieldCheck, ArrowRight, Mail, Lock, User, AlertCircle, CheckCircle2, RefreshCw, Sparkles } from "lucide-react";
 
 export default function LoginPage() {
-  const { user, loading, signInWithGoogle, signUpWithEmail, signInWithEmail, signInAsDemoUser } = useAuth();
+  const { user, loading, signInWithGoogle, signUpWithEmail, signInWithEmail, resendVerification, sendMagicLink, signInAsDemoUser } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "magic">("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [showResend, setShowResend] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("verified") === "true") {
+      setSuccessMsg("Email verified successfully! You can now sign in below.");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!loading && user) {
@@ -42,6 +50,7 @@ export default function LoginPage() {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
+    setShowResend(false);
     setSubmitting(true);
 
     if (mode === "signup") {
@@ -52,20 +61,45 @@ export default function LoginPage() {
       }
       const res = await signUpWithEmail(name, email, password);
       if (res.success) {
-        setSuccessMsg(`Verification email sent to ${email}! Please check your inbox and verify your account before signing in.`);
+        setSuccessMsg(`Verification link sent to ${email}! Please check your email inbox and click the verification link before signing in.`);
         setMode("signin");
       } else {
         setErrorMsg(res.error || "Sign up failed.");
+      }
+    } else if (mode === "magic") {
+      const res = await sendMagicLink(email);
+      if (res.success) {
+        setSuccessMsg(`Passwordless sign-in link sent to ${email}! Open your email and click the link to log in.`);
+      } else {
+        setErrorMsg(res.error || "Failed to send email link.");
       }
     } else {
       const res = await signInWithEmail(email, password);
       if (res.success) {
         router.push("/projects");
       } else if (res.requiresVerification) {
-        setErrorMsg("Email not verified! We sent a verification link to your inbox. Please verify before signing in.");
+        setErrorMsg(res.error || "Email not verified!");
+        setShowResend(true);
       } else {
         setErrorMsg(res.error || "Invalid email or password.");
       }
+    }
+    setSubmitting(false);
+  };
+
+  const handleResend = async () => {
+    if (!email || !password) {
+      setErrorMsg("Please enter your email and password to resend verification link.");
+      return;
+    }
+    setSubmitting(true);
+    const res = await resendVerification(email, password);
+    if (res.success) {
+      setSuccessMsg(`Verification link re-sent to ${email}. Please check your inbox.`);
+      setErrorMsg(null);
+      setShowResend(false);
+    } else {
+      setErrorMsg(res.error || "Failed to resend verification email.");
     }
     setSubmitting(false);
   };
@@ -85,23 +119,28 @@ export default function LoginPage() {
         <div className="space-y-2 text-center">
           <div className="inline-flex items-center gap-2 text-xs font-mono tracking-wider uppercase text-[#D97B3F] bg-[#D97B3F]/10 px-3 py-1 rounded-[4px] border border-[#D97B3F]/20">
             <ShieldCheck className="w-3.5 h-3.5" />
-            Prodexa Authentication
+            Verified Authentication
           </div>
           <h1 className="text-2xl font-medium tracking-tight text-[#EDEDEF]">
-            {mode === "signin" ? "Sign in to Prodexa" : "Create your Prodexa Account"}
+            {mode === "signin"
+              ? "Sign in to Prodexa"
+              : mode === "signup"
+              ? "Create your Verified Account"
+              : "Passwordless Email Link"}
           </h1>
           <p className="text-xs text-[#8B8F97] font-mono">
             Autonomous Pre-Launch AI Operating System
           </p>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="grid grid-cols-2 bg-[#0B0C0E] border border-[#2A2D31] p-1 rounded-[6px] text-xs font-mono">
+        {/* 3-Mode Tab Switcher */}
+        <div className="grid grid-cols-3 bg-[#0B0C0E] border border-[#2A2D31] p-1 rounded-[6px] text-xs font-mono">
           <button
             onClick={() => {
               setMode("signin");
               setErrorMsg(null);
               setSuccessMsg(null);
+              setShowResend(false);
             }}
             className={`py-1.5 rounded font-medium transition-colors ${
               mode === "signin" ? "bg-[#1E2124] text-[#D97B3F] font-bold" : "text-[#8B8F97] hover:text-[#EDEDEF]"
@@ -114,6 +153,7 @@ export default function LoginPage() {
               setMode("signup");
               setErrorMsg(null);
               setSuccessMsg(null);
+              setShowResend(false);
             }}
             className={`py-1.5 rounded font-medium transition-colors ${
               mode === "signup" ? "bg-[#1E2124] text-[#D97B3F] font-bold" : "text-[#8B8F97] hover:text-[#EDEDEF]"
@@ -121,13 +161,38 @@ export default function LoginPage() {
           >
             Sign Up
           </button>
+          <button
+            onClick={() => {
+              setMode("magic");
+              setErrorMsg(null);
+              setSuccessMsg(null);
+              setShowResend(false);
+            }}
+            className={`py-1.5 rounded font-medium transition-colors ${
+              mode === "magic" ? "bg-[#1E2124] text-[#D97B3F] font-bold" : "text-[#8B8F97] hover:text-[#EDEDEF]"
+            }`}
+          >
+            Magic Link
+          </button>
         </div>
 
         {/* Alert Notifications */}
         {errorMsg && (
-          <div className="bg-[#C25A4D]/10 border border-[#C25A4D]/30 text-[#C25A4D] p-3 rounded-[6px] text-xs font-mono flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <span>{errorMsg}</span>
+          <div className="bg-[#C25A4D]/10 border border-[#C25A4D]/30 text-[#C25A4D] p-3 rounded-[6px] text-xs font-mono space-y-2">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>{errorMsg}</span>
+            </div>
+            {showResend && (
+              <button
+                onClick={handleResend}
+                disabled={submitting}
+                className="inline-flex items-center gap-1.5 bg-[#C25A4D]/20 hover:bg-[#C25A4D]/30 text-[#EDEDEF] px-3 py-1 rounded text-[11px] font-mono transition-colors"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>Resend Verification Link</span>
+              </button>
+            )}
           </div>
         )}
 
@@ -148,7 +213,7 @@ export default function LoginPage() {
           <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
             <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
           </svg>
-          {submitting ? "Signing in..." : "Continue with Google"}
+          {submitting ? "Signing in..." : "Continue with Google (Instant Verification)"}
         </button>
 
         <div className="relative flex py-1 items-center">
@@ -157,7 +222,7 @@ export default function LoginPage() {
           <div className="flex-grow border-t border-[#2A2D31]"></div>
         </div>
 
-        {/* Email & Password Form */}
+        {/* Email Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === "signup" && (
             <div className="space-y-1">
@@ -191,31 +256,39 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-mono text-[#EDEDEF] flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5 text-[#8B8F97]" />
-              Password
-            </label>
-            <input
-              type="password"
-              required
-              placeholder="••••••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-3.5 py-2 text-xs text-[#EDEDEF] placeholder-[#8B8F97]/50 focus:border-[#D97B3F] outline-none font-mono"
-            />
-          </div>
+          {mode !== "magic" && (
+            <div className="space-y-1">
+              <label className="text-xs font-mono text-[#EDEDEF] flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-[#8B8F97]" />
+                Password
+              </label>
+              <input
+                type="password"
+                required
+                placeholder="••••••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-3.5 py-2 text-xs text-[#EDEDEF] placeholder-[#8B8F97]/50 focus:border-[#D97B3F] outline-none font-mono"
+              />
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={submitting}
             className="w-full bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-mono text-xs font-medium py-2.5 px-4 rounded-[6px] transition-colors disabled:opacity-50"
           >
-            {submitting ? "Processing..." : mode === "signup" ? "Sign Up & Send Verification Email" : "Sign In"}
+            {submitting
+              ? "Processing..."
+              : mode === "signup"
+              ? "Sign Up & Send Email Verification Link"
+              : mode === "magic"
+              ? "Send Passwordless Magic Link"
+              : "Sign In"}
           </button>
         </form>
 
-        {/* Demo Fast Access Option */}
+        {/* Instant Demo Guest Access */}
         <div className="pt-2 border-t border-[#2A2D31] text-center">
           <button
             onClick={() => {
@@ -224,6 +297,7 @@ export default function LoginPage() {
             }}
             className="inline-flex items-center gap-2 text-xs font-mono text-[#D97B3F] hover:underline"
           >
+            <Sparkles className="w-3.5 h-3.5 text-[#D97B3F]" />
             <span>Instant Demo Guest Access (No Email Required)</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
