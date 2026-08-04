@@ -44,6 +44,20 @@ export interface ImportantDecision {
   timestamp: string;
 }
 
+export interface SourceAttribution {
+  fact: string;
+  source: "BLUEPRINT_ENGINE" | "GITHUB_AUDIT" | "MENTOR_NOTE" | "USER_CHAT";
+  confidenceScore: number; // 0.0 to 1.0
+  timestamp: string;
+}
+
+export interface ProjectMemorySnapshot {
+  version: number;
+  compressedContext: string;
+  importantDecisions: string[];
+  updatedAt: string;
+}
+
 export interface ProjectMemory {
   projectId: string;
   projectSummary: string;
@@ -52,6 +66,7 @@ export interface ProjectMemory {
   memoryVersion: number;
   compressedContext: string;
   importantDecisions: string[];
+  sourceAttributions: SourceAttribution[];
   updatedAt: string;
 }
 

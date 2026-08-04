@@ -9,6 +9,7 @@ import {
   getRecentChatMessages,
   getMentorNotes,
   saveMentorNote,
+  refreshProjectContext,
 } from "@/lib/firebase/db";
 import { ProjectMemory } from "@/lib/types/blueprint";
 import { generateModuleInsight } from "@/lib/utils/openai";
@@ -17,9 +18,14 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const projectId = searchParams.get("projectId");
+    const doRefresh = searchParams.get("refresh") === "true";
 
     if (!projectId) {
       return NextResponse.json({ success: false, message: "projectId is required" }, { status: 400 });
+    }
+
+    if (doRefresh) {
+      await refreshProjectContext(projectId);
     }
 
     const messages = await getRecentChatMessages(projectId, 50);
@@ -73,6 +79,9 @@ export async function POST(req: NextRequest) {
           "Initialized Project Memory",
           "Selected Gemini 1.5 Flash API as primary AI provider",
         ],
+        sourceAttributions: [
+          { fact: "Extracted ICP and core features from AI Blueprint", source: "BLUEPRINT_ENGINE", confidenceScore: 0.98, timestamp: new Date().toISOString() },
+        ],
         updatedAt: new Date().toISOString(),
       };
       await saveProjectMemory(memory);
@@ -90,12 +99,18 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Build token-optimized compressed context prompt
+    // Build token-optimized compressed context prompt with Source Attributions
+    const sourcesFormatted = (memory.sourceAttributions || [])
+      .map((sa) => `[SOURCE: ${sa.source} (Conf: ${(sa.confidenceScore * 100).toFixed(0)}%)]: ${sa.fact}`)
+      .join("\n");
+
     const compressedContextPrompt = `
 PROJECT: ${project.name} (Health: ${project.healthScore || 25}%, Readiness: ${latestRun?.overallScore ? `${latestRun.overallScore}%` : "Not validated"})
 MEMORY VERSION: v${memory.memoryVersion} (${memory.currentStage} Stage)
 COMPRESSED CONTEXT: ${memory.compressedContext}
 IMPORTANT DECISIONS: ${memory.importantDecisions.join("; ")}
+SOURCE ATTRIBUTIONS:
+${sourcesFormatted || "None"}
 MENTOR NOTES: ${mentorNotes.map((n) => n.note).join(" | ") || "None"}
 
 RECENT CHAT HISTORY (Last ${recentChats.length} msgs):
@@ -193,6 +208,15 @@ Output JSON with: "replyText", "role", "actionableFix".`;
         ...memory,
         memoryVersion: memory.memoryVersion + 1,
         compressedContext: `Target ICP: ${project.contextPackage?.targetAudience || "Founders"}. Last discussed topic: "${userMessage}". Latest advisor recommendation: "${(insight.replyText || fallbackReply.replyText).substring(0, 150)}..."`,
+        sourceAttributions: [
+          ...(memory.sourceAttributions || []),
+          {
+            fact: `Advisor answered: "${userMessage}"`,
+            source: "USER_CHAT",
+            confidenceScore: 0.95,
+            timestamp: new Date().toISOString(),
+          },
+        ],
         updatedAt: new Date().toISOString(),
       };
       await saveProjectMemory(updatedMemory);

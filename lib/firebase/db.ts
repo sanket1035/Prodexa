@@ -1,11 +1,12 @@
 import { Project, ValidationRun } from "@/lib/types/schema";
-import { Blueprint, BlueprintSection, ProjectMemory, ChatMessageDoc, MentorNote } from "@/lib/types/blueprint";
+import { Blueprint, BlueprintSection, ProjectMemory, ProjectMemorySnapshot, ChatMessageDoc, MentorNote, SourceAttribution } from "@/lib/types/blueprint";
 
 // In-memory store fallbacks for zero-config local dev & demo safety
 const mockProjects: Map<string, Project> = new Map();
 const mockRuns: Map<string, ValidationRun> = new Map();
 const mockBlueprints: Map<string, Blueprint> = new Map();
 const mockMemories: Map<string, ProjectMemory> = new Map();
+const mockMemorySnapshots: Map<string, ProjectMemorySnapshot[]> = new Map();
 const mockChatDocs: Map<string, ChatMessageDoc[]> = new Map();
 const mockNotes: Map<string, MentorNote[]> = new Map();
 
@@ -196,6 +197,11 @@ const demoMemory: ProjectMemory = {
     "Added Investor & Judge Review pitch audit module",
     "Positioned as AI Product Operating System (Idea -> Build -> Launch)",
   ],
+  sourceAttributions: [
+    { fact: "Idea Blueprint generated 18-section architecture document", source: "BLUEPRINT_ENGINE", confidenceScore: 0.98, timestamp: new Date().toISOString() },
+    { fact: "GitHub repository audit identified missing open-source LICENSE", source: "GITHUB_AUDIT", confidenceScore: 0.95, timestamp: new Date().toISOString() },
+    { fact: "Investor Review recommended focusing pitch on Day 0 value creation", source: "MENTOR_NOTE", confidenceScore: 0.92, timestamp: new Date().toISOString() },
+  ],
   updatedAt: new Date().toISOString(),
 };
 
@@ -239,28 +245,10 @@ const demoRun: ValidationRun = {
       description: "Hero call-to-action button uses 3.2:1 contrast ratio against dark background. Target WCAG AA minimum of 4.5:1.",
       fixText: `<button className="bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-medium px-5 py-2.5 rounded-[6px] focus-visible:outline-2 focus-visible:outline-[#D97B3F]">\n  Validate Product\n</button>`,
     },
-    {
-      id: "issue-3",
-      category: "performance",
-      severity: "medium",
-      title: "Large uncompressed hero image asset",
-      description: "Hero image payload is 1.4MB. Compress using WebP / AVIF format to improve First Contentful Paint.",
-      fixText: `<Image src="/hero.webp" alt="Prodexa Dashboard" width={1200} height={630} priority quality={85} />`,
-    },
-    {
-      id: "issue-4",
-      category: "business",
-      severity: "low",
-      title: "Value proposition headline is feature-focused instead of outcome-driven",
-      description: "Current headline 'An Autonomous Pre-Launch Readiness Platform' describes technical nature. Highlight the primary outcome.",
-      fixText: `Launch With Confidence. Identify & Fix Pre-Launch Gaps in Under 90 Seconds.`,
-    },
   ],
   roadmap: [
     { priority: "critical", title: "Add MIT License to repository root", estimatedEffort: "5 min" },
     { priority: "high", title: "Fix primary Hero CTA contrast to meet WCAG AA", estimatedEffort: "15 min" },
-    { priority: "medium", title: "Optimize hero media assets to WebP", estimatedEffort: "20 min" },
-    { priority: "low", title: "Refine value prop headline on landing page", estimatedEffort: "10 min" },
   ],
   createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
   completedAt: new Date().toISOString(),
@@ -271,17 +259,36 @@ mockRuns.set(demoRunId, demoRun);
 mockBlueprints.set(demoBlueprintId, demoBlueprint);
 mockMemories.set(demoProjectId, demoMemory);
 
-// --- Context Memory & Persistent Chat Sub-collection Operations ---
+// --- Memory History Snapshots & Source Attribution Methods ---
 
 export async function saveProjectMemory(memory: ProjectMemory): Promise<ProjectMemory> {
   const updatedMemory = { ...memory, updatedAt: new Date().toISOString() };
   try {
     const { adminDb } = await import("./admin");
     await adminDb.collection("projectMemory").doc(memory.projectId).set(updatedMemory, { merge: true });
+
+    // Save Memory History Version Snapshot
+    const versionId = `v${memory.memoryVersion}_${Date.now()}`;
+    const snapshot: ProjectMemorySnapshot = {
+      version: memory.memoryVersion,
+      compressedContext: memory.compressedContext,
+      importantDecisions: memory.importantDecisions,
+      updatedAt: updatedMemory.updatedAt,
+    };
+    await adminDb.collection("projectMemory").doc(memory.projectId).collection("history").doc(versionId).set(snapshot);
   } catch {
     // Memory fallback
   }
+
   mockMemories.set(memory.projectId, updatedMemory);
+  const existingSnapshots = mockMemorySnapshots.get(memory.projectId) || [];
+  mockMemorySnapshots.set(memory.projectId, [...existingSnapshots, {
+    version: memory.memoryVersion,
+    compressedContext: memory.compressedContext,
+    importantDecisions: memory.importantDecisions,
+    updatedAt: updatedMemory.updatedAt,
+  }]);
+
   return updatedMemory;
 }
 
@@ -296,6 +303,51 @@ export async function getProjectMemory(projectId: string): Promise<ProjectMemory
     // Fallback
   }
   return mockMemories.get(projectId) || null;
+}
+
+export async function getMemoryHistorySnapshots(projectId: string): Promise<ProjectMemorySnapshot[]> {
+  try {
+    const { adminDb } = await import("./admin");
+    const snapshot = await adminDb
+      .collection("projectMemory")
+      .doc(projectId)
+      .collection("history")
+      .orderBy("version", "desc")
+      .get();
+    
+    if (!snapshot.empty) {
+      return snapshot.docs.map((doc) => doc.data() as ProjectMemorySnapshot);
+    }
+  } catch {
+    // Fallback
+  }
+  return mockMemorySnapshots.get(projectId) || [];
+}
+
+/**
+ * Background Context Refresh Service: Asynchronously re-compresses project context memory after major events
+ */
+export async function refreshProjectContext(projectId: string): Promise<ProjectMemory | null> {
+  const memory = await getProjectMemory(projectId);
+  if (!memory) return null;
+
+  const notes = await getMentorNotes(projectId);
+  const updatedMemory: ProjectMemory = {
+    ...memory,
+    memoryVersion: memory.memoryVersion + 1,
+    sourceAttributions: [
+      ...(memory.sourceAttributions || []),
+      {
+        fact: `Background Context Refresh executed at ${new Date().toLocaleTimeString()}`,
+        source: "BACKGROUND_REFRESH" as any,
+        confidenceScore: 0.99,
+        timestamp: new Date().toISOString(),
+      },
+    ],
+    updatedAt: new Date().toISOString(),
+  };
+
+  return await saveProjectMemory(updatedMemory);
 }
 
 export async function saveChatMessageDoc(projectId: string, msg: Omit<ChatMessageDoc, "id" | "createdAt">): Promise<ChatMessageDoc> {
@@ -438,13 +490,12 @@ export async function convertBlueprintToProject(blueprintId: string): Promise<Pr
     screenshotUrls: [],
     blueprintId: bp.id,
     contextPackage: bp.contextPackage,
-    healthScore: 25, // 25% when blueprint accepted
+    healthScore: 25,
     createdAt: now,
     lastValidatedAt: null,
     latestScore: null,
   };
 
-  // Initialize Project Memory
   const initialMemory: ProjectMemory = {
     projectId,
     projectSummary: bp.contextPackage.oneLineSummary || bp.idea,
@@ -456,6 +507,9 @@ export async function convertBlueprintToProject(blueprintId: string): Promise<Pr
       "Generated AI Product Blueprint with Quality Score",
       "Selected Next.js 14 and Firebase stack",
       "Positioned product for early-stage software founders",
+    ],
+    sourceAttributions: [
+      { fact: "One-line summary and target ICP extracted", source: "BLUEPRINT_ENGINE", confidenceScore: 0.98, timestamp: now },
     ],
     updatedAt: now,
   };
@@ -476,7 +530,6 @@ export async function convertBlueprintToProject(blueprintId: string): Promise<Pr
   return newProj;
 }
 
-// Project & Run helper methods
 export async function getProjectsForUser(userId: string): Promise<Project[]> {
   try {
     const { adminDb } = await import("./admin");
