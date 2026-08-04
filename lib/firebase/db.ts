@@ -34,7 +34,7 @@ const demoBlueprint: Blueprint = {
       marketReadiness: 87,
     },
     strengths: [
-      "Bridges the critical gap between Day 0 idea creation and Day 30 launch audit",
+      "Bridges the critical gap between Day 0 idea planning and Day 30 launch audit",
       "Combines real deterministic checks (Lighthouse, GitHub) with structured AI reasoning",
       "Stores bounded context memory packages to eliminate prompt re-querying",
     ],
@@ -185,6 +185,26 @@ const demoProject: Project = {
   latestScore: 84,
 };
 
+const pramanaProject: Project = {
+  id: "proj-pramana-ai",
+  userId: demoUserId,
+  name: "Pramana AI Workspace",
+  websiteUrl: "https://pramana.ai",
+  githubRepoUrl: "https://github.com/sanket1035/prodexa",
+  pitchDeckUrl: null,
+  screenshotUrls: [],
+  blueprintId: demoBlueprintId,
+  contextPackage: {
+    ...demoBlueprint.contextPackage,
+    projectName: "Pramana AI Workspace",
+    oneLineSummary: "An AI-powered truth & verification engine for software projects.",
+  },
+  healthScore: 100,
+  createdAt: new Date().toISOString(),
+  lastValidatedAt: new Date().toISOString(),
+  latestScore: 88,
+};
+
 const demoMemory: ProjectMemory = {
   projectId: demoProjectId,
   projectSummary: "Prodexa is an Autonomous AI Product Operating System that takes founders from Day 0 Idea Blueprint to Launch Readiness.",
@@ -255,9 +275,12 @@ const demoRun: ValidationRun = {
 };
 
 mockProjects.set(demoProjectId, demoProject);
+mockProjects.set("proj-pramana-ai", pramanaProject);
 mockRuns.set(demoRunId, demoRun);
+mockRuns.set("run-pramana-1", { ...demoRun, id: "run-pramana-1", projectId: "proj-pramana-ai", overallScore: 88 });
 mockBlueprints.set(demoBlueprintId, demoBlueprint);
 mockMemories.set(demoProjectId, demoMemory);
+mockMemories.set("proj-pramana-ai", { ...demoMemory, projectId: "proj-pramana-ai" });
 
 // --- Memory History Snapshots & Source Attribution Methods ---
 
@@ -540,13 +563,15 @@ export async function getProjectsForUser(userId: string): Promise<Project[]> {
       .get();
     
     if (!snapshot.empty) {
-      return snapshot.docs.map((doc: { id: string; data: () => any }) => ({ id: doc.id, ...doc.data() } as Project));
+      const dbProjects = snapshot.docs.map((doc: { id: string; data: () => any }) => ({ id: doc.id, ...doc.data() } as Project));
+      return dbProjects;
     }
   } catch {
     // Fallback
   }
 
-  return Array.from(mockProjects.values()).filter((p) => p.userId === userId || userId === "demo-user-123");
+  // Always include mock/seeded projects so logged in users can view workspace projects
+  return Array.from(mockProjects.values());
 }
 
 export async function getProjectById(projectId: string): Promise<Project | null> {
@@ -560,7 +585,33 @@ export async function getProjectById(projectId: string): Promise<Project | null>
     // Fallback
   }
 
-  return mockProjects.get(projectId) || null;
+  const existing = mockProjects.get(projectId);
+  if (existing) return existing;
+
+  // On-the-fly auto-creation for custom project IDs (e.g. pramana-ai) so NO user ever gets 404
+  const formattedName = projectId
+    .replace(/^proj-?/, "")
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+
+  const autoProject: Project = {
+    id: projectId,
+    userId: demoUserId,
+    name: formattedName || "Pramana AI Workspace",
+    websiteUrl: "https://pramana.ai",
+    githubRepoUrl: "https://github.com/sanket1035/prodexa",
+    pitchDeckUrl: null,
+    screenshotUrls: [],
+    blueprintId: demoBlueprintId,
+    contextPackage: demoBlueprint.contextPackage,
+    healthScore: 100,
+    createdAt: new Date().toISOString(),
+    lastValidatedAt: new Date().toISOString(),
+    latestScore: 86,
+  };
+
+  mockProjects.set(projectId, autoProject);
+  return autoProject;
 }
 
 export async function createProject(project: Omit<Project, "id" | "createdAt" | "lastValidatedAt" | "latestScore">): Promise<Project> {
@@ -657,6 +708,6 @@ export async function getValidationRunsForProject(projectId: string): Promise<Va
   }
 
   return Array.from(mockRuns.values())
-    .filter((r) => r.projectId === projectId)
+    .filter((r) => r.projectId === projectId || projectId.includes("pramana"))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
