@@ -153,7 +153,7 @@ Output strictly valid JSON.`;
           "How does context memory binding persist across multi-user sessions?",
         ],
         demoSuggestions: [
-          "Start your demo with Option B ('I only have an idea') to show the Blueprint Engine first",
+          "Start your demo with Option A ('I only have an idea') to show the Blueprint Engine first",
           "Highlight the auto-generated Mermaid Architecture Diagram and Starter Kit download",
           "Demonstrate the one-click Copy Fix drawer resolving a real readiness issue",
         ],
