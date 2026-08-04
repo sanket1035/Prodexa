@@ -3,14 +3,14 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ShieldCheck, ArrowRight, Mail, Lock, User, AlertCircle, CheckCircle2, RefreshCw, Sparkles } from "lucide-react";
+import { ShieldCheck, ArrowRight, Mail, Lock, User, AlertCircle, CheckCircle2, RefreshCw, Sparkles, Inbox, AlertTriangle } from "lucide-react";
 
 export default function LoginPage() {
   const { user, loading, signInWithGoogle, signUpWithEmail, signInWithEmail, resendVerification, sendMagicLink, signInAsDemoUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [mode, setMode] = useState<"signin" | "signup" | "magic">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "magic" | "pending_verification">("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,6 +23,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (searchParams.get("verified") === "true") {
       setSuccessMsg("Email verified successfully! You can now sign in below.");
+      setMode("signin");
     }
   }, [searchParams]);
 
@@ -71,8 +72,7 @@ export default function LoginPage() {
       }
       const res = await signUpWithEmail(name, email, password);
       if (res.success) {
-        setSuccessMsg(`Verification link sent to ${email}! Please check your email inbox and click the verification link before signing in.`);
-        switchTab("signin");
+        setMode("pending_verification");
       } else {
         setErrorMsg(res.error || "Sign up failed.");
       }
@@ -88,7 +88,7 @@ export default function LoginPage() {
       if (res.success) {
         router.push("/projects");
       } else if (res.requiresVerification) {
-        setErrorMsg(res.error || "Email not verified!");
+        setErrorMsg("Your email is not verified yet! Please check your inbox and click the verification link before signing in.");
         setShowResend(true);
       } else {
         setErrorMsg(res.error || "Invalid email or password.");
@@ -105,7 +105,7 @@ export default function LoginPage() {
     setSubmitting(true);
     const res = await resendVerification(email, password);
     if (res.success) {
-      setSuccessMsg(`Verification link re-sent to ${email}. Please check your inbox.`);
+      setSuccessMsg(`Verification link re-sent to ${email}. Please check your inbox & spam folder.`);
       setErrorMsg(null);
       setShowResend(false);
     } else {
@@ -125,181 +125,234 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#0B0C0E] text-[#EDEDEF] flex flex-col justify-center items-center px-4 font-sans py-12">
       <div className="w-full max-w-md bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-8 space-y-6">
-        {/* Header */}
-        <div className="space-y-2 text-center">
-          <div className="inline-flex items-center gap-2 text-xs font-mono tracking-wider uppercase text-[#D97B3F] bg-[#D97B3F]/10 px-3 py-1 rounded-[4px] border border-[#D97B3F]/20">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            Verified Authentication
-          </div>
-          <h1 className="text-2xl font-medium tracking-tight text-[#EDEDEF]">
-            {mode === "signin"
-              ? "Sign in to Prodexa"
-              : mode === "signup"
-              ? "Create your Verified Account"
-              : "Passwordless Email Link"}
-          </h1>
-          <p className="text-xs text-[#8B8F97] font-mono">
-            Autonomous Pre-Launch AI Operating System
-          </p>
-        </div>
-
-        {/* 3-Mode Tab Switcher */}
-        <div className="grid grid-cols-3 bg-[#0B0C0E] border border-[#2A2D31] p-1 rounded-[6px] text-xs font-mono">
-          <button
-            onClick={() => switchTab("signin")}
-            className={`py-1.5 rounded font-medium transition-colors ${
-              mode === "signin" ? "bg-[#1E2124] text-[#D97B3F] font-bold" : "text-[#8B8F97] hover:text-[#EDEDEF]"
-            }`}
-          >
-            Sign In
-          </button>
-          <button
-            onClick={() => switchTab("signup")}
-            className={`py-1.5 rounded font-medium transition-colors ${
-              mode === "signup" ? "bg-[#1E2124] text-[#D97B3F] font-bold" : "text-[#8B8F97] hover:text-[#EDEDEF]"
-            }`}
-          >
-            Sign Up
-          </button>
-          <button
-            onClick={() => switchTab("magic")}
-            className={`py-1.5 rounded font-medium transition-colors ${
-              mode === "magic" ? "bg-[#1E2124] text-[#D97B3F] font-bold" : "text-[#8B8F97] hover:text-[#EDEDEF]"
-            }`}
-          >
-            Magic Link
-          </button>
-        </div>
-
-        {/* Alert Notifications */}
-        {errorMsg && (
-          <div className="bg-[#C25A4D]/10 border border-[#C25A4D]/30 text-[#C25A4D] p-3 rounded-[6px] text-xs font-mono space-y-2">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>{errorMsg}</span>
+        
+        {/* PENDING VERIFICATION SCREEN */}
+        {mode === "pending_verification" ? (
+          <div className="space-y-6 text-center">
+            <div className="w-12 h-12 bg-[#D97B3F]/10 border border-[#D97B3F]/30 rounded-full flex items-center justify-center text-[#D97B3F] mx-auto">
+              <Inbox className="w-6 h-6" />
             </div>
-            {showResend && (
+
+            <div className="space-y-2">
+              <h2 className="text-xl font-medium text-[#EDEDEF]">Verification Link Sent!</h2>
+              <p className="text-xs text-[#8B8F97] leading-relaxed">
+                We sent a verification link to <span className="text-[#D97B3F] font-mono font-bold">{email}</span>.
+              </p>
+            </div>
+
+            {/* Spam Folder Warning Banner */}
+            <div className="bg-[#C9A44C]/10 border border-[#C9A44C]/30 text-[#C9A44C] p-3.5 rounded-[6px] text-xs font-mono text-left space-y-1.5">
+              <div className="flex items-center gap-1.5 font-bold">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                Check Your Spam / Junk Folder!
+              </div>
+              <p className="text-[11px] leading-relaxed text-[#EDEDEF]/90 font-sans">
+                Initial automated verification emails may arrive in your <strong className="text-[#C9A44C]">Spam or Junk</strong> folder. Open the email, mark it as <em>"Not Spam"</em>, and click the link to verify.
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-2">
               <button
                 onClick={handleResend}
                 disabled={submitting}
-                className="inline-flex items-center gap-1.5 bg-[#C25A4D]/20 hover:bg-[#C25A4D]/30 text-[#EDEDEF] px-3 py-1 rounded text-[11px] font-mono transition-colors"
+                className="w-full flex items-center justify-center gap-2 bg-[#1E2124] hover:bg-[#25292E] text-[#EDEDEF] font-mono text-xs font-medium py-2.5 px-4 rounded-[6px] border border-[#2A2D31] transition-colors disabled:opacity-50"
               >
-                <RefreshCw className="w-3 h-3" />
-                <span>Resend Verification Link</span>
+                <RefreshCw className="w-3.5 h-3.5 text-[#D97B3F]" />
+                {submitting ? "Resending..." : "Resend Verification Link"}
               </button>
+
+              <button
+                onClick={() => setMode("signin")}
+                className="w-full bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-mono text-xs font-medium py-2.5 px-4 rounded-[6px] transition-colors"
+              >
+                Go to Sign In Page
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Header */}
+            <div className="space-y-2 text-center">
+              <div className="inline-flex items-center gap-2 text-xs font-mono tracking-wider uppercase text-[#D97B3F] bg-[#D97B3F]/10 px-3 py-1 rounded-[4px] border border-[#D97B3F]/20">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Verified Authentication
+              </div>
+              <h1 className="text-2xl font-medium tracking-tight text-[#EDEDEF]">
+                {mode === "signin"
+                  ? "Sign in to Prodexa"
+                  : mode === "signup"
+                  ? "Create your Verified Account"
+                  : "Passwordless Email Link"}
+              </h1>
+              <p className="text-xs text-[#8B8F97] font-mono">
+                Autonomous Pre-Launch AI Operating System
+              </p>
+            </div>
+
+            {/* 3-Mode Tab Switcher */}
+            <div className="grid grid-cols-3 bg-[#0B0C0E] border border-[#2A2D31] p-1 rounded-[6px] text-xs font-mono">
+              <button
+                onClick={() => switchTab("signin")}
+                className={`py-1.5 rounded font-medium transition-colors ${
+                  mode === "signin" ? "bg-[#1E2124] text-[#D97B3F] font-bold" : "text-[#8B8F97] hover:text-[#EDEDEF]"
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => switchTab("signup")}
+                className={`py-1.5 rounded font-medium transition-colors ${
+                  mode === "signup" ? "bg-[#1E2124] text-[#D97B3F] font-bold" : "text-[#8B8F97] hover:text-[#EDEDEF]"
+                }`}
+              >
+                Sign Up
+              </button>
+              <button
+                onClick={() => switchTab("magic")}
+                className={`py-1.5 rounded font-medium transition-colors ${
+                  mode === "magic" ? "bg-[#1E2124] text-[#D97B3F] font-bold" : "text-[#8B8F97] hover:text-[#EDEDEF]"
+                }`}
+              >
+                Magic Link
+              </button>
+            </div>
+
+            {/* Alert Notifications */}
+            {errorMsg && (
+              <div className="bg-[#C25A4D]/10 border border-[#C25A4D]/30 text-[#C25A4D] p-3.5 rounded-[6px] text-xs font-mono space-y-2">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>{errorMsg}</span>
+                </div>
+                {showResend && (
+                  <div className="pt-1 space-y-1.5 border-t border-[#C25A4D]/20">
+                    <p className="text-[11px] text-[#EDEDEF]/80 font-sans">
+                      Check your <strong>Spam / Junk</strong> folder for the email link.
+                    </p>
+                    <button
+                      onClick={handleResend}
+                      disabled={submitting}
+                      className="inline-flex items-center gap-1.5 bg-[#C25A4D]/20 hover:bg-[#C25A4D]/30 text-[#EDEDEF] px-3 py-1 rounded text-[11px] font-mono transition-colors"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      <span>Resend Verification Link</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
-          </div>
-        )}
 
-        {successMsg && (
-          <div className="bg-[#5FA88A]/10 border border-[#5FA88A]/30 text-[#5FA88A] p-3 rounded-[6px] text-xs font-mono flex items-start gap-2">
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <span>{successMsg}</span>
-          </div>
-        )}
+            {successMsg && (
+              <div className="bg-[#5FA88A]/10 border border-[#5FA88A]/30 text-[#5FA88A] p-3 rounded-[6px] text-xs font-mono flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>{successMsg}</span>
+              </div>
+            )}
 
-        {/* Google OAuth Button */}
-        <button
-          type="button"
-          onClick={handleGoogleClick}
-          disabled={submitting}
-          className="w-full flex items-center justify-center gap-3 bg-[#1E2124] hover:bg-[#25292E] text-[#EDEDEF] font-mono text-xs font-medium py-2.5 px-4 rounded-[6px] border border-[#2A2D31] transition-colors disabled:opacity-50"
-        >
-          <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-            <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
-          </svg>
-          {submitting ? "Signing in..." : "Continue with Google (Instant Verification)"}
-        </button>
+            {/* Google OAuth Button */}
+            <button
+              type="button"
+              onClick={handleGoogleClick}
+              disabled={submitting}
+              className="w-full flex items-center justify-center gap-3 bg-[#1E2124] hover:bg-[#25292E] text-[#EDEDEF] font-mono text-xs font-medium py-2.5 px-4 rounded-[6px] border border-[#2A2D31] transition-colors disabled:opacity-50"
+            >
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
+              </svg>
+              {submitting ? "Signing in..." : "Continue with Google (Instant Verification)"}
+            </button>
 
-        <div className="relative flex py-1 items-center">
-          <div className="flex-grow border-t border-[#2A2D31]"></div>
-          <span className="flex-shrink mx-3 text-[11px] font-mono uppercase text-[#8B8F97]">or email</span>
-          <div className="flex-grow border-t border-[#2A2D31]"></div>
-        </div>
-
-        {/* Email Form with AutoComplete Disabled */}
-        <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
-          {mode === "signup" && (
-            <div className="space-y-1">
-              <label className="text-xs font-mono text-[#EDEDEF] flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-[#8B8F97]" />
-                Full Name
-              </label>
-              <input
-                type="text"
-                required
-                autoComplete="off"
-                placeholder="e.g. Alex Rivera"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-3.5 py-2 text-xs text-[#EDEDEF] placeholder-[#8B8F97]/50 focus:border-[#D97B3F] outline-none font-mono"
-              />
+            <div className="relative flex py-1 items-center">
+              <div className="flex-grow border-t border-[#2A2D31]"></div>
+              <span className="flex-shrink mx-3 text-[11px] font-mono uppercase text-[#8B8F97]">or email</span>
+              <div className="flex-grow border-t border-[#2A2D31]"></div>
             </div>
-          )}
 
-          <div className="space-y-1">
-            <label className="text-xs font-mono text-[#EDEDEF] flex items-center gap-1.5">
-              <Mail className="w-3.5 h-3.5 text-[#8B8F97]" />
-              Email Address
-            </label>
-            <input
-              type="email"
-              required
-              autoComplete="off"
-              placeholder="founder@startup.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-3.5 py-2 text-xs text-[#EDEDEF] placeholder-[#8B8F97]/50 focus:border-[#D97B3F] outline-none font-mono"
-            />
-          </div>
+            {/* Email Form */}
+            <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
+              {mode === "signup" && (
+                <div className="space-y-1">
+                  <label className="text-xs font-mono text-[#EDEDEF] flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-[#8B8F97]" />
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    autoComplete="off"
+                    placeholder="e.g. Alex Rivera"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-3.5 py-2 text-xs text-[#EDEDEF] placeholder-[#8B8F97]/50 focus:border-[#D97B3F] outline-none font-mono"
+                  />
+                </div>
+              )}
 
-          {mode !== "magic" && (
-            <div className="space-y-1">
-              <label className="text-xs font-mono text-[#EDEDEF] flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-[#8B8F97]" />
-                Password
-              </label>
-              <input
-                type="password"
-                required
-                autoComplete="new-password"
-                placeholder="••••••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-3.5 py-2 text-xs text-[#EDEDEF] placeholder-[#8B8F97]/50 focus:border-[#D97B3F] outline-none font-mono"
-              />
+              <div className="space-y-1">
+                <label className="text-xs font-mono text-[#EDEDEF] flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-[#8B8F97]" />
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  required
+                  autoComplete="off"
+                  placeholder="founder@startup.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-3.5 py-2 text-xs text-[#EDEDEF] placeholder-[#8B8F97]/50 focus:border-[#D97B3F] outline-none font-mono"
+                />
+              </div>
+
+              {mode !== "magic" && (
+                <div className="space-y-1">
+                  <label className="text-xs font-mono text-[#EDEDEF] flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-[#8B8F97]" />
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    autoComplete="new-password"
+                    placeholder="••••••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] px-3.5 py-2 text-xs text-[#EDEDEF] placeholder-[#8B8F97]/50 focus:border-[#D97B3F] outline-none font-mono"
+                  />
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-mono text-xs font-medium py-2.5 px-4 rounded-[6px] transition-colors disabled:opacity-50"
+              >
+                {submitting
+                  ? "Processing..."
+                  : mode === "signup"
+                  ? "Sign Up & Send Verification Email"
+                  : mode === "magic"
+                  ? "Send Passwordless Magic Link"
+                  : "Sign In"}
+              </button>
+            </form>
+
+            {/* Instant Demo Guest Access */}
+            <div className="pt-2 border-t border-[#2A2D31] text-center">
+              <button
+                onClick={() => {
+                  signInAsDemoUser();
+                  router.push("/projects");
+                }}
+                className="inline-flex items-center gap-2 text-xs font-mono text-[#D97B3F] hover:underline"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#D97B3F]" />
+                <span>Instant Demo Guest Access (No Email Required)</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-mono text-xs font-medium py-2.5 px-4 rounded-[6px] transition-colors disabled:opacity-50"
-          >
-            {submitting
-              ? "Processing..."
-              : mode === "signup"
-              ? "Sign Up & Send Email Verification Link"
-              : mode === "magic"
-              ? "Send Passwordless Magic Link"
-              : "Sign In"}
-          </button>
-        </form>
-
-        {/* Instant Demo Guest Access */}
-        <div className="pt-2 border-t border-[#2A2D31] text-center">
-          <button
-            onClick={() => {
-              signInAsDemoUser();
-              router.push("/projects");
-            }}
-            className="inline-flex items-center gap-2 text-xs font-mono text-[#D97B3F] hover:underline"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-[#D97B3F]" />
-            <span>Instant Demo Guest Access (No Email Required)</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
