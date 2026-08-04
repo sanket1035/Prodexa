@@ -2,7 +2,16 @@
 
 import React, { useState } from "react";
 import { CoFounderMessage } from "@/lib/types/cofounder";
-import { Bot, Send, User, Sparkles, Copy, Check, ShieldAlert, Award, Code2 } from "lucide-react";
+import { Bot, Send, User, Sparkles, Copy, Check, ShieldAlert, Award, Code2, AlertTriangle, CheckCircle2, HelpCircle, Lightbulb } from "lucide-react";
+
+interface MentorReviewData {
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  judgeQuestions: string[];
+  demoSuggestions: string[];
+  actionableFix?: string;
+}
 
 interface AICofounderTabProps {
   projectId: string;
@@ -22,10 +31,13 @@ export default function AICofounderTab({
       id: "init-1",
       sender: "cofounder",
       role: "advisor",
-      text: `Hey! I'm your AI Co-Founder for ${projectName}. I have full visibility into your blueprint context, health progress (${healthScore}%), and launch readiness metrics. What area of the product or pitch shall we optimize next?`,
+      text: `Hey! I'm your AI Co-Founder for ${projectName}. I have full visibility into your blueprint context, health progress (${healthScore}%), and launch readiness metrics. Ask me anything or request a YC Mentor Audit below!`,
       timestamp: new Date().toISOString(),
     },
   ]);
+
+  const [mentorReview, setMentorReview] = useState<MentorReviewData | null>(null);
+  const [loadingMentor, setLoadingMentor] = useState(false);
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,6 +49,29 @@ export default function AICofounderTab({
     "What is the single most critical gap I must fix before launch?",
     "How can I increase my Launch Readiness Score?",
   ];
+
+  const requestMentorReview = async () => {
+    setLoadingMentor(true);
+    try {
+      const res = await fetch("/api/cofounder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          isMentorReview: true,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.review) {
+        setMentorReview(data.review);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingMentor(false);
+    }
+  };
 
   const sendMessage = async (textToSend: string) => {
     if (!textToSend.trim() || loading) return;
@@ -69,7 +104,6 @@ export default function AICofounderTab({
         throw new Error(data.message || "Failed to get AI Co-Founder response");
       }
     } catch {
-      // Fallback message for demo safety
       const fallbackMsg: CoFounderMessage = {
         id: "cf_" + Date.now(),
         sender: "cofounder",
@@ -111,11 +145,98 @@ export default function AICofounderTab({
           </div>
         </div>
 
-        <div className="text-xs font-mono text-[#8B8F97] bg-[#0B0C0E] border border-[#2A2D31] px-3 py-1.5 rounded-[6px] flex items-center gap-2 self-start sm:self-center">
-          <Sparkles className="w-3.5 h-3.5 text-[#D97B3F]" />
-          <span>Active Context: {projectName}</span>
+        <div className="flex items-center gap-2 self-start sm:self-center">
+          <button
+            onClick={requestMentorReview}
+            disabled={loadingMentor}
+            className="flex items-center gap-1.5 bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] px-3.5 py-2 rounded-[6px] text-xs font-mono font-medium transition-colors disabled:opacity-50"
+          >
+            <Award className="w-4 h-4" />
+            {loadingMentor ? "Auditing YC Partner Review..." : "Ask YC Partner Review"}
+          </button>
         </div>
       </div>
+
+      {/* Structured YC Partner Mentor Review Card if requested */}
+      {mentorReview && (
+        <div className="bg-[#0B0C0E] border border-[#D97B3F]/40 rounded-[6px] p-5 space-y-5">
+          <div className="flex items-center justify-between border-b border-[#2A2D31] pb-3">
+            <div className="flex items-center gap-2 font-mono text-sm text-[#D97B3F] font-bold">
+              <Award className="w-4 h-4" />
+              YC Partner Pitch Audit & Risk Matrix ({projectName})
+            </div>
+            <span className="text-[10px] font-mono text-[#8B8F97] bg-[#16181B] px-2 py-0.5 rounded border border-[#2A2D31]">
+              Live Advisor Feedback
+            </span>
+          </div>
+
+          <p className="text-xs text-[#EDEDEF] leading-relaxed font-sans">{mentorReview.summary}</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Top Strengths */}
+            <div className="bg-[#16181B] border border-[#2A2D31] p-4 rounded-[6px] space-y-2">
+              <div className="text-xs font-mono uppercase text-[#5FA88A] flex items-center gap-1.5 font-semibold">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Top 5 Key Strengths
+              </div>
+              <ul className="space-y-1 text-xs text-[#8B8F97]">
+                {mentorReview.strengths.map((s, idx) => (
+                  <li key={idx} className="flex items-start gap-1.5">
+                    <span className="text-[#5FA88A]">•</span>
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Top Weaknesses */}
+            <div className="bg-[#16181B] border border-[#2A2D31] p-4 rounded-[6px] space-y-2">
+              <div className="text-xs font-mono uppercase text-[#C25A4D] flex items-center gap-1.5 font-semibold">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                Top 5 Weaknesses & Gaps
+              </div>
+              <ul className="space-y-1 text-xs text-[#8B8F97]">
+                {mentorReview.weaknesses.map((w, idx) => (
+                  <li key={idx} className="flex items-start gap-1.5">
+                    <span className="text-[#C25A4D]">•</span>
+                    <span>{w}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Tough Judge Questions & Presentation Suggestions */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-[#2A2D31]">
+            <div className="space-y-2">
+              <div className="text-xs font-mono uppercase text-[#C9A44C] flex items-center gap-1.5 font-semibold">
+                <HelpCircle className="w-3.5 h-3.5" />
+                5 Questions YC Judges Will Ask
+              </div>
+              <ol className="space-y-1 text-xs text-[#8B8F97] list-decimal list-inside font-mono">
+                {mentorReview.judgeQuestions.map((q, idx) => (
+                  <li key={idx} className="leading-relaxed">{q}</li>
+                ))}
+              </ol>
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-xs font-mono uppercase text-[#D97B3F] flex items-center gap-1.5 font-semibold">
+                <Lightbulb className="w-3.5 h-3.5" />
+                Demo Pitch Presentation Tips
+              </div>
+              <ul className="space-y-1 text-xs text-[#8B8F97]">
+                {mentorReview.demoSuggestions.map((tip, idx) => (
+                  <li key={idx} className="flex items-start gap-1.5">
+                    <span className="text-[#D97B3F]">→</span>
+                    <span>{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Quick Suggestion Chips */}
       <div className="space-y-2">

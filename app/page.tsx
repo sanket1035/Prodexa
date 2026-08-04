@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CheckCircle2, Zap, Sparkles, FolderGit2, Lightbulb } from "lucide-react";
+import { ArrowRight, CheckCircle2, Zap, Sparkles, FolderGit2, Lightbulb, ShieldCheck, Award } from "lucide-react";
 
 export default function LandingPage() {
   const { user, signInWithGoogle, signInAsDemoUser } = useAuth();
@@ -60,8 +60,29 @@ export default function LandingPage() {
           Most tools start after a product exists. <span className="text-[#EDEDEF] font-medium">Prodexa starts when you only have an idea</span>, then stays with you until launch.
         </p>
 
+        {/* Visual Lifecycle Timeline (Idea -> Blueprint -> Build -> Launch Audit -> Investor Ready) */}
+        <div className="w-full max-w-3xl bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-4 my-4">
+          <div className="text-[11px] font-mono text-[#8B8F97] uppercase tracking-wider mb-3 text-left">
+            The Complete Idea → Launch Operating Lifecycle:
+          </div>
+          <div className="grid grid-cols-5 gap-2 text-center text-xs font-mono">
+            {[
+              { step: "01", title: "Idea", color: "text-[#D97B3F]" },
+              { step: "02", title: "Blueprint", color: "text-[#D97B3F]" },
+              { step: "03", title: "Build", color: "text-[#5FA88A]" },
+              { step: "04", title: "Launch Audit", color: "text-[#5FA88A]" },
+              { step: "05", title: "Investor Ready", color: "text-[#C9A44C]" },
+            ].map((st, idx) => (
+              <div key={idx} className="bg-[#0B0C0E] border border-[#2A2D31] p-2 rounded-[6px] space-y-0.5">
+                <div className={`text-[10px] font-bold ${st.color}`}>{st.step}</div>
+                <div className="text-[#EDEDEF] font-medium text-[11px] truncate">{st.title}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Dual Entry Option Cards */}
-        <div className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl text-left">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl text-left">
           {/* Option B: Idea Only */}
           <div
             onClick={() => {
@@ -145,27 +166,6 @@ export default function LandingPage() {
             <Sparkles className="w-3.5 h-3.5 text-[#D97B3F]" />
             View Sample AI Blueprint (Instant Demo)
           </button>
-        </div>
-
-        {/* 6 Core Modules Chips */}
-        <div className="pt-10 grid grid-cols-2 md:grid-cols-3 gap-3 w-full text-left max-w-3xl">
-          {[
-            { name: "Product Foundation", desc: "Problem, Solution & Ideal ICP" },
-            { name: "Market & Competitors", desc: "Landscape & investor value prop" },
-            { name: "Feature Architecture", desc: "Core MVP scope & monetization" },
-            { name: "Tech & System Design", desc: "Stack, rationale & risk analysis" },
-            { name: "Database & API Contract", desc: "Collections & REST payload specs" },
-            { name: "Folder & Development Plan", desc: "Directory tree & phased roadmap" },
-          ].map((m, idx) => (
-            <div key={idx} className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-3.5 space-y-1">
-              <div className="flex items-center gap-2 text-xs font-mono text-[#D97B3F]">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#5FA88A]" />
-                Module 0{idx + 1}
-              </div>
-              <div className="font-medium text-sm text-[#EDEDEF]">{m.name}</div>
-              <div className="text-xs text-[#8B8F97]">{m.desc}</div>
-            </div>
-          ))}
         </div>
       </main>
 
