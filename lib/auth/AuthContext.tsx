@@ -32,6 +32,7 @@ interface AuthContextType {
   signInWithEmail: (email: string, pass: string) => Promise<{ success: boolean; error?: string; requiresVerification?: boolean }>;
   resendVerification: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   sendMagicLink: (email: string) => Promise<{ success: boolean; error?: string }>;
+  updateUserProfile: (name: string) => Promise<{ success: boolean; error?: string }>;
   signInAsDemoUser: () => void;
   signOut: () => Promise<void>;
 }
@@ -44,6 +45,7 @@ const AuthContext = createContext<AuthContextType>({
   signInWithEmail: async () => ({ success: false }),
   resendVerification: async () => ({ success: false }),
   sendMagicLink: async () => ({ success: false }),
+  updateUserProfile: async () => ({ success: false }),
   signInAsDemoUser: () => {},
   signOut: async () => {},
 });
@@ -94,10 +96,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: User | null) => {
       if (firebaseUser) {
-        // Enforce strict email verification for password auth
         await firebaseUser.reload();
         
-        // Google OAuth or verified email
         const isOAuth = firebaseUser.providerData.some((p) => p.providerId === "google.com");
         if (firebaseUser.emailVerified || isOAuth) {
           if (typeof window !== "undefined") {
@@ -111,7 +111,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             emailVerified: true,
           });
         } else {
-          // Unverified user -> force sign out
           await firebaseSignOut(auth);
           setUser(null);
         }
@@ -140,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: result.user.email,
         displayName: result.user.displayName,
         photoURL: result.user.photoURL,
-        emailVerified: true, // Google accounts are pre-verified by Google
+        emailVerified: true,
       };
       if (typeof window !== "undefined") {
         localStorage.removeItem("prodexa_demo_user");
@@ -159,14 +158,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const cred = await createUserWithEmailAndPassword(auth, email, pass);
       await updateProfile(cred.user, { displayName: name });
       
-      // Send verification link with redirect to /login
       const actionCodeSettings = {
         url: typeof window !== "undefined" ? `${window.location.origin}/login?verified=true` : "http://localhost:3000/login",
         handleCodeInApp: true,
       };
       await sendEmailVerification(cred.user, actionCodeSettings);
 
-      // Force sign out until email is verified by user clicking link
       await firebaseSignOut(auth);
       setUser(null);
 
@@ -242,6 +239,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateUserProfile = async (name: string) => {
+    try {
+      if (auth && auth.currentUser) {
+        await updateProfile(auth.currentUser, { displayName: name });
+      }
+      if (user) {
+        const updatedUser = { ...user, displayName: name };
+        setUser(updatedUser);
+        if (typeof window !== "undefined" && localStorage.getItem("prodexa_demo_user")) {
+          localStorage.setItem("prodexa_demo_user", JSON.stringify(updatedUser));
+        }
+      }
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || "Failed to update profile." };
+    }
+  };
+
   const signInAsDemoUser = () => {
     const demoUser: AuthUser = {
       uid: "demo-user-123",
@@ -280,6 +295,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithEmail,
         resendVerification,
         sendMagicLink,
+        updateUserProfile,
         signInAsDemoUser,
         signOut,
       }}

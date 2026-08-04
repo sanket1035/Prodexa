@@ -8,9 +8,11 @@ import {
   FolderGit2,
   PlusCircle,
   Sparkles,
+  Settings,
   LogOut,
   Menu,
   X,
+  User,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -36,7 +38,7 @@ export default function Sidebar() {
       active: pathname === "/projects",
     },
     {
-      name: "Option A — New Idea Blueprint",
+      name: "Option A — New Idea",
       href: "/blueprint/new",
       icon: Sparkles,
       active: pathname === "/blueprint/new",
@@ -46,6 +48,12 @@ export default function Sidebar() {
       href: "/projects/new",
       icon: PlusCircle,
       active: pathname === "/projects/new",
+    },
+    {
+      name: "Profile Settings",
+      href: "/settings",
+      icon: Settings,
+      active: pathname === "/settings",
     },
   ];
 
@@ -141,19 +149,22 @@ export default function Sidebar() {
         {/* User Footer */}
         <div className="pt-4 border-t border-[#2A2D31] space-y-3">
           {user && (
-            <div className="px-3 py-2 bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-[#2A2D31] flex items-center justify-center text-xs font-mono font-bold text-[#EDEDEF]">
-                {user.displayName ? user.displayName[0] : "U"}
+            <Link
+              href="/settings"
+              className="px-3 py-2 bg-[#0B0C0E] border border-[#2A2D31] hover:border-[#D97B3F]/40 rounded-[6px] flex items-center gap-2 transition-colors group cursor-pointer"
+            >
+              <div className="w-7 h-7 rounded-full bg-[#D97B3F]/20 border border-[#D97B3F]/30 flex items-center justify-center text-xs font-mono font-bold text-[#D97B3F] group-hover:scale-105 transition-transform">
+                {user.displayName ? user.displayName[0].toUpperCase() : "U"}
               </div>
               <div className="flex-1 truncate">
-                <div className="text-xs font-medium text-[#EDEDEF] truncate">
-                  {user.displayName || "User"}
+                <div className="text-xs font-medium text-[#EDEDEF] truncate group-hover:text-[#D97B3F] transition-colors">
+                  {user.displayName || "User Profile"}
                 </div>
                 <div className="text-[10px] font-mono text-[#8B8F97] truncate">
                   {user.email}
                 </div>
               </div>
-            </div>
+            </Link>
           )}
 
           <button
