@@ -31,7 +31,7 @@ export default function AICofounderTab({
       id: "init-1",
       sender: "cofounder",
       role: "advisor",
-      text: `Hey! I'm your AI Co-Founder for ${projectName}. I have full visibility into your blueprint context, health progress (${healthScore}%), and launch readiness metrics. Ask me anything or request a YC Mentor Audit below!`,
+      text: `Hey! I'm your AI Co-Founder for ${projectName}. I have full visibility into your blueprint context, health progress (${healthScore}%), and launch readiness metrics. Ask me anything or request an Investor Review below!`,
       timestamp: new Date().toISOString(),
     },
   ]);
@@ -152,18 +152,18 @@ export default function AICofounderTab({
             className="flex items-center gap-1.5 bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] px-3.5 py-2 rounded-[6px] text-xs font-mono font-medium transition-colors disabled:opacity-50"
           >
             <Award className="w-4 h-4" />
-            {loadingMentor ? "Auditing YC Partner Review..." : "Ask YC Partner Review"}
+            {loadingMentor ? "Auditing Investor Review..." : "Investor Review"}
           </button>
         </div>
       </div>
 
-      {/* Structured YC Partner Mentor Review Card if requested */}
+      {/* Structured Investor & Judge Review Card if requested */}
       {mentorReview && (
         <div className="bg-[#0B0C0E] border border-[#D97B3F]/40 rounded-[6px] p-5 space-y-5">
           <div className="flex items-center justify-between border-b border-[#2A2D31] pb-3">
             <div className="flex items-center gap-2 font-mono text-sm text-[#D97B3F] font-bold">
               <Award className="w-4 h-4" />
-              YC Partner Pitch Audit & Risk Matrix ({projectName})
+              Investor & Judge Pitch Audit ({projectName})
             </div>
             <span className="text-[10px] font-mono text-[#8B8F97] bg-[#16181B] px-2 py-0.5 rounded border border-[#2A2D31]">
               Live Advisor Feedback
@@ -211,7 +211,7 @@ export default function AICofounderTab({
             <div className="space-y-2">
               <div className="text-xs font-mono uppercase text-[#C9A44C] flex items-center gap-1.5 font-semibold">
                 <HelpCircle className="w-3.5 h-3.5" />
-                5 Questions YC Judges Will Ask
+                5 Questions Hackathon & VC Judges Will Ask
               </div>
               <ol className="space-y-1 text-xs text-[#8B8F97] list-decimal list-inside font-mono">
                 {mentorReview.judgeQuestions.map((q, idx) => (

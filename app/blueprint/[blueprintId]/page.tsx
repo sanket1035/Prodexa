@@ -19,6 +19,9 @@ import {
   Calendar,
   CheckCircle2,
   Sparkles,
+  GitCompare,
+  Plus,
+  Minus,
 } from "lucide-react";
 
 export default function BlueprintWorkspacePage() {
@@ -29,6 +32,7 @@ export default function BlueprintWorkspacePage() {
   const [blueprint, setBlueprint] = useState<Blueprint | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"overview" | "architecture" | "roadmap" | "export">("overview");
+  const [showVersionDiff, setShowVersionDiff] = useState(false);
   const [converting, setConverting] = useState(false);
 
   useEffect(() => {
@@ -129,6 +133,14 @@ export default function BlueprintWorkspacePage() {
         {/* Action Controls */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
+            onClick={() => setShowVersionDiff(!showVersionDiff)}
+            className="flex items-center gap-1.5 bg-[#16181B] hover:bg-[#1E2124] text-[#EDEDEF] border border-[#2A2D31] px-3.5 py-2 rounded-[6px] text-xs font-mono transition-colors"
+          >
+            <GitCompare className="w-3.5 h-3.5 text-[#D97B3F]" />
+            {showVersionDiff ? "Hide Version Diff" : "Compare Versions (v1 vs v2)"}
+          </button>
+
+          <button
             onClick={handleDownloadStarterKit}
             className="flex items-center gap-1.5 bg-[#16181B] hover:bg-[#1E2124] text-[#EDEDEF] border border-[#2A2D31] px-3.5 py-2 rounded-[6px] text-xs font-mono transition-colors"
           >
@@ -152,6 +164,58 @@ export default function BlueprintWorkspacePage() {
           </button>
         </div>
       </div>
+
+      {/* Compare Blueprint Versions Diff Card */}
+      {showVersionDiff && (
+        <div className="bg-[#16181B] border border-[#D97B3F]/40 rounded-[6px] p-5 space-y-4 font-mono text-xs">
+          <div className="flex items-center justify-between border-b border-[#2A2D31] pb-3">
+            <div className="flex items-center gap-2 text-[#D97B3F] font-bold text-sm">
+              <GitCompare className="w-4 h-4" />
+              Blueprint Iteration Diff (v1.0 Initial Draft vs v2.0 Refined OS)
+            </div>
+            <span className="text-[10px] uppercase bg-[#5FA88A]/10 text-[#5FA88A] px-2 py-0.5 rounded border border-[#5FA88A]/20">
+              Iterative Optimization
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-[#0B0C0E] border border-[#2A2D31] p-4 rounded space-y-2">
+              <div className="text-[#8B8F97] font-semibold text-[11px] border-b border-[#2A2D31] pb-1">
+                Version 1.0 (Initial Raw Prompt Output)
+              </div>
+              <div className="text-[#8B8F97] space-y-1">
+                <div>• Initial problem statement draft</div>
+                <div>• Generic 3-layer architecture</div>
+                <div>• Monolithic database schema</div>
+              </div>
+            </div>
+
+            <div className="bg-[#0B0C0E] border border-[#5FA88A]/30 p-4 rounded space-y-2">
+              <div className="text-[#5FA88A] font-semibold text-[11px] border-b border-[#2A2D31] pb-1">
+                Version 2.0 (Refined Product OS Specification)
+              </div>
+              <div className="space-y-1 text-[#EDEDEF]">
+                <div className="flex items-center gap-1.5 text-[#5FA88A]">
+                  <Plus className="w-3 h-3" />
+                  <span>Added Bounded Context Memory & Firestore Rules</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[#5FA88A]">
+                  <Plus className="w-3 h-3" />
+                  <span>Auto-Generated Mermaid Architecture Diagram</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[#5FA88A]">
+                  <Plus className="w-3 h-3" />
+                  <span>One-Click Starter Kit Downloader (PRD, TRD, Schema)</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[#C25A4D]">
+                  <Minus className="w-3 h-3" />
+                  <span>Removed Non-Essential Prompt Viewer Sandbox</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Blueprint Quality Score Badge (WOW Moment 1) */}
       <QualityScoreBadge score={blueprint.qualityScore} />
