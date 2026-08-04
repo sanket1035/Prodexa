@@ -18,18 +18,15 @@ const Field = ({ label, required, optional, hint, children }: {
   label: string; required?: boolean; optional?: boolean; hint?: string; children: React.ReactNode;
 }) => (
   <div className="space-y-1.5">
-    <label className="block text-xs font-medium text-[#A1A1AA]">
+    <label className="block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
       {label}
-      {required && <span className="text-[#EF4444] ml-1">*</span>}
-      {optional && <span className="text-[#3F3F46] ml-1">(optional)</span>}
+      {required && <span className="text-red-500 ml-1">*</span>}
+      {optional && <span className="ml-1" style={{ color: "var(--text-faint)" }}>(optional)</span>}
     </label>
     {children}
-    {hint && <p className="text-xs text-[#71717A] leading-relaxed">{hint}</p>}
+    {hint && <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>{hint}</p>}
   </div>
 );
-
-const inputClass = "w-full bg-[#111113] border border-white/[0.10] hover:border-white/[0.16] focus:border-[#D97706]/60 rounded-xl px-4 py-3 text-sm text-[#FAFAFA] placeholder-[#3F3F46] outline-none transition-colors";
-const textareaClass = inputClass + " resize-none";
 
 export default function NewBlueprintPage() {
   const router = useRouter();
@@ -93,28 +90,28 @@ export default function NewBlueprintPage() {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
-        <div className="max-w-md w-full bg-[#111113] border border-white/[0.08] rounded-2xl p-8 space-y-6 animate-fade-in">
+        <div className="max-w-md w-full card p-8 space-y-6 anim-fade">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-[#D97706]/10 border border-[#D97706]/20 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Loader2 className="w-5 h-5 text-[#D97706] animate-spin" />
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(217,119,6,0.12)", border: "1px solid rgba(217,119,6,0.2)" }}>
+              <Loader2 className="w-5 h-5 anim-spin" style={{ color: "var(--accent)" }} />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-[#FAFAFA]">Generating Blueprint</h3>
-              <p className="text-xs text-[#D97706] font-mono mt-0.5">{STEPS[stepIndex]}</p>
+              <h3 className="text-base font-semibold" style={{ color: "var(--text)" }}>Generating Blueprint</h3>
+              <p className="text-xs font-mono mt-0.5" style={{ color: "var(--accent)" }}>{STEPS[stepIndex]}</p>
             </div>
           </div>
 
-          <div className="space-y-2.5 pt-2 border-t border-white/[0.08]">
+          <div className="space-y-2.5 pt-2 border-t" style={{ borderColor: "var(--border)" }}>
             {STEPS.map((st, idx) => (
-              <div key={idx} className={`flex items-center gap-2.5 text-xs transition-all ${
-                idx < stepIndex ? "text-[#22C55E]" : idx === stepIndex ? "text-[#FAFAFA] font-medium" : "text-[#3F3F46]"
-              }`}>
+              <div key={idx} className="flex items-center gap-2.5 text-xs transition-all" style={{
+                color: idx < stepIndex ? "var(--success)" : idx === stepIndex ? "var(--text)" : "var(--text-faint)"
+              }}>
                 {idx < stepIndex ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E] flex-shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 text-green-500" />
                 ) : idx === stepIndex ? (
-                  <Loader2 className="w-3.5 h-3.5 text-[#D97706] animate-spin flex-shrink-0" />
+                  <Loader2 className="w-3.5 h-3.5 anim-spin flex-shrink-0" style={{ color: "var(--accent)" }} />
                 ) : (
-                  <div className="w-3.5 h-3.5 rounded-full border border-white/[0.12] flex-shrink-0" />
+                  <div className="w-3.5 h-3.5 rounded-full border flex-shrink-0" style={{ borderColor: "var(--border)" }} />
                 )}
                 <span className="font-mono">{st.replace("...", "")}</span>
               </div>
@@ -126,23 +123,23 @@ export default function NewBlueprintPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-3xl mx-auto w-full space-y-8 animate-fade-in">
+    <div className="p-6 md:p-8 max-w-3xl mx-auto w-full space-y-8 anim-fade">
       {/* Header */}
       <div>
-        <div className="inline-flex items-center gap-2 text-[11px] font-mono tracking-widest uppercase text-[#D97706] bg-[#D97706]/10 border border-[#D97706]/20 px-3 py-1.5 rounded-full mb-4">
+        <div className="badge badge-amber font-mono text-[10px] uppercase mb-4">
           <Lightbulb className="w-3 h-3" />
           Option A — New Idea
         </div>
-        <h1 className="text-2xl font-semibold text-[#FAFAFA] tracking-tight mb-2">
+        <h1 className="text-2xl font-semibold tracking-tight mb-2" style={{ color: "var(--text)" }}>
           Generate AI Product Blueprint
         </h1>
-        <p className="text-sm text-[#71717A] leading-relaxed max-w-lg">
+        <p className="text-sm leading-relaxed max-w-lg" style={{ color: "var(--text-muted)" }}>
           Turn your Day 0 idea into structured startup documentation — Quality Score, competitor analysis, system architecture, and tech stack recommendation in under 15 seconds.
         </p>
       </div>
 
       {error && (
-        <div className="bg-[#EF4444]/8 border border-[#EF4444]/20 text-[#EF4444] rounded-xl p-4 text-sm flex items-start gap-3 animate-fade-in">
+        <div className="badge badge-red p-4 text-sm flex items-start gap-3 w-full">
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
@@ -150,10 +147,10 @@ export default function NewBlueprintPage() {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Section: Project Basics */}
-        <div className="bg-[#111113] border border-white/[0.08] rounded-2xl p-5 space-y-5">
-          <div className="flex items-center gap-2 pb-3 border-b border-white/[0.07]">
-            <Lightbulb className="w-4 h-4 text-[#D97706]" />
-            <span className="text-sm font-semibold text-[#FAFAFA]">Project Basics</span>
+        <div className="card p-6 space-y-5">
+          <div className="flex items-center gap-2 pb-3 border-b" style={{ borderColor: "var(--border)" }}>
+            <Lightbulb className="w-4 h-4" style={{ color: "var(--accent)" }} />
+            <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>Project Basics</span>
           </div>
 
           <Field label="Project Name" required hint="What is this product called?">
@@ -163,7 +160,7 @@ export default function NewBlueprintPage() {
               placeholder="e.g. ContractGuard AI"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className={inputClass}
+              className="input"
             />
           </Field>
 
@@ -174,7 +171,7 @@ export default function NewBlueprintPage() {
               placeholder="Describe what your product does and how it creates value for users..."
               value={idea}
               onChange={(e) => setIdea(e.target.value)}
-              className={textareaClass}
+              className="input textarea"
             />
           </Field>
 
@@ -185,52 +182,52 @@ export default function NewBlueprintPage() {
               placeholder="What painful problem are you solving? Who suffers from this gap?"
               value={problem}
               onChange={(e) => setProblem(e.target.value)}
-              className={textareaClass}
+              className="input textarea"
             />
           </Field>
         </div>
 
         {/* Section: Audience & Context */}
-        <div className="bg-[#111113] border border-white/[0.08] rounded-2xl p-5 space-y-5">
-          <div className="flex items-center gap-2 pb-3 border-b border-white/[0.07]">
-            <Users className="w-4 h-4 text-[#A1A1AA]" />
-            <span className="text-sm font-semibold text-[#FAFAFA]">Audience & Context</span>
-            <span className="text-xs text-[#3F3F46] font-mono ml-auto">optional — improves quality</span>
+        <div className="card p-6 space-y-5">
+          <div className="flex items-center gap-2 pb-3 border-b" style={{ borderColor: "var(--border)" }}>
+            <Users className="w-4 h-4" style={{ color: "var(--text-muted)" }} />
+            <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>Audience &amp; Context</span>
+            <span className="text-xs font-mono ml-auto" style={{ color: "var(--text-faint)" }}>optional</span>
           </div>
 
           <Field label="Target Audience / ICP" optional>
             <input
               type="text"
-              placeholder="e.g. Freelance designers, early-stage SaaS founders, hackathon teams"
+              placeholder="e.g. Freelance designers, early-stage SaaS founders"
               value={targetUsers}
               onChange={(e) => setTargetUsers(e.target.value)}
-              className={inputClass}
+              className="input"
             />
           </Field>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Industry" optional>
               <div className="relative">
-                <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#3F3F46]" />
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: "var(--text-faint)" }} />
                 <input
                   type="text"
                   placeholder="e.g. Developer Tools, FinTech"
                   value={optionalIndustry}
                   onChange={(e) => setOptionalIndustry(e.target.value)}
-                  className="w-full bg-[#111113] border border-white/[0.10] hover:border-white/[0.16] focus:border-[#D97706]/60 rounded-xl pl-10 pr-4 py-3 text-sm text-[#FAFAFA] placeholder-[#3F3F46] outline-none transition-colors"
+                  className="input pl-9"
                 />
               </div>
             </Field>
 
             <Field label="Build Constraints" optional>
               <div className="relative">
-                <Wrench className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#3F3F46]" />
+                <Wrench className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: "var(--text-faint)" }} />
                 <input
                   type="text"
                   placeholder="e.g. 24h Hackathon, Next.js + Firebase"
                   value={optionalConstraints}
                   onChange={(e) => setOptionalConstraints(e.target.value)}
-                  className="w-full bg-[#111113] border border-white/[0.10] hover:border-white/[0.16] focus:border-[#D97706]/60 rounded-xl pl-10 pr-4 py-3 text-sm text-[#FAFAFA] placeholder-[#3F3F46] outline-none transition-colors"
+                  className="input pl-9"
                 />
               </div>
             </Field>
@@ -240,7 +237,7 @@ export default function NewBlueprintPage() {
         {/* Submit */}
         <button
           type="submit"
-          className="w-full flex items-center justify-center gap-2.5 bg-[#D97706] hover:bg-[#F59E0B] text-[#09090B] font-semibold py-3.5 px-6 rounded-xl text-sm transition-all hover:shadow-[0_0_20px_rgba(217,119,6,0.4)]"
+          className="btn btn-primary btn-lg w-full"
         >
           <Sparkles className="w-4 h-4" />
           Generate AI Product Blueprint

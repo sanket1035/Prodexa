@@ -96,9 +96,9 @@ export default function LoginPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#09090B] flex items-center justify-center">
-        <div className="flex items-center gap-3 text-[#71717A] text-sm font-mono">
-          <div className="w-4 h-4 border-2 border-[#D97706]/30 border-t-[#D97706] rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
+        <div className="flex items-center gap-3 text-sm font-mono" style={{ color: "var(--text-muted)" }}>
+          <div className="w-4 h-4 border-2 border-amber-500/30 border-t-amber-500 rounded-full anim-spin" />
           Authenticating...
         </div>
       </div>
@@ -112,24 +112,26 @@ export default function LoginPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#09090B] text-[#FAFAFA] flex">
+    <div className="min-h-screen flex" style={{ background: "var(--bg)", color: "var(--text)" }}>
       {/* Left Panel — Branding */}
-      <div className="hidden lg:flex flex-col justify-between w-[420px] flex-shrink-0 bg-[#111113] border-r border-white/[0.06] p-10 relative overflow-hidden">
-        <div className="absolute inset-0 grid-bg opacity-40 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#D97706]/5 rounded-full blur-[60px] pointer-events-none" />
+      <div
+        className="hidden lg:flex flex-col justify-between w-[420px] flex-shrink-0 p-10 relative overflow-hidden"
+        style={{ background: "var(--bg-elevated)", borderRight: "1px solid var(--border)" }}
+      >
+        <div className="grid-bg absolute inset-0 opacity-40 pointer-events-none" />
 
         <div className="relative">
           <div className="flex items-center gap-2.5 mb-12">
-            <div className="w-7 h-7 bg-[#D97706] rounded-[6px] flex items-center justify-center">
-              <span className="font-bold text-[#09090B] text-xs font-mono">P</span>
+            <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: "var(--accent)" }}>
+              <Zap className="w-4 h-4 text-white" />
             </div>
-            <span className="font-semibold text-sm text-[#FAFAFA]">prodexa</span>
+            <span className="font-semibold text-sm tracking-tight" style={{ color: "var(--text)" }}>prodexa</span>
           </div>
 
-          <h2 className="text-2xl font-semibold text-[#FAFAFA] tracking-tight mb-3 leading-snug">
+          <h2 className="text-2xl font-semibold tracking-tight mb-3 leading-snug" style={{ color: "var(--text)" }}>
             The AI Operating System for Product Builders
           </h2>
-          <p className="text-sm text-[#71717A] leading-relaxed mb-8">
+          <p className="text-sm leading-relaxed mb-8" style={{ color: "var(--text-muted)" }}>
             From idea to launch-ready product. Generate blueprints, audit readiness, and ship with confidence.
           </p>
 
@@ -140,43 +142,43 @@ export default function LoginPage() {
               "One-click Starter Kit Export",
               "AI Co-Founder with context memory",
             ].map((feat) => (
-              <div key={feat} className="flex items-center gap-2.5 text-sm text-[#A1A1AA]">
-                <CheckCircle2 className="w-4 h-4 text-[#22C55E] flex-shrink-0" />
+              <div key={feat} className="flex items-center gap-2.5 text-sm" style={{ color: "var(--text-secondary)" }}>
+                <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
                 {feat}
               </div>
             ))}
           </div>
         </div>
 
-        <div className="relative text-[11px] text-[#3F3F46] font-mono">
-          Free for hackathons & open-source projects
+        <div className="relative text-[11px] font-mono" style={{ color: "var(--text-faint)" }}>
+          Free for hackathons &amp; open-source projects
         </div>
       </div>
 
       {/* Right Panel — Auth Form */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-        <div className="w-full max-w-[400px] space-y-6 animate-fade-in">
+        <div className="w-full max-w-[400px] space-y-6 anim-fade">
 
           {/* Pending Verification */}
           {mode === "pending_verification" ? (
             <div className="space-y-6">
               <div className="text-center space-y-3">
-                <div className="w-14 h-14 bg-[#D97706]/10 border border-[#D97706]/20 rounded-2xl flex items-center justify-center mx-auto">
-                  <Inbox className="w-6 h-6 text-[#D97706]" />
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto" style={{ background: "rgba(217,119,6,0.12)", border: "1px solid rgba(217,119,6,0.2)" }}>
+                  <Inbox className="w-6 h-6" style={{ color: "var(--accent)" }} />
                 </div>
-                <h1 className="text-2xl font-semibold text-[#FAFAFA]">Check your inbox</h1>
-                <p className="text-sm text-[#71717A]">
+                <h1 className="text-2xl font-semibold" style={{ color: "var(--text)" }}>Check your inbox</h1>
+                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                   Verification link sent to{" "}
-                  <span className="text-[#D97706] font-mono font-medium">{email}</span>
+                  <span className="font-mono font-medium" style={{ color: "var(--accent)" }}>{email}</span>
                 </p>
               </div>
 
-              <div className="bg-[#F59E0B]/5 border border-[#F59E0B]/20 rounded-xl p-4 space-y-2">
-                <div className="flex items-center gap-2 text-[#F59E0B] text-xs font-semibold">
+              <div className="badge badge-amber p-4 rounded-xl space-y-2 w-full">
+                <div className="flex items-center gap-2 text-xs font-semibold">
                   <AlertTriangle className="w-3.5 h-3.5" />
                   Check your Spam / Junk folder
                 </div>
-                <p className="text-xs text-[#A1A1AA] leading-relaxed">
+                <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                   Verification emails may land in Spam. Mark it "Not Spam" and click the link to verify your account.
                 </p>
               </div>
@@ -185,14 +187,14 @@ export default function LoginPage() {
                 <button
                   onClick={handleResend}
                   disabled={submitting}
-                  className="w-full flex items-center justify-center gap-2 bg-[#18181B] hover:bg-[#1C1C1F] border border-white/[0.10] text-[#FAFAFA] text-sm font-medium py-2.5 px-4 rounded-xl transition-colors disabled:opacity-50"
+                  className="btn btn-secondary w-full"
                 >
-                  <RefreshCw className="w-4 h-4 text-[#71717A]" />
+                  <RefreshCw className="w-4 h-4" />
                   {submitting ? "Resending..." : "Resend Verification Link"}
                 </button>
                 <button
                   onClick={() => setMode("signin")}
-                  className="w-full bg-[#D97706] hover:bg-[#F59E0B] text-[#09090B] text-sm font-semibold py-2.5 px-4 rounded-xl transition-colors"
+                  className="btn btn-primary w-full"
                 >
                   Go to Sign In
                 </button>
@@ -203,30 +205,26 @@ export default function LoginPage() {
               {/* Header */}
               <div className="space-y-1">
                 <div className="flex items-center gap-2 mb-4 lg:hidden">
-                  <div className="w-6 h-6 bg-[#D97706] rounded-[5px] flex items-center justify-center">
-                    <span className="font-bold text-[#09090B] text-[10px] font-mono">P</span>
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: "var(--accent)" }}>
+                    <Zap className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <span className="font-semibold text-sm text-[#FAFAFA]">prodexa</span>
+                  <span className="font-semibold text-sm" style={{ color: "var(--text)" }}>prodexa</span>
                 </div>
-                <h1 className="text-2xl font-semibold text-[#FAFAFA] tracking-tight">
+                <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>
                   {mode === "signin" ? "Welcome back" : mode === "signup" ? "Create account" : "Passwordless sign-in"}
                 </h1>
-                <p className="text-sm text-[#71717A]">
+                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                   {mode === "signin" ? "Sign in to your Prodexa workspace" : mode === "signup" ? "Start building your launch-ready product" : "Receive a secure magic link via email"}
                 </p>
               </div>
 
               {/* Tab Switcher */}
-              <div className="flex bg-[#111113] border border-white/[0.08] rounded-xl p-1 gap-1">
+              <div className="tabs w-full">
                 {tabConfig.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => switchTab(tab.id)}
-                    className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${
-                      mode === tab.id
-                        ? "bg-[#1C1C1F] text-[#FAFAFA] shadow-sm border border-white/[0.08]"
-                        : "text-[#71717A] hover:text-[#A1A1AA]"
-                    }`}
+                    className={`tab-btn flex-1 justify-center ${mode === tab.id ? "active" : ""}`}
                   >
                     {tab.label}
                   </button>
@@ -235,18 +233,18 @@ export default function LoginPage() {
 
               {/* Alerts */}
               {errorMsg && (
-                <div className="bg-[#EF4444]/8 border border-[#EF4444]/20 text-[#EF4444] p-3.5 rounded-xl text-sm space-y-2">
+                <div className="badge badge-red p-3.5 rounded-xl text-sm space-y-2 w-full">
                   <div className="flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                     <span className="leading-relaxed">{errorMsg}</span>
                   </div>
                   {showResend && (
-                    <div className="pt-2 border-t border-[#EF4444]/15 space-y-2">
-                      <p className="text-xs text-[#A1A1AA]">Also check your <strong>Spam / Junk</strong> folder.</p>
+                    <div className="pt-2 border-t space-y-2" style={{ borderColor: "var(--border)" }}>
+                      <p className="text-xs" style={{ color: "var(--text-muted)" }}>Check your <strong>Spam / Junk</strong> folder.</p>
                       <button
                         onClick={handleResend}
                         disabled={submitting}
-                        className="inline-flex items-center gap-1.5 bg-[#EF4444]/10 hover:bg-[#EF4444]/20 text-[#EF4444] text-xs px-3 py-1.5 rounded-lg transition-colors"
+                        className="btn btn-secondary btn-sm"
                       >
                         <RefreshCw className="w-3 h-3" />
                         Resend Verification Link
@@ -257,7 +255,7 @@ export default function LoginPage() {
               )}
 
               {successMsg && (
-                <div className="bg-[#22C55E]/8 border border-[#22C55E]/20 text-[#22C55E] p-3.5 rounded-xl text-sm flex items-start gap-2">
+                <div className="badge badge-green p-3.5 rounded-xl text-sm flex items-start gap-2 w-full">
                   <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
                   <span>{successMsg}</span>
                 </div>
@@ -268,7 +266,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={handleGoogleClick}
                 disabled={submitting}
-                className="w-full flex items-center justify-center gap-3 bg-[#18181B] hover:bg-[#1C1C1F] border border-white/[0.10] hover:border-white/[0.16] text-[#FAFAFA] text-sm font-medium py-2.5 px-4 rounded-xl transition-all disabled:opacity-50"
+                className="btn btn-secondary w-full py-2.5"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -280,16 +278,16 @@ export default function LoginPage() {
               </button>
 
               <div className="relative flex items-center">
-                <div className="flex-grow border-t border-white/[0.07]" />
-                <span className="flex-shrink mx-3 text-[11px] font-mono uppercase text-[#3F3F46]">or</span>
-                <div className="flex-grow border-t border-white/[0.07]" />
+                <div className="flex-grow border-t" style={{ borderColor: "var(--border)" }} />
+                <span className="flex-shrink mx-3 text-[11px] font-mono uppercase" style={{ color: "var(--text-faint)" }}>or</span>
+                <div className="flex-grow border-t" style={{ borderColor: "var(--border)" }} />
               </div>
 
               {/* Email Form */}
               <form onSubmit={handleSubmit} autoComplete="off" className="space-y-3">
                 {mode === "signup" && (
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-[#A1A1AA] flex items-center gap-1.5">
+                    <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
                       <User className="w-3.5 h-3.5" />
                       Full Name
                     </label>
@@ -300,13 +298,13 @@ export default function LoginPage() {
                       placeholder="Alex Rivera"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full bg-[#111113] border border-white/[0.10] hover:border-white/[0.16] focus:border-[#D97706]/60 rounded-xl px-4 py-2.5 text-sm text-[#FAFAFA] placeholder-[#3F3F46] outline-none transition-colors"
+                      className="input"
                     />
                   </div>
                 )}
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-[#A1A1AA] flex items-center gap-1.5">
+                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
                     <Mail className="w-3.5 h-3.5" />
                     Email Address
                   </label>
@@ -317,13 +315,13 @@ export default function LoginPage() {
                     placeholder="you@startup.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-[#111113] border border-white/[0.10] hover:border-white/[0.16] focus:border-[#D97706]/60 rounded-xl px-4 py-2.5 text-sm text-[#FAFAFA] placeholder-[#3F3F46] outline-none transition-colors font-mono"
+                    className="input font-mono"
                   />
                 </div>
 
                 {mode !== "magic" && (
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-[#A1A1AA] flex items-center gap-1.5">
+                    <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
                       <Lock className="w-3.5 h-3.5" />
                       Password
                     </label>
@@ -334,7 +332,7 @@ export default function LoginPage() {
                       placeholder="••••••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-[#111113] border border-white/[0.10] hover:border-white/[0.16] focus:border-[#D97706]/60 rounded-xl px-4 py-2.5 text-sm text-[#FAFAFA] placeholder-[#3F3F46] outline-none transition-colors"
+                      className="input"
                     />
                   </div>
                 )}
@@ -342,11 +340,11 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-[#D97706] hover:bg-[#F59E0B] text-[#09090B] text-sm font-semibold py-2.5 px-4 rounded-xl transition-all hover:shadow-[0_0_16px_rgba(217,119,6,0.4)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="btn btn-primary btn-lg w-full"
                 >
                   {submitting ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-[#09090B]/30 border-t-[#09090B] rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full anim-spin" />
                       Processing...
                     </>
                   ) : mode === "signup" ? (
@@ -360,14 +358,14 @@ export default function LoginPage() {
               </form>
 
               {/* Demo Access */}
-              <div className="pt-3 border-t border-white/[0.06] text-center">
+              <div className="pt-3 border-t text-center" style={{ borderColor: "var(--border)" }}>
                 <button
                   onClick={() => { signInAsDemoUser(); router.push("/projects"); }}
-                  className="inline-flex items-center gap-2 text-xs text-[#71717A] hover:text-[#A1A1AA] transition-colors group"
+                  className="btn btn-ghost btn-sm text-xs font-normal"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-[#D97706]" />
+                  <Sparkles className="w-3.5 h-3.5" style={{ color: "var(--accent)" }} />
                   Explore Demo — No account required
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </>

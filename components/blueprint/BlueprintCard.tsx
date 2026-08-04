@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { BlueprintSection } from "@/lib/types/blueprint";
-import { ChevronDown, ChevronUp, Edit3, RefreshCw, CheckCircle2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Edit3, CheckCircle2 } from "lucide-react";
 
 interface BlueprintCardProps {
   section: BlueprintSection;
@@ -53,19 +53,20 @@ export default function BlueprintCard({
   };
 
   return (
-    <div className="bg-[#16181B] border border-[#2A2D31] hover:border-[#3A3E45] rounded-[6px] transition-colors overflow-hidden">
+    <div className="card overflow-hidden">
       {/* Header Bar */}
       <div
         onClick={() => setExpanded(!expanded)}
-        className="p-4 flex items-center justify-between gap-3 cursor-pointer select-none border-b border-[#2A2D31]/50"
+        className="p-4 flex items-center justify-between gap-3 cursor-pointer select-none border-b"
+        style={{ borderColor: "var(--border)" }}
       >
         <div className="flex items-center gap-3">
-          <h4 className="font-medium text-base text-[#EDEDEF]">{section.title}</h4>
+          <h4 className="font-semibold text-sm" style={{ color: "var(--text)" }}>{section.title}</h4>
           <span
-            className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase font-semibold border ${
+            className={`font-mono text-[10px] uppercase font-semibold ${
               status === "accepted"
-                ? "bg-[#5FA88A]/10 text-[#5FA88A] border-[#5FA88A]/20"
-                : "bg-[#C9A44C]/10 text-[#C9A44C] border-[#C9A44C]/20"
+                ? "badge badge-green"
+                : "badge badge-amber"
             }`}
           >
             {status}
@@ -75,23 +76,23 @@ export default function BlueprintCard({
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={() => setIsEditing(!isEditing)}
-            className="flex items-center gap-1 bg-[#1E2124] hover:bg-[#25292E] text-[#EDEDEF] border border-[#2A2D31] px-2.5 py-1 rounded-[6px] text-xs font-mono transition-colors"
+            className="btn btn-secondary btn-sm"
           >
-            <Edit3 className="w-3 h-3 text-[#D97B3F]" />
+            <Edit3 className="w-3 h-3" style={{ color: "var(--accent)" }} />
             {isEditing ? "Cancel" : "Edit"}
           </button>
 
           <button
             onClick={handleAccept}
-            className="flex items-center gap-1 bg-[#1E2124] hover:bg-[#25292E] text-[#5FA88A] border border-[#2A2D31] px-2.5 py-1 rounded-[6px] text-xs font-mono transition-colors"
+            className="btn btn-secondary btn-sm"
           >
-            <CheckCircle2 className="w-3 h-3" />
+            <CheckCircle2 className="w-3 h-3 text-green-500" />
             Accept
           </button>
 
           <button
             onClick={() => setExpanded(!expanded)}
-            className="p-1 text-[#8B8F97] hover:text-[#EDEDEF]"
+            className="btn btn-ghost btn-sm"
           >
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
@@ -103,19 +104,19 @@ export default function BlueprintCard({
         <div className="p-5 space-y-4">
           {isEditing ? (
             <div className="space-y-3">
-              <div className="text-xs font-mono text-[#D97B3F]">
+              <div className="text-xs font-mono" style={{ color: "var(--accent)" }}>
                 Edit JSON Content for {section.title}:
               </div>
               <textarea
                 rows={10}
                 value={jsonText}
                 onChange={(e) => setJsonText(e.target.value)}
-                className="w-full bg-[#0B0C0E] border border-[#2A2D31] rounded-[6px] p-3 text-xs font-mono text-[#EDEDEF] focus:border-[#D97B3F] outline-none"
+                className="input textarea font-mono text-xs"
               />
               <button
                 onClick={handleSaveEdit}
                 disabled={saving}
-                className="bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-medium px-4 py-1.5 rounded-[6px] text-xs font-mono transition-colors"
+                className="btn btn-primary"
               >
                 {saving ? "Saving..." : "Save Section Content"}
               </button>
@@ -137,16 +138,16 @@ function RenderSectionContent({ category, content }: { category: string; content
       return (
         <div className="space-y-3 text-sm">
           <div>
-            <div className="text-xs font-mono uppercase text-[#D97B3F] mb-1">Problem Statement</div>
-            <p className="text-[#EDEDEF] leading-relaxed">{content.problemStatement}</p>
+            <div className="text-xs font-mono uppercase font-semibold mb-1" style={{ color: "var(--accent)" }}>Problem Statement</div>
+            <p className="leading-relaxed" style={{ color: "var(--text)" }}>{content.problemStatement}</p>
           </div>
           <div>
-            <div className="text-xs font-mono uppercase text-[#5FA88A] mb-1">Solution & Core Value</div>
-            <p className="text-[#EDEDEF] leading-relaxed">{content.solutionStatement}</p>
+            <div className="text-xs font-mono uppercase font-semibold mb-1 text-green-500">Solution &amp; Core Value</div>
+            <p className="leading-relaxed" style={{ color: "var(--text)" }}>{content.solutionStatement}</p>
           </div>
           <div>
-            <div className="text-xs font-mono uppercase text-[#6E7B8B] mb-1">Target Ideal Customer Profile (ICP)</div>
-            <p className="text-[#8B8F97] font-mono text-xs">{content.targetICP}</p>
+            <div className="text-xs font-mono uppercase mb-1" style={{ color: "var(--text-muted)" }}>Target Ideal Customer Profile (ICP)</div>
+            <p className="font-mono text-xs" style={{ color: "var(--text-secondary)" }}>{content.targetICP}</p>
           </div>
         </div>
       );
@@ -155,20 +156,20 @@ function RenderSectionContent({ category, content }: { category: string; content
       return (
         <div className="space-y-4 text-sm">
           <div>
-            <div className="text-xs font-mono uppercase text-[#D97B3F] mb-2">Competitor Analysis</div>
+            <div className="text-xs font-mono uppercase font-semibold mb-2" style={{ color: "var(--accent)" }}>Competitor Analysis</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {(content.competitors || []).map((c: any, idx: number) => (
-                <div key={idx} className="bg-[#0B0C0E] border border-[#2A2D31] p-3 rounded-[6px] space-y-1 text-xs">
-                  <div className="font-semibold text-[#EDEDEF]">{c.name}</div>
-                  <div className="text-[#5FA88A]">Strength: {c.strength}</div>
-                  <div className="text-[#C25A4D]">Weakness: {c.weakness}</div>
+                <div key={idx} className="card p-3 space-y-1 text-xs" style={{ background: "var(--bg)" }}>
+                  <div className="font-semibold" style={{ color: "var(--text)" }}>{c.name}</div>
+                  <div className="text-green-500 font-mono">Strength: {c.strength}</div>
+                  <div className="text-red-400 font-mono">Weakness: {c.weakness}</div>
                 </div>
               ))}
             </div>
           </div>
           <div>
-            <div className="text-xs font-mono uppercase text-[#C9A44C] mb-1">Market Gaps</div>
-            <p className="text-[#EDEDEF] text-xs">{content.marketGaps}</p>
+            <div className="text-xs font-mono uppercase font-semibold mb-1" style={{ color: "var(--warning)" }}>Market Gaps</div>
+            <p className="text-xs" style={{ color: "var(--text)" }}>{content.marketGaps}</p>
           </div>
         </div>
       );
@@ -177,11 +178,11 @@ function RenderSectionContent({ category, content }: { category: string; content
       return (
         <div className="space-y-4 text-sm">
           <div>
-            <div className="text-xs font-mono uppercase text-[#5FA88A] mb-2">Core MVP Features</div>
-            <ul className="space-y-1 text-xs text-[#EDEDEF] font-mono">
+            <div className="text-xs font-mono uppercase font-semibold mb-2 text-green-500">Core MVP Features</div>
+            <ul className="space-y-1 text-xs font-mono" style={{ color: "var(--text)" }}>
               {(content.mvpFeatures || []).map((f: string, idx: number) => (
                 <li key={idx} className="flex items-center gap-2">
-                  <span className="text-[#5FA88A]">✔</span>
+                  <span className="text-green-500">✔</span>
                   <span>{f}</span>
                 </li>
               ))}
@@ -189,8 +190,8 @@ function RenderSectionContent({ category, content }: { category: string; content
           </div>
           {content.monetization && (
             <div>
-              <div className="text-xs font-mono uppercase text-[#D97B3F] mb-1">Monetization Strategy</div>
-              <p className="text-[#8B8F97] text-xs font-mono">{content.monetization}</p>
+              <div className="text-xs font-mono uppercase font-semibold mb-1" style={{ color: "var(--accent)" }}>Monetization Strategy</div>
+              <p className="text-xs font-mono" style={{ color: "var(--text-secondary)" }}>{content.monetization}</p>
             </div>
           )}
         </div>
@@ -200,21 +201,21 @@ function RenderSectionContent({ category, content }: { category: string; content
       return (
         <div className="space-y-4 text-sm">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono">
-            <div className="bg-[#0B0C0E] border border-[#2A2D31] p-2.5 rounded">
-              <div className="text-[#8B8F97]">Frontend</div>
-              <div className="text-[#EDEDEF] font-semibold mt-0.5">{content.techStack?.frontend}</div>
+            <div className="card p-2.5" style={{ background: "var(--bg)" }}>
+              <div style={{ color: "var(--text-muted)" }}>Frontend</div>
+              <div className="font-semibold mt-0.5" style={{ color: "var(--text)" }}>{content.techStack?.frontend}</div>
             </div>
-            <div className="bg-[#0B0C0E] border border-[#2A2D31] p-2.5 rounded">
-              <div className="text-[#8B8F97]">Backend</div>
-              <div className="text-[#EDEDEF] font-semibold mt-0.5">{content.techStack?.backend}</div>
+            <div className="card p-2.5" style={{ background: "var(--bg)" }}>
+              <div style={{ color: "var(--text-muted)" }}>Backend</div>
+              <div className="font-semibold mt-0.5" style={{ color: "var(--text)" }}>{content.techStack?.backend}</div>
             </div>
-            <div className="bg-[#0B0C0E] border border-[#2A2D31] p-2.5 rounded">
-              <div className="text-[#8B8F97]">Database</div>
-              <div className="text-[#EDEDEF] font-semibold mt-0.5">{content.techStack?.database}</div>
+            <div className="card p-2.5" style={{ background: "var(--bg)" }}>
+              <div style={{ color: "var(--text-muted)" }}>Database</div>
+              <div className="font-semibold mt-0.5" style={{ color: "var(--text)" }}>{content.techStack?.database}</div>
             </div>
-            <div className="bg-[#0B0C0E] border border-[#2A2D31] p-2.5 rounded">
-              <div className="text-[#8B8F97]">AI Engine</div>
-              <div className="text-[#EDEDEF] font-semibold mt-0.5">{content.techStack?.ai}</div>
+            <div className="card p-2.5" style={{ background: "var(--bg)" }}>
+              <div style={{ color: "var(--text-muted)" }}>AI Engine</div>
+              <div className="font-semibold mt-0.5" style={{ color: "var(--text)" }}>{content.techStack?.ai}</div>
             </div>
           </div>
         </div>
@@ -224,12 +225,12 @@ function RenderSectionContent({ category, content }: { category: string; content
       return (
         <div className="space-y-4 text-xs font-mono">
           <div>
-            <div className="text-xs font-mono uppercase text-[#D97B3F] mb-2">Firestore Collections Schema</div>
+            <div className="text-xs font-mono uppercase font-semibold mb-2" style={{ color: "var(--accent)" }}>Firestore Collections Schema</div>
             <div className="space-y-2">
               {(content.collections || []).map((col: any, idx: number) => (
-                <div key={idx} className="bg-[#0B0C0E] border border-[#2A2D31] p-2.5 rounded flex items-center justify-between">
-                  <span className="text-[#EDEDEF] font-bold">{col.name}</span>
-                  <span className="text-[#8B8F97]">{col.fields}</span>
+                <div key={idx} className="card p-2.5 flex items-center justify-between" style={{ background: "var(--bg)" }}>
+                  <span className="font-bold" style={{ color: "var(--text)" }}>{col.name}</span>
+                  <span style={{ color: "var(--text-muted)" }}>{col.fields}</span>
                 </div>
               ))}
             </div>
@@ -243,8 +244,8 @@ function RenderSectionContent({ category, content }: { category: string; content
         <div className="space-y-4 text-xs font-mono">
           {content.folderTree && (
             <div>
-              <div className="text-xs font-mono uppercase text-[#6E7B8B] mb-1">Production Directory Structure</div>
-              <pre className="bg-[#0B0C0E] border border-[#2A2D31] p-3 rounded text-[#EDEDEF]">
+              <div className="text-xs font-mono uppercase mb-1" style={{ color: "var(--text-muted)" }}>Production Directory Structure</div>
+              <pre className="code-block whitespace-pre-wrap">
                 {content.folderTree}
               </pre>
             </div>

@@ -78,21 +78,19 @@ export default function NewProjectPage() {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
-        <div className="max-w-sm w-full bg-[#111113] border border-white/[0.08] rounded-2xl p-8 space-y-6 text-center animate-fade-in">
-          <div className="w-14 h-14 bg-[#D97706]/10 border border-[#D97706]/20 rounded-2xl flex items-center justify-center mx-auto">
-            <Loader2 className="w-6 h-6 text-[#D97706] animate-spin" />
+        <div className="max-w-sm w-full card p-8 space-y-6 text-center anim-fade">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto" style={{ background: "rgba(217,119,6,0.12)", border: "1px solid rgba(217,119,6,0.2)" }}>
+            <Loader2 className="w-6 h-6 anim-spin" style={{ color: "var(--accent)" }} />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-[#FAFAFA] mb-1">Initializing Analysis</h3>
-            <p className="text-xs text-[#71717A] font-mono">Running 6 readiness modules...</p>
+            <h3 className="text-base font-semibold" style={{ color: "var(--text)" }}>Initializing Analysis</h3>
+            <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>Running 6 readiness modules...</p>
           </div>
-          <div className="space-y-2.5 text-left pt-2 border-t border-white/[0.08]">
+          <div className="space-y-2.5 text-left pt-2 border-t" style={{ borderColor: "var(--border)" }}>
             {STEPS.map((st, idx) => (
               <div key={idx} className="flex items-center gap-2.5 text-xs">
-                <div className="flex-shrink-0">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#D97706] animate-pulse" />
-                </div>
-                <span className="text-[#71717A] font-mono">{st.replace("...", "")}</span>
+                <div className="w-1.5 h-1.5 rounded-full anim-pulse flex-shrink-0" style={{ background: "var(--accent)" }} />
+                <span className="font-mono" style={{ color: "var(--text-muted)" }}>{st.replace("...", "")}</span>
               </div>
             ))}
           </div>
@@ -102,23 +100,23 @@ export default function NewProjectPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-3xl mx-auto w-full space-y-8 animate-fade-in">
+    <div className="p-6 md:p-8 max-w-3xl mx-auto w-full space-y-8 anim-fade">
       {/* Header */}
       <div>
-        <div className="inline-flex items-center gap-2 text-[11px] font-mono tracking-widest uppercase text-[#D97706] bg-[#D97706]/10 border border-[#D97706]/20 px-3 py-1.5 rounded-full mb-4">
+        <div className="badge badge-amber font-mono text-[10px] uppercase mb-4">
           <Sparkles className="w-3 h-3" />
           Option B — Launch Audit
         </div>
-        <h1 className="text-2xl font-semibold text-[#FAFAFA] tracking-tight mb-2">
+        <h1 className="text-2xl font-semibold tracking-tight mb-2" style={{ color: "var(--text)" }}>
           Validate Your Product
         </h1>
-        <p className="text-sm text-[#71717A] leading-relaxed max-w-lg">
+        <p className="text-sm leading-relaxed max-w-lg" style={{ color: "var(--text-muted)" }}>
           Submit your website URL and GitHub repo to run 6 deterministic readiness analysis modules with copy-pasteable fixes.
         </p>
       </div>
 
       {error && (
-        <div className="bg-[#EF4444]/8 border border-[#EF4444]/20 text-[#EF4444] rounded-xl p-4 text-sm flex items-start gap-3 animate-fade-in">
+        <div className="badge badge-red p-4 text-sm flex items-start gap-3 w-full">
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
@@ -127,81 +125,81 @@ export default function NewProjectPage() {
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Project Name */}
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-[#A1A1AA]">
-            Project Name <span className="text-[#3F3F46]">(optional — auto-detected from URL)</span>
+          <label className="block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+            Project Name <span style={{ color: "var(--text-faint)" }}>(optional — auto-detected from URL)</span>
           </label>
           <input
             type="text"
             placeholder="e.g. Pramana AI"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full bg-[#111113] border border-white/[0.10] hover:border-white/[0.16] focus:border-[#D97706]/60 rounded-xl px-4 py-3 text-sm text-[#FAFAFA] placeholder-[#3F3F46] outline-none transition-colors"
+            className="input"
           />
         </div>
 
         {/* Website URL */}
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-[#A1A1AA]">
-            Website / Landing Page URL <span className="text-[#EF4444]">*</span>
+          <label className="block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+            Website / Landing Page URL <span className="text-red-500">*</span>
           </label>
           <div className="relative">
-            <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3F3F46]" />
+            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-faint)" }} />
             <input
               type="url"
               required
               placeholder="https://your-landing-page.com"
               value={websiteUrl}
               onChange={(e) => setWebsiteUrl(e.target.value)}
-              className="w-full bg-[#111113] border border-white/[0.10] hover:border-white/[0.16] focus:border-[#D97706]/60 rounded-xl pl-10 pr-4 py-3 text-sm text-[#FAFAFA] placeholder-[#3F3F46] outline-none transition-colors font-mono"
+              className="input pl-10 font-mono"
             />
           </div>
-          <p className="text-xs text-[#71717A]">
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
             Scraped for CTA contrast, meta tags, value prop positioning, and Lighthouse performance.
           </p>
         </div>
 
         {/* GitHub Repo URL */}
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-[#A1A1AA]">
-            GitHub Repository URL <span className="text-[#3F3F46]">(recommended)</span>
+          <label className="block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+            GitHub Repository URL <span style={{ color: "var(--text-faint)" }}>(recommended)</span>
           </label>
           <div className="relative">
-            <GitBranch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3F3F46]" />
+            <GitBranch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-faint)" }} />
             <input
               type="url"
               placeholder="https://github.com/owner/repo"
               value={githubRepoUrl}
               onChange={(e) => setGithubRepoUrl(e.target.value)}
-              className="w-full bg-[#111113] border border-white/[0.10] hover:border-white/[0.16] focus:border-[#D97706]/60 rounded-xl pl-10 pr-4 py-3 text-sm text-[#FAFAFA] placeholder-[#3F3F46] outline-none transition-colors font-mono"
+              className="input pl-10 font-mono"
             />
           </div>
-          <p className="text-xs text-[#71717A]">
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
             Checked read-only for README structure, LICENSE presence, commit freshness, and package manifest.
           </p>
         </div>
 
         {/* Pitch Deck Notes */}
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-[#A1A1AA] flex items-center gap-1.5">
+          <label className="block text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
             <FileText className="w-3.5 h-3.5" />
-            Pitch Deck / Notes <span className="text-[#3F3F46]">(optional — improves Business Review)</span>
+            Pitch Deck / Notes <span style={{ color: "var(--text-faint)" }}>(optional)</span>
           </label>
           <textarea
             rows={3}
             placeholder="Paste value proposition, market sizing, target customer, or pitch text..."
             value={pitchDeckText}
             onChange={(e) => setPitchDeckText(e.target.value)}
-            className="w-full bg-[#111113] border border-white/[0.10] hover:border-white/[0.16] focus:border-[#D97706]/60 rounded-xl px-4 py-3 text-sm text-[#FAFAFA] placeholder-[#3F3F46] outline-none transition-colors resize-none"
+            className="input textarea"
           />
         </div>
 
         {/* What Gets Analyzed */}
-        <div className="bg-[#111113] border border-white/[0.07] rounded-xl p-4">
-          <div className="text-xs font-medium text-[#71717A] mb-3">6 Analysis Modules</div>
+        <div className="card p-4 space-y-3">
+          <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>6 Analysis Modules</div>
           <div className="grid grid-cols-2 gap-2">
             {["Product Understanding", "Engineering Quality", "UX & Design", "Performance", "Accessibility", "Business Viability"].map((m) => (
-              <div key={m} className="flex items-center gap-2 text-xs text-[#A1A1AA]">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E] flex-shrink-0" />
+              <div key={m} className="flex items-center gap-2 text-xs" style={{ color: "var(--text-secondary)" }}>
+                <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
                 {m}
               </div>
             ))}
@@ -211,7 +209,7 @@ export default function NewProjectPage() {
         {/* Submit */}
         <button
           type="submit"
-          className="w-full flex items-center justify-center gap-2.5 bg-[#D97706] hover:bg-[#F59E0B] text-[#09090B] font-semibold py-3.5 px-6 rounded-xl text-sm transition-all hover:shadow-[0_0_20px_rgba(217,119,6,0.4)]"
+          className="btn btn-primary btn-lg w-full"
         >
           <Sparkles className="w-4 h-4" />
           Run Launch Audit
