@@ -30,15 +30,45 @@ export default function BlueprintWorkspacePage() {
 
   useEffect(() => {
     if (!blueprintId) return;
+
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem(`prodexa_bp_${blueprintId}`);
+      if (cached) {
+        try {
+          const bp = JSON.parse(cached);
+          if (bp && bp.id) {
+            setBlueprint(bp);
+            const tech = bp.sections?.find((s: any) => s.category === "tech")?.content || {};
+            const features = bp.sections?.find((s: any) => s.category === "features")?.content || {};
+            const db = bp.sections?.find((s: any) => s.category === "database")?.content || {};
+            const report = auditCrossModuleConsistency(
+              tech.techStack || bp.contextPackage?.techStack || { frontend: "Next.js 14", backend: "Next.js API", database: "Firestore", ai: "Gemini" },
+              features.mvpFeatures || bp.contextPackage?.coreFeatures || [],
+              db.collections || [],
+              bp.mermaidDiagram || "",
+              bp.idea || ""
+            );
+            setConsistencyReport(report);
+            setLoading(false);
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+
     fetch(`/api/blueprint/${blueprintId}/section`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.blueprint) {
           setBlueprint(data.blueprint);
+          if (typeof window !== "undefined") {
+            localStorage.setItem(`prodexa_bp_${data.blueprint.id}`, JSON.stringify(data.blueprint));
+          }
           const bp = data.blueprint;
-          const tech = bp.sections.find((s: any) => s.category === "tech")?.content || {};
-          const features = bp.sections.find((s: any) => s.category === "features")?.content || {};
-          const db = bp.sections.find((s: any) => s.category === "database")?.content || {};
+          const tech = bp.sections?.find((s: any) => s.category === "tech")?.content || {};
+          const features = bp.sections?.find((s: any) => s.category === "features")?.content || {};
+          const db = bp.sections?.find((s: any) => s.category === "database")?.content || {};
 
           const report = auditCrossModuleConsistency(
             tech.techStack || bp.contextPackage?.techStack || { frontend: "Next.js 14", backend: "Next.js API", database: "Firestore", ai: "Gemini" },

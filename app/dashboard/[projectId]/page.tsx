@@ -62,6 +62,26 @@ function DashboardContent() {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout for cold Firestore start
 
+      // Instant load from localStorage cache
+      if (typeof window !== "undefined") {
+        const cachedStr = localStorage.getItem(`prodexa_proj_${projectId}`);
+        if (cachedStr) {
+          try {
+            const cachedProj = JSON.parse(cachedStr);
+            if (cachedProj && cachedProj.id) {
+              setProject(cachedProj);
+              const rawUrl = cachedProj.websiteUrl || "";
+              const isPlaceholder = rawUrl.includes("example-landing-page.com") || rawUrl === "https://example.com";
+              setInputWebsite(isPlaceholder ? "" : rawUrl);
+              setInputGithub(cachedProj.githubRepoUrl || "");
+              setLoading(false);
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+      }
+
       try {
         const [pRes, rRes] = await Promise.all([
           fetch(`/api/projects/${projectId}`, { signal: controller.signal }).then((r) => r.json()),
@@ -72,7 +92,9 @@ function DashboardContent() {
 
         if (pRes.success) {
           setProject(pRes.project);
-          // Only pre-fill websiteUrl if it's a real URL (not a placeholder)
+          if (typeof window !== "undefined") {
+            localStorage.setItem(`prodexa_proj_${projectId}`, JSON.stringify(pRes.project));
+          }
           const rawUrl = pRes.project.websiteUrl || "";
           const isPlaceholder = rawUrl.includes("example-landing-page.com") || rawUrl === "https://example.com";
           setInputWebsite(isPlaceholder ? "" : rawUrl);

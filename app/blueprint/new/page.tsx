@@ -176,6 +176,10 @@ export default function NewBlueprintPage() {
         throw new Error(data.message || "Failed to generate AI Product Blueprint");
       }
 
+      if (typeof window !== "undefined" && data.blueprint) {
+        localStorage.setItem(`prodexa_bp_${data.blueprintId}`, JSON.stringify(data.blueprint));
+      }
+
       router.push(`/blueprint/${data.blueprintId}`);
     } catch (err: any) {
       clearInterval(interval);

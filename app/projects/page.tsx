@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { Project } from "@/lib/types/schema";
 import {
   PlusCircle, ExternalLink, ArrowRight, FolderGit2, Sparkles,
-  Clock, Activity, Lightbulb, Zap, BarChart3
+  Clock, Zap, BarChart3
 } from "lucide-react";
 
 export default function ProjectsPage() {
@@ -17,12 +17,34 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && !user) { router.push("/login"); return; }
+    if (!authLoading && !user) {
+      router.push("/login");
+      return;
+    }
+
     if (user) {
+      // 1. Load instantly from localStorage cache (no flash of zero projects)
+      const cached = localStorage.getItem(`prodexa_projects_${user.uid}`);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setProjects(parsed);
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // 2. Fetch fresh projects from API
       fetch(`/api/projects?userId=${user.uid}`)
         .then((res) => res.json())
         .then((data) => {
-          if (data.success && data.projects) setProjects(data.projects);
+          if (data.success && Array.isArray(data.projects) && data.projects.length > 0) {
+            setProjects(data.projects);
+            // Sync to localStorage
+            localStorage.setItem(`prodexa_projects_${user.uid}`, JSON.stringify(data.projects));
+          }
           setLoading(false);
         })
         .catch(() => setLoading(false));
@@ -36,7 +58,7 @@ export default function ProjectsPage() {
     return "badge badge-red";
   };
 
-  if (authLoading || loading) {
+  if (authLoading || (loading && projects.length === 0)) {
     return (
       <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
         <div className="flex items-center justify-between border-b pb-5" style={{ borderColor: "var(--border)" }}>
@@ -89,7 +111,7 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {/* Main Grid — 2 Columns (Dense Layout) */}
+      {/* Main Grid */}
       {projects.length === 0 ? (
         <div className="card p-12 text-center space-y-5 max-w-lg mx-auto my-12">
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto" style={{ background: "rgba(217,119,6,0.12)", border: "1px solid rgba(217,119,6,0.2)" }}>
@@ -114,7 +136,7 @@ export default function ProjectsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          {/* Left Column (2 Cols): Project Cards */}
+          {/* Left Column: Project Cards */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-semibold uppercase tracking-wider font-mono" style={{ color: "var(--text-faint)" }}>
@@ -194,9 +216,8 @@ export default function ProjectsPage() {
             </div>
           </div>
 
-          {/* Right Column (1 Col): Overview Stats & Quick Actions Panel */}
+          {/* Right Column: Quick Stats Panel */}
           <div className="space-y-4">
-            {/* Quick Stats Widget */}
             <div className="card p-5 space-y-4">
               <div className="flex items-center gap-2 border-b pb-3" style={{ borderColor: "var(--border)" }}>
                 <BarChart3 className="w-4 h-4" style={{ color: "var(--accent)" }} />
@@ -229,7 +250,6 @@ export default function ProjectsPage() {
               )}
             </div>
 
-            {/* Quick Actions Panel */}
             <div className="card p-5 space-y-3">
               <div className="flex items-center gap-2 border-b pb-3" style={{ borderColor: "var(--border)" }}>
                 <Zap className="w-4 h-4" style={{ color: "var(--accent)" }} />
@@ -242,10 +262,7 @@ export default function ProjectsPage() {
                 href="/blueprint/new"
                 className="btn btn-secondary w-full justify-between text-xs font-medium"
               >
-                <div className="flex items-center gap-2">
-                  <Lightbulb className="w-3.5 h-3.5" style={{ color: "var(--accent)" }} />
-                  <span>Generate Idea Blueprint</span>
-                </div>
+                <span>Generate Idea Blueprint</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
 
@@ -253,10 +270,7 @@ export default function ProjectsPage() {
                 href="/projects/new"
                 className="btn btn-secondary w-full justify-between text-xs font-medium"
               >
-                <div className="flex items-center gap-2">
-                  <Activity className="w-3.5 h-3.5" style={{ color: "var(--success)" }} />
-                  <span>Audit Product Website</span>
-                </div>
+                <span>Audit Product Website</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>

@@ -55,6 +55,18 @@ export default function NewProjectPage() {
 
       const projectId = data.project.id;
 
+      if (typeof window !== "undefined" && data.project) {
+        const uid = user?.uid || "demo-user-123";
+        const key = `prodexa_projects_${uid}`;
+        const existingStr = localStorage.getItem(key);
+        const existing = existingStr ? JSON.parse(existingStr) : [];
+        if (!existing.some((p: any) => p.id === projectId)) {
+          existing.unshift(data.project);
+          localStorage.setItem(key, JSON.stringify(existing));
+        }
+        localStorage.setItem(`prodexa_proj_${projectId}`, JSON.stringify(data.project));
+      }
+
       const valRes = await fetch("/api/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
