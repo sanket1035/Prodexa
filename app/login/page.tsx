@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -11,6 +11,21 @@ import {
 type Mode = "signin" | "signup" | "magic" | "pending_verification";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
+        <div className="flex items-center gap-3 text-sm font-mono" style={{ color: "var(--text-muted)" }}>
+          <div className="w-4 h-4 border-2 border-amber-500/30 border-t-amber-500 rounded-full anim-spin" />
+          Loading...
+        </div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const { user, loading, signInWithGoogle, signUpWithEmail, signInWithEmail, resendVerification, sendMagicLink, signInAsDemoUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();

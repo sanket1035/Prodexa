@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { Project, ValidationRun } from "@/lib/types/schema";
@@ -19,6 +19,23 @@ import {
 } from "lucide-react";
 
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-6 md:p-8 space-y-6 max-w-6xl mx-auto w-full">
+        <div className="skeleton h-10 w-72 rounded-xl" />
+        <div className="skeleton h-6 w-96 rounded-xl" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="skeleton h-52 rounded-2xl" />
+          <div className="skeleton h-52 md:col-span-2 rounded-2xl" />
+        </div>
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
+  );
+}
+
+function DashboardContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -132,7 +149,6 @@ export default function DashboardPage() {
     downloadFile(`${project.name.toLowerCase().replace(/\s+/g, "-")}-readiness-report.md`, md, "text/markdown");
   };
 
-  // Loading skeleton
   if (loading) {
     return (
       <div className="p-6 md:p-8 space-y-6 max-w-6xl mx-auto w-full">
@@ -478,11 +494,11 @@ export default function DashboardPage() {
                 description="Mobile viewport, primary CTA visibility, and heading hierarchy."
               />
               <CategoryCard
-                title="Performance Audit"
+                title="Web Performance Snapshot"
                 score={scores?.performance ?? null}
                 status={currentRun?.moduleStatus?.performance?.status}
                 reason={currentRun?.moduleStatus?.performance?.reason}
-                description="Latency timings, server response, and script overhead."
+                description="Empirical HTTP latency, estimated HTML size, and script payload."
               />
               <CategoryCard
                 title="Business Review"
