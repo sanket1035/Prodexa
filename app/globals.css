@@ -485,3 +485,13 @@ body {
    SCORE RING (SVG)
    ───────────────────────────────────── */
 .score-ring { transform: rotate(-90deg); transform-origin: center; }
+
+/* ─────────────────────────────────────
+   RESPONSIVE POLISH & LINE HEIGHTS
+   ───────────────────────────────────── */
+@media (max-width: 640px) {
+  h1 { font-size: 1.5rem !important; line-height: 1.35 !important; }
+  h2 { font-size: 1.25rem !important; line-height: 1.4 !important; }
+  .card { padding: 1rem !important; }
+}
+
