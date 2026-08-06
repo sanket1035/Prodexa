@@ -129,35 +129,36 @@ Provide a brutally honest Investor & Judge Pitch Audit JSON containing:
 
 Output strictly valid JSON.`;
 
+      const targetAudience = project.contextPackage?.targetAudience || "target users";
       const fallbackMentor = {
-        replyText: `Investor & Judge Pitch Audit for ${project.name}: The product concept addresses a genuine pain point for software builders. Your primary risks are low hero CTA contrast and missing open-source licensing clarity.`,
+        replyText: `Investor & Judge Pitch Audit for ${project.name}: The product concept addresses a genuine pain point for ${targetAudience}. Key priorities are securing open-source license compliance and validating landing page value proposition.`,
         strengths: [
-          "Bridges Day 0 idea planning directly with pre-launch verification",
-          "Combines real deterministic checks (Lighthouse, GitHub) with structured AI reasoning",
-          "One-Click Starter Kit provides instant developer utility",
-          "Bounded context memory saves 40% LLM tokens",
-          "Clean graphite UI aesthetic aligns with Vercel / Linear standards",
+          `Addresses clear pain point for ${targetAudience}`,
+          `Combines deterministic verification tooling with AI reasoning for ${project.name}`,
+          `Provides instant developer utility with structured architecture blueprints`,
+          `Context memory saves LLM tokens and persists project state`,
+          `Clean production UI aesthetic aligned with modern software standards`,
         ],
         weaknesses: [
-          "Repository lacks explicit MIT / Apache 2.0 open-source LICENSE file",
-          "Hero CTA button contrast is below WCAG AA minimum standards",
-          "Website lacks explicit pricing tier transparency above the fold",
-          "No live demo video link provided in project submission metadata",
-          "Performance audit shows uncompressed image asset overhead",
+          `Repository lacks explicit open-source LICENSE file (e.g. MIT / Apache 2.0)`,
+          `Hero CTA button contrast should meet WCAG AA standards`,
+          `Website needs explicit pricing / tier transparency above the fold`,
+          `No live demo video link provided in project submission metadata`,
+          `Performance audit recommends optimizing image asset size`,
         ],
         judgeQuestions: [
-          "How do you prevent generic LLMs like ChatGPT from copying this feature set?",
-          "What happens if the target landing page blocks bot scraping via Cloudflare?",
-          "How do you calculate the 0-100 Blueprint Quality Score deterministically?",
-          "What is your customer acquisition strategy for indie hackers vs enterprise accelerators?",
-          "How does context memory binding persist across multi-user sessions?",
+          `How does ${project.name} differentiate from generic AI chat tools?`,
+          `What happens if the target landing page blocks scraping or requires auth?`,
+          `How is the Launch Readiness Score calculated for ${project.name}?`,
+          `What is your go-to-market strategy for ${targetAudience}?`,
+          `How does project context memory persist across multi-user sessions?`,
         ],
         demoSuggestions: [
-          "Start your demo with Option A ('I only have an idea') to show the Blueprint Engine first",
-          "Highlight the auto-generated Mermaid Architecture Diagram and Starter Kit download",
-          "Demonstrate the one-click Copy Fix drawer resolving a real readiness issue",
+          `Start your demo by creating an AI Blueprint to show core value first`,
+          `Highlight the auto-generated Mermaid Architecture Diagram and Starter Kit download`,
+          `Demonstrate the one-click Copy Fix drawer resolving a real readiness issue for ${project.name}`,
         ],
-        actionableFix: `// Investor Pitch Improvement:\nReplace 'Autonomous Pre-Launch Platform' with 'The AI Operating System That Takes You From Day 0 Idea to Launch Ready.'`,
+        actionableFix: `// Value Prop Enhancement for ${project.name}:\n"The All-in-One AI Platform Built for ${targetAudience}."`,
       };
 
       const mentorInsight = await generateModuleInsight(mentorSystemPrompt, compressedContextPrompt, fallbackMentor);

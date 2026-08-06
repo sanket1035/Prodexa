@@ -2,11 +2,13 @@ import OpenAI from "openai";
 
 const openAiApiKey = process.env.OPENAI_API_KEY;
 const geminiApiKey = process.env.GEMINI_API_KEY;
+const groqApiKey = process.env.GROQ_API_KEY;
 
 export const openai = openAiApiKey ? new OpenAI({ apiKey: openAiApiKey }) : null;
 
 /**
- * Primary AI Generator: Accepts any valid Gemini key format (AIza... or AQ...), falls back to OpenAI, then deterministic fallback.
+ * Multi-Provider AI Generator:
+ * Tries Groq (if key exists) -> Gemini 1.5 -> OpenAI -> Question-aware Fallback.
  */
 export async function generateModuleInsight(
   systemPrompt: string,
@@ -14,7 +16,45 @@ export async function generateModuleInsight(
   fallbackJSON: any
 ): Promise<any> {
 
-  // 1. Try Gemini API first if GEMINI_API_KEY exists
+  // 1. Try Groq API first if GROQ_API_KEY exists (100% free & ultra fast)
+  if (groqApiKey && groqApiKey.trim() !== "") {
+    try {
+      console.log("[AI] Calling Groq API (llama-3.3-70b-versatile)...");
+      const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${groqApiKey}`,
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `${userContent}\n\nOutput strictly valid JSON.` },
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.7,
+          max_tokens: 1200,
+        }),
+      });
+
+      if (groqRes.ok) {
+        const groqData = await groqRes.json();
+        const content = groqData.choices?.[0]?.message?.content;
+        if (content) {
+          console.log("[AI] Groq response received successfully.");
+          return JSON.parse(content);
+        }
+      } else {
+        const errText = await groqRes.text();
+        console.warn("[AI] Groq API error:", groqRes.status, errText);
+      }
+    } catch (groqErr) {
+      console.warn("[AI] Groq API call failed, falling back:", groqErr);
+    }
+  }
+
+  // 2. Try Gemini API if GEMINI_API_KEY exists
   if (geminiApiKey && geminiApiKey.trim() !== "") {
     try {
       console.log("[AI] Calling Gemini 1.5 Flash API...");
@@ -23,7 +63,6 @@ export async function generateModuleInsight(
         "Content-Type": "application/json",
       };
 
-      // If token starts with AQ. (OAuth / Bearer token), pass Authorization header too
       if (geminiApiKey.startsWith("AQ.") || geminiApiKey.startsWith("ya29.")) {
         headers["Authorization"] = `Bearer ${geminiApiKey}`;
       }
@@ -64,7 +103,7 @@ export async function generateModuleInsight(
     }
   }
 
-  // 2. Try OpenAI fallback if Gemini fails or key is missing
+  // 3. Try OpenAI fallback if Gemini/Groq fail or keys missing
   if (openai) {
     try {
       console.log("[AI] Calling OpenAI GPT-4o-mini...");
@@ -89,7 +128,7 @@ export async function generateModuleInsight(
     }
   }
 
-  // 3. Final fallback to deterministic JSON schema
+  // 4. Final fallback to deterministic JSON schema
   console.warn("[AI] All AI providers failed or unavailable. Using question-aware deterministic fallback.");
   return fallbackJSON;
 }
