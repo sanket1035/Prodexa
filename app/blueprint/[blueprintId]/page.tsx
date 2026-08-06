@@ -319,10 +319,21 @@ export default function BlueprintWorkspacePage() {
               <FileCode2 className="w-4 h-4 text-green-500" />
               <h3 className="text-sm font-semibold" style={{ color: "var(--text)" }}>One-Click Starter Kit Package</h3>
             </div>
-            <button onClick={handleDownloadStarterKit} className="btn btn-primary btn-sm">
-              <Download className="w-3.5 h-3.5" />
-              Download Complete Kit (.md)
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(generateStarterKitBundle(blueprint));
+                  alert("Starter Kit Bundle copied to clipboard!");
+                }}
+                className="btn btn-secondary btn-sm"
+              >
+                Copy Complete Kit
+              </button>
+              <button onClick={handleDownloadStarterKit} className="btn btn-primary btn-sm">
+                <Download className="w-3.5 h-3.5" />
+                Download (.md)
+              </button>
+            </div>
           </div>
 
           <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>

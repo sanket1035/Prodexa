@@ -249,7 +249,7 @@ export default function AICofounderTab({
       )}
 
       {/* Structured Investor & Judge Review Card */}
-      {mentorReview && (
+      {mentorReview ? (
         <div className="rounded-xl p-5 space-y-5 anim-fade-up" style={{ background: "var(--bg)", border: "1px solid rgba(217,119,6,0.3)" }}>
           <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--border)" }}>
             <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--accent)" }}>
@@ -326,6 +326,16 @@ export default function AICofounderTab({
               </ul>
             </div>
           </div>
+        </div>
+      ) : (
+        <div className="card p-4 flex items-center justify-between text-xs" style={{ background: "var(--bg)", borderColor: "var(--border)" }}>
+          <div className="flex items-center gap-2" style={{ color: "var(--text-muted)" }}>
+            <Award className="w-4 h-4 text-amber-500" />
+            <span>No investor feedback generated yet. Click <strong>Investor Review</strong> above for automated pitch critique.</span>
+          </div>
+          <button onClick={requestMentorReview} className="btn btn-secondary btn-sm">
+            Generate Review
+          </button>
         </div>
       )}
 

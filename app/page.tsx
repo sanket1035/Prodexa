@@ -130,16 +130,23 @@ export default function LandingPage() {
 
             {/* CTAs */}
             <div className="anim-fade d-150" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 64 }}>
-              <button className="btn btn-primary btn-xl" onClick={goBlueprint}>
-                <Sparkles style={{ width: 16, height: 16 }} />
-                Generate AI Blueprint
-                <ChevronRight style={{ width: 16, height: 16 }} />
-              </button>
-              <button className="btn btn-secondary btn-xl" onClick={goAudit}>
-                <Activity style={{ width: 16, height: 16 }} />
-                Audit My Product
-              </button>
-              <button
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <button onClick={goBlueprint} className="btn btn-primary btn-lg">
+              <Lightbulb className="w-4 h-4" />
+              <span>Generate AI Blueprint</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <button onClick={goAudit} className="btn btn-secondary btn-lg">
+              <Activity className="w-4 h-4" style={{ color: "var(--accent)" }} />
+              <span>Audit Readiness</span>
+            </button>
+
+            <button onClick={goDemo} className="btn btn-secondary btn-lg border-amber-500/40 text-amber-500">
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              <span>🎯 Judge Pitch Demo (60s Fallback)</span>
+            </button>
+          </div>    <button
                 onClick={goDemo}
                 style={{ fontSize: 13, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 4 }}
               >
