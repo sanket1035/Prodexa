@@ -245,6 +245,18 @@ function DashboardContent() {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
+          {project.id === "proj-prodexa-demo" && (
+            <button
+              onClick={async () => {
+                await fetch("/api/projects/reset-demo", { method: "POST" });
+                window.location.reload();
+              }}
+              className="btn btn-secondary btn-sm border-amber-500/30 text-amber-500"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Reset Demo Workspace
+            </button>
+          )}
           <button
             onClick={() => setShowAssetDrawer(!showAssetDrawer)}
             className="btn btn-secondary btn-sm"

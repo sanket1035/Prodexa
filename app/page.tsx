@@ -142,17 +142,12 @@ export default function LandingPage() {
               <span>Audit Readiness</span>
             </button>
 
-            <button onClick={goDemo} className="btn btn-secondary btn-lg border-amber-500/40 text-amber-500">
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>🎯 Judge Pitch Demo (60s Fallback)</span>
+            <button onClick={goDemo} className="btn btn-secondary btn-lg">
+              <Sparkles className="w-4 h-4" style={{ color: "var(--accent)" }} />
+              <span>Explore Demo Workspace</span>
             </button>
-          </div>    <button
-                onClick={goDemo}
-                style={{ fontSize: 13, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 4 }}
-              >
-                View live demo →
-              </button>
-            </div>
+          </div>
+        </div>
 
             {/* Product preview */}
             <div className="anim-fade d-200" style={{

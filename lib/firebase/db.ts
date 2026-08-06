@@ -695,3 +695,13 @@ export async function getValidationRunsForProject(projectId: string): Promise<Va
   // Return only runs for this specific project (never cross-contaminate with other projects)
   return memoryRuns;
 }
+
+export async function resetDemoWorkspace(): Promise<boolean> {
+  mockChatDocs.delete(demoProjectId);
+  mockNotes.delete(demoProjectId);
+  mockMemories.delete(demoProjectId);
+  mockProjects.set(demoProjectId, demoProject);
+  mockBlueprints.set(demoBlueprintId, demoBlueprint);
+  mockRuns.set(demoRunId, demoRun);
+  return true;
+}
