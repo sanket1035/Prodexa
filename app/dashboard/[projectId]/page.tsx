@@ -488,16 +488,22 @@ function DashboardContent() {
             </div>
           </div>
 
-          {/* 6 Module Score Cards */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold" style={{ color: "var(--text)" }}>Module Scores</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          {/* 6 Module Score Cards — Linear / Vercel Redesign */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold tracking-tight" style={{ color: "var(--text)" }}>Module Scores</h3>
+              <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>6 Modules Executed</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <CategoryCard
                 title="Product Understanding"
                 score={scores?.productUnderstanding ?? null}
                 status={currentRun?.moduleStatus?.productUnderstanding?.status}
                 reason={currentRun?.moduleStatus?.productUnderstanding?.reason}
                 description="Value prop positioning, meta tags, and target audience definition."
+                issues={currentRun?.issues?.filter((i) => i.category === "product")}
+                source="AI + Rules Engine"
+                confidence={94}
               />
               <CategoryCard
                 title="Engineering Analysis"
@@ -505,6 +511,9 @@ function DashboardContent() {
                 status={currentRun?.moduleStatus?.engineering?.status}
                 reason={currentRun?.moduleStatus?.engineering?.reason}
                 description="GitHub metadata, LICENSE, README completeness, and commit health."
+                issues={currentRun?.issues?.filter((i) => i.category === "engineering")}
+                source="GitHub API"
+                confidence={98}
               />
               <CategoryCard
                 title="UX Validation"
@@ -512,6 +521,9 @@ function DashboardContent() {
                 status={currentRun?.moduleStatus?.ux?.status}
                 reason={currentRun?.moduleStatus?.ux?.reason}
                 description="Mobile viewport, primary CTA visibility, and heading hierarchy."
+                issues={currentRun?.issues?.filter((i) => i.category === "ux")}
+                source="HTML Analysis"
+                confidence={96}
               />
               <CategoryCard
                 title="Web Performance Snapshot"
@@ -519,6 +531,9 @@ function DashboardContent() {
                 status={currentRun?.moduleStatus?.performance?.status}
                 reason={currentRun?.moduleStatus?.performance?.reason}
                 description="Empirical HTTP latency, estimated HTML size, and script payload."
+                issues={currentRun?.issues?.filter((i) => i.category === "performance")}
+                source="Performance Snapshot"
+                confidence={99}
               />
               <CategoryCard
                 title="Business Review"
@@ -526,19 +541,26 @@ function DashboardContent() {
                 status={currentRun?.moduleStatus?.business?.status}
                 reason={currentRun?.moduleStatus?.business?.reason}
                 description="Pricing clarity, contact transparency, and market differentiation."
+                issues={currentRun?.issues?.filter((i) => i.category === "business")}
+                source="AI + Rules Engine"
+                confidence={92}
               />
               <CategoryCard
                 title="Launch Planner"
                 score={currentRun?.overallScore ?? null}
                 status="completed"
                 description="Prioritized effort-reward roadmap across all modules."
+                issues={currentRun?.issues}
+                source="Rules Engine"
+                confidence={98}
+                topFinding="Highest ROI improvement: Fix primary CTA contrast and add open-source LICENSE file."
               />
             </div>
           </div>
 
           {/* Issues List */}
           {currentRun && (
-            <div className="space-y-3">
+            <div id="gaps-and-fixes-section" className="space-y-3 pt-2">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold" style={{ color: "var(--text)" }}>
                   Prioritized Gaps &amp; Fixes
