@@ -34,7 +34,7 @@ export default function CategoryCard({
 }: CategoryCardProps) {
   // Determine Semantic Status Label & Color Scheme
   const getSemanticStatus = (s: number | null) => {
-    if (s === null) return { label: "Pending", color: "var(--text-muted)", badgeBg: "rgba(113,113,122,0.15)", borderColor: "var(--border)" };
+    if (status === "skipped" || s === null) return { label: "Skipped", color: "#F59E0B", badgeBg: "rgba(245,158,11,0.12)", borderColor: "rgba(245,158,11,0.3)" };
     if (s >= 95) return { label: "Excellent", color: "#22C55E", badgeBg: "rgba(34,197,94,0.12)", borderColor: "#22C55E" };
     if (s >= 85) return { label: "Very Good", color: "#22C55E", badgeBg: "rgba(34,197,94,0.12)", borderColor: "#22C55E" };
     if (s >= 70) return { label: "Good", color: "#F59E0B", badgeBg: "rgba(245,158,11,0.12)", borderColor: "#F59E0B" };
@@ -56,6 +56,12 @@ export default function CategoryCard({
 
   // Extract Exactly ONE Key Top Finding
   const getTopFinding = () => {
+    if (status === "skipped" || score === null) {
+      if (reason) return reason;
+      if (title.includes("Engineering")) return "No GitHub repository connected. Connect a repository to analyze codebase quality and license compliance.";
+      return "Module skipped during launch audit.";
+    }
+
     if (topFinding) return topFinding;
 
     // Search module-specific issues first

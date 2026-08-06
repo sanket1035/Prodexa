@@ -55,8 +55,10 @@ export async function POST(req: NextRequest) {
 
     allIssues.push(...engResult.issues, ...prodResult.issues, ...uxResult.issues, ...perfResult.issues, ...bizResult.issues);
 
+    const hasGithub = Boolean(ghUrl && ghUrl.trim() !== "" && !ghUrl.includes("example.com"));
+
     const moduleScores = {
-      engineering: getDynamicScore(engResult.score, ghUrl || project.name, 1, 65, 95),
+      engineering: hasGithub ? getDynamicScore(engResult.score, ghUrl, 1, 65, 95) : null,
       productUnderstanding: getDynamicScore(prodResult.score, auditWebUrl, 2, 70, 96),
       ux: getDynamicScore(uxResult.score, auditWebUrl, 3, 64, 92),
       accessibility: getDynamicScore(uxResult.score ? Math.max(50, uxResult.score - 5) : null, auditWebUrl, 4, 60, 90),
@@ -65,7 +67,7 @@ export async function POST(req: NextRequest) {
     };
 
     const moduleStatusMap = {
-      engineering: { status: "completed" as const, reason: engResult.reason },
+      engineering: { status: hasGithub ? "completed" as const : "skipped" as const, reason: engResult.reason || "No GitHub repository connected" },
       productUnderstanding: { status: "completed" as const, reason: prodResult.reason },
       ux: { status: "completed" as const, reason: uxResult.reason },
       accessibility: { status: "completed" as const },
