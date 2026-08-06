@@ -16,9 +16,12 @@ import {
   GitCompare, Plus, Minus, Check, ShieldCheck, AlertTriangle, Cpu
 } from "lucide-react";
 
+import { useAuth } from "@/lib/auth/AuthContext";
+
 export default function BlueprintWorkspacePage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const blueprintId = params.blueprintId as string;
 
   const [blueprint, setBlueprint] = useState<Blueprint | null>(null);
@@ -96,9 +99,26 @@ export default function BlueprintWorkspacePage() {
     if (!blueprint) return;
     setConverting(true);
     try {
-      const res = await fetch(`/api/blueprint/${blueprint.id}/convert`, { method: "POST" });
+      const res = await fetch(`/api/blueprint/${blueprint.id}/convert`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user?.uid || blueprint.userId }),
+      });
       const data = await res.json();
-      if (data.success && data.projectId) router.push(`/dashboard/${data.projectId}`);
+      if (data.success && data.projectId) {
+        if (typeof window !== "undefined" && data.project) {
+          const uid = user?.uid || data.project.userId || "demo-user-123";
+          const key = `prodexa_projects_${uid}`;
+          const existingStr = localStorage.getItem(key);
+          const existing = existingStr ? JSON.parse(existingStr) : [];
+          if (!existing.some((p: any) => p.id === data.project.id)) {
+            existing.unshift(data.project);
+            localStorage.setItem(key, JSON.stringify(existing));
+          }
+          localStorage.setItem(`prodexa_proj_${data.project.id}`, JSON.stringify(data.project));
+        }
+        router.push(`/dashboard/${data.projectId}`);
+      }
     } catch (e) { console.error("Conversion error:", e); }
     finally { setConverting(false); }
   };

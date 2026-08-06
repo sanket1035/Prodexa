@@ -23,17 +23,30 @@ export default function ProjectsPage() {
     }
 
     if (user) {
-      // 1. Load instantly from localStorage cache (no flash of zero projects)
-      const cached = localStorage.getItem(`prodexa_projects_${user.uid}`);
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setProjects(parsed);
+      // 1. Scan and load instantly from ALL localStorage project caches
+      const mergedLocal: Project[] = [];
+      if (typeof window !== "undefined") {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (k.startsWith("prodexa_projects_") || k.startsWith("prodexa_proj_"))) {
+            try {
+              const val = JSON.parse(localStorage.getItem(k) || "");
+              if (Array.isArray(val)) {
+                val.forEach((p) => {
+                  if (p && p.id && !mergedLocal.some((lp) => lp.id === p.id)) mergedLocal.push(p);
+                });
+              } else if (val && val.id) {
+                if (!mergedLocal.some((lp) => lp.id === val.id)) mergedLocal.push(val);
+              }
+            } catch {
+              // ignore
+            }
           }
-        } catch {
-          // ignore
         }
+      }
+
+      if (mergedLocal.length > 0) {
+        setProjects(mergedLocal);
       }
 
       // 2. Fetch fresh projects from API
@@ -41,9 +54,16 @@ export default function ProjectsPage() {
         .then((res) => res.json())
         .then((data) => {
           if (data.success && Array.isArray(data.projects) && data.projects.length > 0) {
-            setProjects(data.projects);
-            // Sync to localStorage
-            localStorage.setItem(`prodexa_projects_${user.uid}`, JSON.stringify(data.projects));
+            // Merge API projects with local projects
+            const combinedMap = new Map<string, Project>();
+            data.projects.forEach((p: Project) => combinedMap.set(p.id, p));
+            mergedLocal.forEach((p: Project) => {
+              if (!combinedMap.has(p.id)) combinedMap.set(p.id, p);
+            });
+            const finalProjects = Array.from(combinedMap.values());
+            setProjects(finalProjects);
+            // Sync back to user's localStorage
+            localStorage.setItem(`prodexa_projects_${user.uid}`, JSON.stringify(finalProjects));
           }
           setLoading(false);
         })

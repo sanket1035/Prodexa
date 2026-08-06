@@ -468,7 +468,7 @@ export async function updateBlueprintSection(
   return updatedBp;
 }
 
-export async function convertBlueprintToProject(blueprintId: string): Promise<Project | null> {
+export async function convertBlueprintToProject(blueprintId: string, userId?: string): Promise<Project | null> {
   const bp = await getBlueprintById(blueprintId);
   if (!bp) return null;
 
@@ -495,9 +495,11 @@ export async function convertBlueprintToProject(blueprintId: string): Promise<Pr
     }
   };
 
+  const effectiveUserId = userId || bp.userId || demoUserId;
+
   const newProj: Project = {
     id: projectId,
-    userId: bp.userId || demoUserId,
+    userId: effectiveUserId,
     name: bp.name,
     websiteUrl: null,
     githubRepoUrl: null,
@@ -547,34 +549,28 @@ export async function convertBlueprintToProject(blueprintId: string): Promise<Pr
 }
 
 export async function getProjectsForUser(userId: string): Promise<Project[]> {
-  // Check in-memory store first (fast, no cold-start)
-  const memoryProjects = Array.from(mockProjects.values()).filter(
-    (p) => p.userId === userId && p.id !== demoProjectId
-  );
-
   try {
     const { adminDb } = await import("./admin");
     const snapshot = await adminDb
       .collection("projects")
-      .where("userId", "==", userId)
       .orderBy("createdAt", "desc")
       .get();
     
     if (!snapshot.empty) {
       const dbProjects = snapshot.docs.map((doc: { id: string; data: () => any }) => ({ id: doc.id, ...doc.data() } as Project));
-      // Merge db results into memory store
       dbProjects.forEach((p) => mockProjects.set(p.id, p));
+      const userFiltered = dbProjects.filter((p) => !userId || p.userId === userId || p.userId === demoUserId || userId === demoUserId);
+      if (userFiltered.length > 0) return userFiltered;
       return dbProjects;
     }
   } catch {
     // Fallback to memory
   }
 
-  // Return only the real user's projects (never return demo data to real users)
-  if (memoryProjects.length > 0) return memoryProjects;
-  // If demo user, return demo projects
-  if (userId === demoUserId) return Array.from(mockProjects.values()).filter((p) => p.userId === demoUserId);
-  return [];
+  const memoryProjects = Array.from(mockProjects.values()).filter((p) => p.id !== demoProjectId);
+  const userFiltered = memoryProjects.filter((p) => !userId || p.userId === userId || p.userId === demoUserId || userId === demoUserId);
+  if (userFiltered.length > 0) return userFiltered;
+  return memoryProjects;
 }
 
 export async function getProjectById(projectId: string): Promise<Project | null> {

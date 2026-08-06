@@ -7,7 +7,15 @@ export async function POST(
 ) {
   try {
     const { blueprintId } = params;
-    const project = await convertBlueprintToProject(blueprintId);
+    let userId: string | undefined = undefined;
+    try {
+      const body = await req.json();
+      if (body?.userId) userId = body.userId;
+    } catch {
+      // JSON body optional
+    }
+
+    const project = await convertBlueprintToProject(blueprintId, userId);
 
     if (!project) {
       return NextResponse.json({ success: false, message: "Blueprint not found or conversion failed" }, { status: 404 });
