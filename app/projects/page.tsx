@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { Project } from "@/lib/types/schema";
 import {
   PlusCircle, ExternalLink, ArrowRight, FolderGit2, Sparkles,
-  Clock, Zap, BarChart3
+  Clock, Zap, BarChart3, Trash2
 } from "lucide-react";
 
 export default function ProjectsPage() {
@@ -15,6 +15,7 @@ export default function ProjectsPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -23,24 +24,20 @@ export default function ProjectsPage() {
     }
 
     if (user) {
-      // 1. Scan and load instantly from ALL localStorage project caches
+      // 1. Scan and load instantly from localStorage project cache for THIS user
       const mergedLocal: Project[] = [];
       if (typeof window !== "undefined") {
-        for (let i = 0; i < localStorage.length; i++) {
-          const k = localStorage.key(i);
-          if (k && (k.startsWith("prodexa_projects_") || k.startsWith("prodexa_proj_"))) {
-            try {
-              const val = JSON.parse(localStorage.getItem(k) || "");
-              if (Array.isArray(val)) {
-                val.forEach((p) => {
-                  if (p && p.id && !mergedLocal.some((lp) => lp.id === p.id)) mergedLocal.push(p);
-                });
-              } else if (val && val.id) {
-                if (!mergedLocal.some((lp) => lp.id === val.id)) mergedLocal.push(val);
-              }
-            } catch {
-              // ignore
+        const userCached = localStorage.getItem(`prodexa_projects_${user.uid}`);
+        if (userCached) {
+          try {
+            const parsed = JSON.parse(userCached);
+            if (Array.isArray(parsed)) {
+              parsed.forEach((p) => {
+                if (p && p.id && !mergedLocal.some((lp) => lp.id === p.id)) mergedLocal.push(p);
+              });
             }
+          } catch {
+            // ignore
           }
         }
       }
@@ -49,18 +46,13 @@ export default function ProjectsPage() {
         setProjects(mergedLocal);
       }
 
-      // 2. Fetch fresh projects from API
+      // 2. Fetch fresh projects from API for THIS user
       fetch(`/api/projects?userId=${user.uid}`)
         .then((res) => res.json())
         .then((data) => {
-          if (data.success && Array.isArray(data.projects) && data.projects.length > 0) {
-            // Merge API projects with local projects
-            const combinedMap = new Map<string, Project>();
-            data.projects.forEach((p: Project) => combinedMap.set(p.id, p));
-            mergedLocal.forEach((p: Project) => {
-              if (!combinedMap.has(p.id)) combinedMap.set(p.id, p);
-            });
-            const finalProjects = Array.from(combinedMap.values());
+          if (data.success && Array.isArray(data.projects)) {
+            // Filter strictly by user.uid or show fresh list
+            const finalProjects = data.projects.filter((p: Project) => p.userId === user.uid || !p.userId || user.uid === "demo-user-123");
             setProjects(finalProjects);
             // Sync back to user's localStorage
             localStorage.setItem(`prodexa_projects_${user.uid}`, JSON.stringify(finalProjects));
@@ -70,6 +62,32 @@ export default function ProjectsPage() {
         .catch(() => setLoading(false));
     }
   }, [user, authLoading, router]);
+
+  const handleDeleteProject = async (projectId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!confirm("Are you sure you want to delete this project from your workspace?")) return;
+
+    setDeletingId(projectId);
+    try {
+      await fetch(`/api/projects?id=${projectId}`, { method: "DELETE" });
+
+      // Update state
+      const updated = projects.filter((p) => p.id !== projectId);
+      setProjects(updated);
+
+      // Update localStorage
+      if (user) {
+        localStorage.setItem(`prodexa_projects_${user.uid}`, JSON.stringify(updated));
+      }
+      localStorage.removeItem(`prodexa_proj_${projectId}`);
+    } catch {
+      // ignore
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const getScoreBadgeClass = (score: number | null) => {
     if (score === null) return "badge badge-muted";
@@ -223,13 +241,25 @@ export default function ProjectsPage() {
                         : "Ready for launch audit"}
                     </div>
 
-                    <Link
-                      href={`/dashboard/${project.id}`}
-                      className="btn btn-secondary btn-sm"
-                    >
-                      <span>View Report</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => handleDeleteProject(project.id, e)}
+                        disabled={deletingId === project.id}
+                        className="p-1.5 rounded text-xs transition-colors hover:bg-red-500/20 hover:text-red-400"
+                        style={{ color: "var(--text-faint)", border: "1px solid var(--border)" }}
+                        title="Delete project from workspace"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+
+                      <Link
+                        href={`/dashboard/${project.id}`}
+                        className="btn btn-secondary btn-sm"
+                      >
+                        <span>View Report</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    </div>
                   </div>
                 </div>
               ))}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { newProjectSchema } from "@/lib/utils/validation";
-import { createProject, getProjectsForUser } from "@/lib/firebase/db";
+import { createProject, getProjectsForUser, deleteProject } from "@/lib/firebase/db";
 
 export async function POST(req: NextRequest) {
   try {
@@ -76,5 +76,22 @@ export async function GET(req: NextRequest) {
       { success: false, message: err.message },
       { status: 500 }
     );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+
+  if (!id) {
+    return NextResponse.json({ success: false, message: "Project id is required" }, { status: 400 });
+  }
+
+  try {
+    await deleteProject(id);
+    return NextResponse.json({ success: true, id });
+  } catch (error: unknown) {
+    const err = error as { message?: string };
+    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }
 }

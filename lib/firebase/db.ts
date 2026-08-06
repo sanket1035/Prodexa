@@ -541,11 +541,23 @@ export async function convertBlueprintToProject(blueprintId: string, userId?: st
   }
 
   mockProjects.set(projectId, newProj);
-  mockProjects.set("proj_" + projectId, newProj);
   mockBlueprints.set(blueprintId, { ...bp, status: "accepted" });
   mockMemories.set(projectId, initialMemory);
 
   return newProj;
+}
+
+export async function deleteProject(projectId: string): Promise<boolean> {
+  try {
+    const { adminDb } = await import("./admin");
+    await adminDb.collection("projects").doc(projectId).delete();
+  } catch {
+    // Fallback
+  }
+  mockProjects.delete(projectId);
+  mockProjects.delete("proj_" + projectId);
+  mockMemories.delete(projectId);
+  return true;
 }
 
 export async function getProjectsForUser(userId: string): Promise<Project[]> {
@@ -558,19 +570,32 @@ export async function getProjectsForUser(userId: string): Promise<Project[]> {
     
     if (!snapshot.empty) {
       const dbProjects = snapshot.docs.map((doc: { id: string; data: () => any }) => ({ id: doc.id, ...doc.data() } as Project));
-      dbProjects.forEach((p) => mockProjects.set(p.id, p));
-      const userFiltered = dbProjects.filter((p) => !userId || p.userId === userId || p.userId === demoUserId || userId === demoUserId);
+      const uniqueProjectsMap = new Map<string, Project>();
+      dbProjects.forEach((p) => {
+        if (!uniqueProjectsMap.has(p.id)) uniqueProjectsMap.set(p.id, p);
+        mockProjects.set(p.id, p);
+      });
+      const allUnique = Array.from(uniqueProjectsMap.values());
+      const userFiltered = allUnique.filter((p) => p.userId === userId);
       if (userFiltered.length > 0) return userFiltered;
-      return dbProjects;
+      if (userId === demoUserId) return allUnique;
+      return [];
     }
   } catch {
     // Fallback to memory
   }
 
-  const memoryProjects = Array.from(mockProjects.values()).filter((p) => p.id !== demoProjectId);
-  const userFiltered = memoryProjects.filter((p) => !userId || p.userId === userId || p.userId === demoUserId || userId === demoUserId);
+  const uniqueProjectsMap = new Map<string, Project>();
+  Array.from(mockProjects.values()).forEach((p) => {
+    if (p.id !== demoProjectId && !uniqueProjectsMap.has(p.id)) {
+      uniqueProjectsMap.set(p.id, p);
+    }
+  });
+  const allUnique = Array.from(uniqueProjectsMap.values());
+  const userFiltered = allUnique.filter((p) => p.userId === userId);
   if (userFiltered.length > 0) return userFiltered;
-  return memoryProjects;
+  if (userId === demoUserId) return allUnique;
+  return [];
 }
 
 export async function getProjectById(projectId: string): Promise<Project | null> {
