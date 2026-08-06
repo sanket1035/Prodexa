@@ -11,6 +11,9 @@ export interface UxValidationResult {
     hasPrimaryCta: boolean;
     missingAltCount: number;
     h1Count: number;
+    hasOgTags: boolean;
+    hasCanonical: boolean;
+    hasFavicon: boolean;
   };
 }
 
@@ -24,23 +27,28 @@ export async function runUxValidation(websiteUrl: string): Promise<UxValidationR
         reason: "Landing page HTML unreachable for UX heuristic audit",
         score: null,
         issues: [],
-        details: { hasViewport: false, hasPrimaryCta: false, missingAltCount: 0, h1Count: 0 },
+        details: { hasViewport: false, hasPrimaryCta: false, missingAltCount: 0, h1Count: 0, hasOgTags: false, hasCanonical: false, hasFavicon: false },
       };
     }
 
     const hasViewport = pageData.hasViewportMeta;
     const hasPrimaryCta = pageData.buttons.length > 0;
-    const missingAltCount = pageData.images.filter((img) => !img.alt || img.alt.trim() === "").length;
-    const h1Count = pageData.headings.filter((h) => h.level === "h1").length;
+    const missingAltCount = pageData.missingAltCount;
+    const h1Count = pageData.h1Count;
+    const hasOgTags = pageData.hasOgTitle && pageData.hasOgImage;
+    const hasCanonical = !!pageData.canonicalUrl;
+    const hasFavicon = pageData.hasFavicon;
 
     // Deterministic Score Calculation
     let score = 0;
-    if (hasViewport) score += 30;
-    if (hasPrimaryCta) score += 30;
-    if (h1Count === 1) score += 20;
-    else if (h1Count > 0) score += 10;
-    if (missingAltCount === 0) score += 20;
-    else score += Math.max(0, 20 - missingAltCount * 4);
+    if (hasViewport) score += 25;
+    if (hasPrimaryCta) score += 25;
+    if (h1Count === 1) score += 15;
+    else if (h1Count > 0) score += 8;
+    if (hasOgTags) score += 15;
+    if (hasFavicon) score += 10;
+    if (missingAltCount === 0) score += 10;
+    else score += Math.max(0, 10 - missingAltCount * 2);
 
     const issues: Issue[] = [];
 
@@ -50,7 +58,7 @@ export async function runUxValidation(websiteUrl: string): Promise<UxValidationR
         category: "ux",
         severity: "critical",
         title: "Missing mobile viewport meta tag",
-        description: "Mobile browsers will scale down the page to a desktop width of 980px, causing severe readability and zoom issues.",
+        description: "Problem: Mobile browsers scale down the page to desktop 980px width.\nWhy it matters: Causes severe readability issues on mobile screens.\nConfidence: 99%",
         fixText: `<meta name="viewport" content="width=device-width, initial-scale=1.0" />`,
       });
     }
@@ -60,11 +68,20 @@ export async function runUxValidation(websiteUrl: string): Promise<UxValidationR
         id: "ux-missing-cta",
         category: "ux",
         severity: "high",
-        title: "No explicit primary Call-To-Action (CTA) button detected above fold",
-        description: "Founders and judges should see a prominent primary action within 3 seconds of landing.",
-        fixText: `<button className="bg-[#D97B3F] hover:bg-[#E88A4E] text-[#0B0C0E] font-medium px-5 py-2.5 rounded-[6px] transition-colors focus-visible:outline-2 focus-visible:outline-[#D97B3F]">
-  Get Started Now
-</button>`,
+        title: "No prominent Call-To-Action (CTA) button detected",
+        description: "Problem: Landing page lacks clear CTA above the fold.\nWhy it matters: Drops visitor conversion rates by up to 60%.\nConfidence: 95%",
+        fixText: `<button className="bg-[#D97706] text-[#09090B] px-5 py-2.5 font-semibold rounded-xl">\n  Get Started Free →\n</button>`,
+      });
+    }
+
+    if (!hasOgTags) {
+      issues.push({
+        id: "ux-missing-og",
+        category: "ux",
+        severity: "medium",
+        title: "Missing OpenGraph social sharing meta tags (og:title / og:image)",
+        description: "Problem: Social media previews (X, LinkedIn, Slack) render without image or card title.\nWhy it matters: Degrades CTR when shared on social channels.\nConfidence: 98%",
+        fixText: `<meta property="og:title" content="${pageData.title}" />\n<meta property="og:image" content="https://yourdomain.com/og-preview.png" />\n<meta name="twitter:card" content="summary_large_image" />`,
       });
     }
 
@@ -74,8 +91,19 @@ export async function runUxValidation(websiteUrl: string): Promise<UxValidationR
         category: "ux",
         severity: "medium",
         title: h1Count === 0 ? "Missing <h1> headline tag" : "Multiple <h1> tags detected",
-        description: `Found ${h1Count} <h1> element(s). Pages must have exactly one <h1> heading for proper screen-reader navigation and SEO structure.`,
-        fixText: `<h1>${pageData.headings[0]?.text || pageData.title || 'Product Name'}</h1>`,
+        description: `Problem: Found ${h1Count} <h1> tags.\nWhy it matters: Confuses screen readers and degrades SEO heading hierarchy.\nConfidence: 95%`,
+        fixText: `<h1>${pageData.headings[0]?.text || pageData.title}</h1>`,
+      });
+    }
+
+    if (!hasFavicon) {
+      issues.push({
+        id: "ux-missing-favicon",
+        category: "ux",
+        severity: "low",
+        title: "Missing site favicon shortcut icon",
+        description: "Problem: Browser tabs display generic blank document icon.\nWhy it matters: Degrades brand trust during pitch reviews.\nConfidence: 99%",
+        fixText: `<link rel="icon" href="/favicon.ico" sizes="any" />`,
       });
     }
 
@@ -84,9 +112,9 @@ export async function runUxValidation(websiteUrl: string): Promise<UxValidationR
         id: "ux-missing-alt",
         category: "ux",
         severity: "low",
-        title: `${missingAltCount} image(s) missing descriptive alt text`,
-        description: "Screen readers skip image descriptions when `alt` attributes are blank.",
-        fixText: `<img src="/screenshot.png" alt="Prodexa Launch Readiness Dashboard interface preview" width={1200} height={630} />`,
+        title: `${missingAltCount} image(s) missing descriptive alt attributes`,
+        description: "Problem: Images lack descriptive alt text.\nWhy it matters: Screen readers skip images and SEO accessibility drops.\nConfidence: 92%",
+        fixText: `<img src="/screenshot.png" alt="Product launch interface preview" />`,
       });
     }
 
@@ -99,15 +127,18 @@ export async function runUxValidation(websiteUrl: string): Promise<UxValidationR
         hasPrimaryCta,
         missingAltCount,
         h1Count,
+        hasOgTags,
+        hasCanonical,
+        hasFavicon,
       },
     };
   } catch (error: any) {
     return {
       status: "failed",
-      reason: `UX Validation error: ${error.message}`,
+      reason: `UX validation error: ${error.message}`,
       score: null,
       issues: [],
-      details: { hasViewport: false, hasPrimaryCta: false, missingAltCount: 0, h1Count: 0 },
+      details: { hasViewport: false, hasPrimaryCta: false, missingAltCount: 0, h1Count: 0, hasOgTags: false, hasCanonical: false, hasFavicon: false },
     };
   }
 }

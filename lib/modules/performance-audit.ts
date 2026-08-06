@@ -22,18 +22,18 @@ export async function runPerformanceAudit(websiteUrl: string): Promise<Performan
     if (!pageData) {
       return {
         status: "failed",
-        reason: "Performance audit unable to measure site latency",
+        reason: "Performance snapshot unable to measure HTTP latency",
         score: null,
         issues: [],
         details: { responseTimeMs: 0, estimatedPageSizeBytes: 0, scriptCount: 0 },
       };
     }
 
-    const estimatedPageSizeBytes = pageData.htmlContent.length * 4; // approximate
+    const estimatedPageSizeBytes = pageData.htmlContent.length * 4;
     const scriptMatches = pageData.htmlContent.match(/<script/gi);
     const scriptCount = scriptMatches ? scriptMatches.length : 0;
 
-    // Deterministic Score based on real empirical latency & payload
+    // Empirical Score calculation based on real HTTP latency & payload bounds
     let score = 100;
     if (responseTimeMs > 500) score -= 15;
     if (responseTimeMs > 1500) score -= 20;
@@ -51,21 +51,9 @@ export async function runPerformanceAudit(websiteUrl: string): Promise<Performan
         id: "perf-high-latency",
         category: "performance",
         severity: responseTimeMs > 2500 ? "critical" : "high",
-        title: `High initial server response latency (${responseTimeMs}ms)`,
-        description: `Initial HTML fetch took ${responseTimeMs}ms. Ideal target for pre-launch landing pages is under 400ms.`,
-        fixText: `// Enable Vercel / Next.js Edge Caching headers in next.config.mjs:
-export default {
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=59' }
-        ],
-      },
-    ];
-  },
-};`,
+        title: `High HTTP initial response latency (${responseTimeMs}ms)`,
+        description: `Problem: Initial HTML fetch took ${responseTimeMs}ms.\nWhy it matters: Slow initial TTFB degrades visitor retention.\nConfidence: 99%`,
+        fixText: `// Enable Vercel Edge Caching headers in next.config.mjs:\nexport default {\n  async headers() {\n    return [\n      { source: '/:path*', headers: [{ key: 'Cache-Control', value: 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=59' }] }\n    ];\n  },\n};`,
       });
     }
 
@@ -74,10 +62,9 @@ export default {
         id: "perf-many-scripts",
         category: "performance",
         severity: "medium",
-        title: `Excessive JavaScript script tags (${scriptCount} external scripts)`,
-        description: "Multiple blocking external scripts delay Main Thread execution and degrade First Input Delay (FID).",
-        fixText: `// Load non-critical analytics or widget scripts asynchronously with defer or strategy="lazyOnload"
-<Script src="https://example.com/widget.js" strategy="lazyOnload" />`,
+        title: `Excessive external JavaScript tags (${scriptCount} script tags)`,
+        description: `Problem: Page loads ${scriptCount} script tags.\nWhy it matters: Delays Main Thread execution and degrades First Input Delay (FID).\nConfidence: 95%`,
+        fixText: `// Load non-critical analytics or widget scripts asynchronously:\n<Script src="https://example.com/widget.js" strategy="lazyOnload" />`,
       });
     }
 
@@ -94,7 +81,7 @@ export default {
   } catch (error: any) {
     return {
       status: "failed",
-      reason: `Performance audit error: ${error.message}`,
+      reason: `Web Performance Snapshot error: ${error.message}`,
       score: null,
       issues: [],
       details: { responseTimeMs: 0, estimatedPageSizeBytes: 0, scriptCount: 0 },

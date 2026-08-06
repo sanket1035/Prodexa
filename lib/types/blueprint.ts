@@ -6,6 +6,12 @@ export type BlueprintCategory =
   | "database"
   | "risks";
 
+export interface MetricDetail {
+  value: number;
+  reason: string;
+  confidence: number;
+}
+
 export interface BlueprintQualityScore {
   overall: number; // 0-100
   metrics: {
@@ -15,6 +21,14 @@ export interface BlueprintQualityScore {
     scalability: number;
     aiNecessity: number;
     marketReadiness: number;
+  };
+  metricDetails?: {
+    technicalFeasibility: MetricDetail;
+    businessPotential: MetricDetail;
+    innovation: MetricDetail;
+    scalability: MetricDetail;
+    marketReadiness: MetricDetail;
+    aiNecessity: MetricDetail;
   };
   strengths: string[];
   weaknesses: string[];
@@ -47,7 +61,7 @@ export interface ImportantDecision {
 export interface SourceAttribution {
   fact: string;
   source: "BLUEPRINT_ENGINE" | "GITHUB_AUDIT" | "MENTOR_NOTE" | "USER_CHAT";
-  confidenceScore: number; // 0.0 to 1.0
+  confidenceScore: number;
   timestamp: string;
 }
 
@@ -92,7 +106,7 @@ export interface BlueprintSection {
   id: string;
   title: string;
   category: BlueprintCategory;
-  content: any; // Structured JSON per category
+  content: any;
   status: "accepted" | "modified" | "draft";
 }
 
@@ -102,11 +116,13 @@ export interface Blueprint {
   name: string;
   idea: string;
   problem: string;
-  targetUsers: string;
+  targetUsers?: string;
+  optionalIndustry?: string;
+  optionalConstraints?: string;
   qualityScore: BlueprintQualityScore;
   mermaidDiagram: string;
   sections: BlueprintSection[];
   contextPackage: ContextPackage;
-  status: "draft" | "accepted";
   createdAt: string;
+  status: "draft" | "accepted";
 }
