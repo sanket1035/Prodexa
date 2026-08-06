@@ -25,10 +25,10 @@ export async function POST(req: NextRequest) {
     // Execute 6 readiness analysis modules synchronously
     const allIssues: Issue[] = [];
     const engResult = await runEngineeringAnalysis(project.githubRepoUrl);
-    const prodResult = await runProductUnderstanding(project.websiteUrl);
-    const uxResult = await runUxValidation(project.websiteUrl);
-    const perfResult = await runPerformanceAudit(project.websiteUrl);
-    const bizResult = await runBusinessReview(project.websiteUrl, pitchDeckText);
+    const prodResult = await runProductUnderstanding(project.websiteUrl || "https://example.com");
+    const uxResult = await runUxValidation(project.websiteUrl || "https://example.com");
+    const perfResult = await runPerformanceAudit(project.websiteUrl || "https://example.com");
+    const bizResult = await runBusinessReview(project.websiteUrl || "https://example.com", pitchDeckText);
 
     allIssues.push(...engResult.issues, ...prodResult.issues, ...uxResult.issues, ...perfResult.issues, ...bizResult.issues);
 

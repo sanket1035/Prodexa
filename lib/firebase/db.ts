@@ -499,7 +499,7 @@ export async function convertBlueprintToProject(blueprintId: string): Promise<Pr
     id: projectId,
     userId: bp.userId || demoUserId,
     name: bp.name,
-    websiteUrl: "https://example-landing-page.com",
+    websiteUrl: null,
     githubRepoUrl: null,
     pitchDeckUrl: null,
     screenshotUrls: [],

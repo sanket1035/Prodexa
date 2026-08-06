@@ -37,7 +37,7 @@ export interface Project {
   id: string;
   userId: string;
   name: string;
-  websiteUrl: string;
+  websiteUrl: string | null;
   githubRepoUrl: string | null;
   pitchDeckUrl: string | null;
   screenshotUrls: string[];

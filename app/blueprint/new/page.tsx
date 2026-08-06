@@ -113,10 +113,10 @@ export default function NewBlueprintPage() {
   const indicators = computeLiveIndicators();
 
   const fillSampleIdea = () => {
-    setName("Prodexa");
-    setIdea("Autonomous AI Product Operating System for early-stage builders");
-    setProblem("Early-stage builders launch without structured expert review on technical feasibility, UX, and open-source licenses.");
-    setTargetUsers("Early-stage software founders, hackathon teams, incubator directors");
+    setName("QuickBite");
+    setIdea("AI-driven cloud kitchen delivery app matching corporate workers with healthy lunch meals");
+    setProblem("Office workers waste 45 minutes every day searching for healthy, affordable lunch options.");
+    setTargetUsers("Busy corporate professionals & local cloud kitchen vendors");
     setError(null);
   };
 

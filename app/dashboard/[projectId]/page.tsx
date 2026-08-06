@@ -223,21 +223,26 @@ function DashboardContent() {
           </div>
 
           <div className="flex items-center gap-4 text-xs font-mono flex-wrap" style={{ color: "var(--text-muted)" }}>
-            {project.websiteUrl && (
-              <a href={project.websiteUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:underline">
-                <Globe className="w-3.5 h-3.5" style={{ color: "var(--accent)" }} />
-                {project.websiteUrl.replace(/^https?:\/\//, "")}
-              </a>
-            )}
-            {project.githubRepoUrl ? (
-              <a href={project.githubRepoUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:underline">
-                <GitBranch className="w-3.5 h-3.5" />
-                {project.githubRepoUrl.replace("https://github.com/", "")}
+            {project.websiteUrl && project.websiteUrl !== "https://example-landing-page.com" ? (
+              <a href={project.websiteUrl.startsWith("http") ? project.websiteUrl : `https://${project.websiteUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:underline text-amber-500">
+                <Globe className="w-3.5 h-3.5" />
+                <span>{project.websiteUrl.replace(/^https?:\/\//, "")}</span>
               </a>
             ) : (
-              <button onClick={() => setShowAssetDrawer(true)} className="flex items-center gap-1 transition-colors" style={{ color: "var(--accent)" }}>
+              <button onClick={() => setShowAssetDrawer(true)} className="flex items-center gap-1 text-amber-500 hover:underline">
+                <Globe className="w-3.5 h-3.5" />
+                <span>Connect Website</span>
+              </button>
+            )}
+            {project.githubRepoUrl ? (
+              <a href={project.githubRepoUrl.startsWith("http") ? project.githubRepoUrl : `https://${project.githubRepoUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:underline text-amber-500">
+                <GitBranch className="w-3.5 h-3.5" />
+                <span>{project.githubRepoUrl.replace("https://github.com/", "")}</span>
+              </a>
+            ) : (
+              <button onClick={() => setShowAssetDrawer(true)} className="flex items-center gap-1 text-amber-500 hover:underline">
                 <PlusCircle className="w-3 h-3" />
-                Connect GitHub
+                <span>Connect GitHub</span>
               </button>
             )}
           </div>
