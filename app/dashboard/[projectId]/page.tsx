@@ -248,7 +248,7 @@ function DashboardContent() {
           </div>
 
           <div className="flex items-center gap-4 text-xs font-mono flex-wrap" style={{ color: "var(--text-muted)" }}>
-            {project.websiteUrl && project.websiteUrl !== "https://example-landing-page.com" ? (
+            {project.websiteUrl && !project.websiteUrl.includes("github.com") && project.websiteUrl !== "https://example-landing-page.com" ? (
               <a href={project.websiteUrl.startsWith("http") ? project.websiteUrl : `https://${project.websiteUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:underline text-amber-500">
                 <Globe className="w-3.5 h-3.5" />
                 <span>{project.websiteUrl.replace(/^https?:\/\//, "")}</span>
@@ -256,7 +256,7 @@ function DashboardContent() {
             ) : (
               <button onClick={() => setShowAssetDrawer(true)} className="flex items-center gap-1 text-amber-500 hover:underline">
                 <Globe className="w-3.5 h-3.5" />
-                <span>Connect Website</span>
+                <span>+ Connect Website</span>
               </button>
             )}
             {project.githubRepoUrl ? (
@@ -267,7 +267,7 @@ function DashboardContent() {
             ) : (
               <button onClick={() => setShowAssetDrawer(true)} className="flex items-center gap-1 text-amber-500 hover:underline">
                 <PlusCircle className="w-3 h-3" />
-                <span>Connect GitHub</span>
+                <span>+ Connect GitHub</span>
               </button>
             )}
           </div>

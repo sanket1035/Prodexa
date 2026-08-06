@@ -9,13 +9,29 @@ export async function POST(req: NextRequest) {
 
     const userId = body.userId || "demo-user-123";
 
+    let realWebsiteUrl: string | null = validated.websiteUrl || null;
+    let realGithubUrl: string | null = validated.githubRepoUrl || null;
+
+    // If GitHub URL was pasted into websiteUrl input, sanitize and separate them
+    if (realWebsiteUrl && realWebsiteUrl.includes("github.com")) {
+      if (!realGithubUrl) realGithubUrl = realWebsiteUrl;
+      realWebsiteUrl = null;
+    }
+
     let name = validated.name;
     if (!name || name.trim() === "") {
-      try {
-        const parsedUrl = new URL(validated.websiteUrl);
-        name = parsedUrl.hostname.replace("www.", "").split(".")[0];
-        name = name.charAt(0).toUpperCase() + name.slice(1);
-      } catch {
+      if (realWebsiteUrl) {
+        try {
+          const parsedUrl = new URL(realWebsiteUrl);
+          name = parsedUrl.hostname.replace("www.", "").split(".")[0];
+          name = name.charAt(0).toUpperCase() + name.slice(1);
+        } catch {
+          name = "New Product";
+        }
+      } else if (realGithubUrl) {
+        const parts = realGithubUrl.replace(/\/$/, "").split("/");
+        name = parts[parts.length - 1] || "New Product";
+      } else {
         name = "New Product";
       }
     }
@@ -23,8 +39,8 @@ export async function POST(req: NextRequest) {
     const newProj = await createProject({
       userId,
       name,
-      websiteUrl: validated.websiteUrl,
-      githubRepoUrl: validated.githubRepoUrl || null,
+      websiteUrl: realWebsiteUrl,
+      githubRepoUrl: realGithubUrl,
       pitchDeckUrl: validated.pitchDeckUrl || null,
       screenshotUrls: validated.screenshotUrls || [],
     });
