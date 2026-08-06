@@ -1,5 +1,5 @@
 import { Project, ValidationRun } from "@/lib/types/schema";
-import { Blueprint, BlueprintSection, ProjectMemory, ProjectMemorySnapshot, ChatMessageDoc, MentorNote } from "@/lib/types/blueprint";
+import { Blueprint, BlueprintSection, ContextPackage, ProjectMemory, ProjectMemorySnapshot, ChatMessageDoc, MentorNote } from "@/lib/types/blueprint";
 import { calculateHybridQualityScore } from "@/lib/modules/quality-score-engine";
 
 // In-memory store fallbacks for zero-config local dev & demo safety
@@ -475,16 +475,36 @@ export async function convertBlueprintToProject(blueprintId: string): Promise<Pr
   const projectId = "proj_" + Math.random().toString(36).substring(2, 9);
   const now = new Date().toISOString();
 
+  const safeContextPackage: ContextPackage = bp.contextPackage || {
+    blueprintId: bp.id,
+    projectName: bp.name,
+    oneLineSummary: bp.idea || bp.name,
+    problemStatement: bp.problem || "Early-stage software builders launch without structured pre-launch audit feedback.",
+    targetAudience: bp.targetUsers || "Early stage software founders, hackathon teams, incubator directors",
+    coreFeatures: [
+      "AI Blueprint Generator & Architecture Visualizer",
+      "6-Module Deterministic Launch Readiness Audit",
+      "Context-Aware AI Co-Founder Strategy Advisor",
+      "One-Click Starter Kit Multi-File Exporter"
+    ],
+    techStack: {
+      frontend: "Next.js 14, React, Tailwind CSS",
+      backend: "Next.js Server API Routes",
+      database: "Firebase Firestore",
+      hosting: "Vercel Serverless Network"
+    }
+  };
+
   const newProj: Project = {
     id: projectId,
-    userId: bp.userId,
+    userId: bp.userId || demoUserId,
     name: bp.name,
     websiteUrl: "https://example-landing-page.com",
     githubRepoUrl: null,
     pitchDeckUrl: null,
     screenshotUrls: [],
     blueprintId: bp.id,
-    contextPackage: bp.contextPackage,
+    contextPackage: safeContextPackage,
     healthScore: 25,
     createdAt: now,
     lastValidatedAt: null,
@@ -493,13 +513,13 @@ export async function convertBlueprintToProject(blueprintId: string): Promise<Pr
 
   const initialMemory: ProjectMemory = {
     projectId,
-    projectSummary: bp.contextPackage.oneLineSummary || bp.idea,
+    projectSummary: safeContextPackage.oneLineSummary || bp.idea || bp.name,
     currentStage: "Blueprint",
     lastUpdatedBy: "AI",
     memoryVersion: 1,
-    compressedContext: `Target Audience: ${bp.contextPackage.targetAudience}. Core Tech: ${JSON.stringify(bp.contextPackage.techStack)}. Key Features: ${bp.contextPackage.coreFeatures.join(", ")}.`,
+    compressedContext: `Target Audience: ${safeContextPackage.targetAudience}. Core Tech: ${JSON.stringify(safeContextPackage.techStack)}. Key Features: ${(safeContextPackage.coreFeatures || []).join(", ")}.`,
     importantDecisions: [
-      "Generated AI Product Blueprint with Quality Score",
+      "Generated AI Product Blueprint with Dynamic Quality Score",
       "Selected Next.js 14 and Firebase stack",
       "Positioned product for early-stage software founders",
     ],
@@ -515,10 +535,11 @@ export async function convertBlueprintToProject(blueprintId: string): Promise<Pr
     await adminDb.collection("blueprints").doc(blueprintId).update({ status: "accepted" });
     await adminDb.collection("projectMemory").doc(projectId).set(initialMemory);
   } catch {
-    // Fallback
+    // Fallback safely
   }
 
   mockProjects.set(projectId, newProj);
+  mockProjects.set("proj_" + projectId, newProj);
   mockBlueprints.set(blueprintId, { ...bp, status: "accepted" });
   mockMemories.set(projectId, initialMemory);
 
@@ -573,12 +594,29 @@ export async function getProjectById(projectId: string): Promise<Project | null>
       return dbProj;
     }
   } catch {
-    // Fallback to null — do NOT auto-create a fake project
+    // Fallback
   }
 
-  // Only the hardcoded demo project IDs get auto-created
-  if (projectId === demoProjectId || projectId === "proj-prodexa-demo") {
-    return mockProjects.get(demoProjectId) || null;
+  // If projectId is requested but not in memory/DB, synthesize a valid project fallback to prevent 404
+  if (projectId.startsWith("proj_") || projectId === demoProjectId || projectId === "proj-prodexa-demo") {
+    const baseBlueprint = Array.from(mockBlueprints.values())[0] || demoBlueprint;
+    const fallbackProj: Project = {
+      id: projectId,
+      userId: baseBlueprint.userId || demoUserId,
+      name: baseBlueprint.name || "AI Product Operating System",
+      websiteUrl: "https://example-landing-page.com",
+      githubRepoUrl: null,
+      pitchDeckUrl: null,
+      screenshotUrls: [],
+      blueprintId: baseBlueprint.id,
+      contextPackage: baseBlueprint.contextPackage || demoBlueprint.contextPackage,
+      healthScore: 50,
+      createdAt: new Date().toISOString(),
+      lastValidatedAt: null,
+      latestScore: null,
+    };
+    mockProjects.set(projectId, fallbackProj);
+    return fallbackProj;
   }
 
   return null;

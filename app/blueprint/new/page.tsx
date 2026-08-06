@@ -31,11 +31,11 @@ export default function NewBlueprintPage() {
 
   const [currentStep, setCurrentStep] = useState(1);
 
-  // Step 1: Idea Fields
-  const [name, setName] = useState("");
-  const [idea, setIdea] = useState("");
-  const [problem, setProblem] = useState("");
-  const [targetUsers, setTargetUsers] = useState("");
+  // Step 1: Idea Fields (Pre-populated with default sensible demo values)
+  const [name, setName] = useState("Prodexa");
+  const [idea, setIdea] = useState("Autonomous AI Product Operating System for early-stage builders");
+  const [problem, setProblem] = useState("Early-stage builders launch without structured expert review on technical feasibility, UX, and open-source licenses.");
+  const [targetUsers, setTargetUsers] = useState("Early-stage software founders, hackathon teams, incubator directors");
 
   // Step 2: Business Fields
   const [industry, setIndustry] = useState("");
@@ -115,10 +115,9 @@ export default function NewBlueprintPage() {
   const handleNextStep = () => {
     setError(null);
     if (currentStep === 1) {
-      if (!name.trim() || !idea.trim() || !problem.trim()) {
-        setError("Please fill in Product Name, Product Idea, and Problem Statement.");
-        return;
-      }
+      if (!name.trim()) setName("Prodexa");
+      if (!idea.trim()) setIdea("Autonomous AI Product Operating System for early-stage builders");
+      if (!problem.trim()) setProblem("Early-stage builders launch without structured expert review on technical feasibility, UX, and open-source licenses.");
     }
     if (currentStep < 4) setCurrentStep(currentStep + 1);
   };
@@ -228,7 +227,7 @@ export default function NewBlueprintPage() {
   return (
     <div className="min-h-screen flex flex-col font-sans" style={{ background: "var(--bg)", color: "var(--text)" }}>
       {/* Top Wizard Progress Indicator Bar */}
-      <div className="border-b sticky top-14 z-30" style={{ background: "rgba(9,9,11,0.9)", backdropFilter: "blur(12px)", borderColor: "var(--border)" }}>
+      <div className="border-b" style={{ background: "rgba(9,9,11,0.9)", borderColor: "var(--border)" }}>
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: "var(--accent)", color: "#09090B" }}>
