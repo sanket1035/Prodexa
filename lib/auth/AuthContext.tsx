@@ -9,9 +9,6 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification,
-  sendSignInLinkToEmail,
-  isSignInWithEmailLink,
-  signInWithEmailLink,
   updateProfile,
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase/client";
@@ -31,7 +28,6 @@ interface AuthContextType {
   signUpWithEmail: (name: string, email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   signInWithEmail: (email: string, pass: string) => Promise<{ success: boolean; error?: string; requiresVerification?: boolean }>;
   resendVerification: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
-  sendMagicLink: (email: string) => Promise<{ success: boolean; error?: string }>;
   updateUserProfile: (name: string) => Promise<{ success: boolean; error?: string }>;
   signInAsDemoUser: () => void;
   signOut: () => Promise<void>;
@@ -44,7 +40,6 @@ const AuthContext = createContext<AuthContextType>({
   signUpWithEmail: async () => ({ success: false }),
   signInWithEmail: async () => ({ success: false }),
   resendVerification: async () => ({ success: false }),
-  sendMagicLink: async () => ({ success: false }),
   updateUserProfile: async () => ({ success: false }),
   signInAsDemoUser: () => {},
   signOut: async () => {},
@@ -72,32 +67,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Complete Email Link (Magic Link) sign-in if URL contains link
-    if (typeof window !== "undefined" && isSignInWithEmailLink(auth, window.location.href)) {
-      let email = window.localStorage.getItem("prodexa_emailForSignIn");
-      if (!email) {
-        email = window.prompt("Please provide your email for confirmation");
-      }
-      if (email) {
-        signInWithEmailLink(auth, email, window.location.href)
-          .then((result) => {
-            window.localStorage.removeItem("prodexa_emailForSignIn");
-            setUser({
-              uid: result.user.uid,
-              email: result.user.email,
-              displayName: result.user.displayName,
-              photoURL: result.user.photoURL,
-              emailVerified: true,
-            });
-          })
-          .catch((err) => console.error("Email link sign-in error:", err));
-      }
-    }
-
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: User | null) => {
       if (firebaseUser) {
         await firebaseUser.reload();
-        
+
         const isOAuth = firebaseUser.providerData.some((p) => p.providerId === "google.com");
         if (firebaseUser.emailVerified || isOAuth) {
           if (typeof window !== "undefined") {
@@ -157,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!auth) throw new Error("Firebase Auth not initialized.");
       const cred = await createUserWithEmailAndPassword(auth, email, pass);
       await updateProfile(cred.user, { displayName: name });
-      
+
       const actionCodeSettings = {
         url: typeof window !== "undefined" ? `${window.location.origin}/login?verified=true` : "http://localhost:3000/login",
         handleCodeInApp: true,
@@ -177,7 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       if (!auth) throw new Error("Firebase Auth not initialized.");
       const cred = await signInWithEmailAndPassword(auth, email, pass);
-      
+
       await cred.user.reload();
       if (!cred.user.emailVerified) {
         await firebaseSignOut(auth);
@@ -219,23 +192,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message || "Failed to resend verification link." };
-    }
-  };
-
-  const sendMagicLink = async (email: string) => {
-    try {
-      if (!auth) throw new Error("Firebase Auth not initialized.");
-      const actionCodeSettings = {
-        url: typeof window !== "undefined" ? `${window.location.origin}/login` : "http://localhost:3000/login",
-        handleCodeInApp: true,
-      };
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem("prodexa_emailForSignIn", email);
-      }
-      return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error.message || "Failed to send magic link." };
     }
   };
 
@@ -294,7 +250,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUpWithEmail,
         signInWithEmail,
         resendVerification,
-        sendMagicLink,
         updateUserProfile,
         signInAsDemoUser,
         signOut,

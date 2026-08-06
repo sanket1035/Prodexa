@@ -8,7 +8,7 @@ import {
   CheckCircle2, RefreshCw, Sparkles, Inbox, AlertTriangle, Zap,
 } from "lucide-react";
 
-type Mode = "signin" | "signup" | "magic" | "pending_verification";
+type Mode = "signin" | "signup" | "pending_verification";
 
 export default function LoginPage() {
   return (
@@ -26,7 +26,7 @@ export default function LoginPage() {
 }
 
 function LoginForm() {
-  const { user, loading, signInWithGoogle, signUpWithEmail, signInWithEmail, resendVerification, sendMagicLink, signInAsDemoUser } = useAuth();
+  const { user, loading, signInWithGoogle, signUpWithEmail, signInWithEmail, resendVerification, signInAsDemoUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -51,7 +51,7 @@ function LoginForm() {
     if (!loading && user) router.push("/projects");
   }, [user, loading, router]);
 
-  const switchTab = (newMode: "signin" | "signup" | "magic") => {
+  const switchTab = (newMode: "signin" | "signup") => {
     setMode(newMode);
     setName("");
     setEmail("");
@@ -83,10 +83,6 @@ function LoginForm() {
       const res = await signUpWithEmail(name, email, password);
       if (res.success) setMode("pending_verification");
       else setErrorMsg(res.error || "Sign up failed.");
-    } else if (mode === "magic") {
-      const res = await sendMagicLink(email);
-      if (res.success) setSuccessMsg(`Passwordless link sent to ${email}! Check your inbox.`);
-      else setErrorMsg(res.error || "Failed to send email link.");
     } else {
       const res = await signInWithEmail(email, password);
       if (res.success) router.push("/projects");
@@ -123,7 +119,6 @@ function LoginForm() {
   const tabConfig = [
     { id: "signin" as const, label: "Sign In" },
     { id: "signup" as const, label: "Sign Up" },
-    { id: "magic" as const, label: "Magic Link" },
   ];
 
   return (
@@ -226,10 +221,10 @@ function LoginForm() {
                   <span className="font-semibold text-sm" style={{ color: "var(--text)" }}>prodexa</span>
                 </div>
                 <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>
-                  {mode === "signin" ? "Welcome back" : mode === "signup" ? "Create account" : "Passwordless sign-in"}
+                  {mode === "signin" ? "Welcome back" : "Create account"}
                 </h1>
                 <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-                  {mode === "signin" ? "Sign in to your Prodexa workspace" : mode === "signup" ? "Start building your launch-ready product" : "Receive a secure magic link via email"}
+                  {mode === "signin" ? "Sign in to your Prodexa workspace" : "Start building your launch-ready product"}
                 </p>
               </div>
 
@@ -310,7 +305,7 @@ function LoginForm() {
                       type="text"
                       required
                       autoComplete="off"
-                      placeholder="Alex Rivera"
+                      placeholder="Sanket Chaudhari"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="input"
@@ -334,23 +329,21 @@ function LoginForm() {
                   />
                 </div>
 
-                {mode !== "magic" && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
-                      <Lock className="w-3.5 h-3.5" />
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      autoComplete="new-password"
-                      placeholder="••••••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="input"
-                    />
-                  </div>
-                )}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
+                    <Lock className="w-3.5 h-3.5" />
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    autoComplete="new-password"
+                    placeholder="••••••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input"
+                  />
+                </div>
 
                 <button
                   type="submit"
@@ -364,8 +357,6 @@ function LoginForm() {
                     </>
                   ) : mode === "signup" ? (
                     "Create Account & Verify Email"
-                  ) : mode === "magic" ? (
-                    "Send Magic Link"
                   ) : (
                     "Sign In"
                   )}
