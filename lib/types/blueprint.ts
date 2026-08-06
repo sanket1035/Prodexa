@@ -10,6 +10,8 @@ export interface MetricDetail {
   value: number;
   reason: string;
   confidence: number;
+  formulaBreakdown?: string;
+  sourceLabel?: string;
 }
 
 export interface BlueprintQualityScore {

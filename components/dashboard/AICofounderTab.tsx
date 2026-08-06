@@ -5,7 +5,7 @@ import { CoFounderMessage } from "@/lib/types/cofounder";
 import {
   Bot, Send, User, Sparkles, Copy, Check, Award, AlertTriangle,
   CheckCircle2, HelpCircle, Lightbulb, RefreshCw, Cpu, Database,
-  Layers, ShieldAlert, ChevronDown, ChevronUp
+  ChevronDown, ChevronUp
 } from "lucide-react";
 
 interface MentorReviewData {

@@ -8,11 +8,12 @@ import QualityScoreBadge from "@/components/blueprint/QualityScoreBadge";
 import MermaidDiagram from "@/components/blueprint/MermaidDiagram";
 import BlueprintCard from "@/components/blueprint/BlueprintCard";
 import { generateStarterKitBundle, downloadFile } from "@/lib/pdf/exporter";
+import { auditCrossModuleConsistency, ConsistencyReport } from "@/lib/modules/consistency-engine";
 
 import {
   Lightbulb, ArrowRight, Download, FileCode2,
   Layers, Network, Calendar, CheckCircle2,
-  GitCompare, Plus, Minus, Check,
+  GitCompare, Plus, Minus, Check, ShieldCheck, AlertTriangle, Cpu
 } from "lucide-react";
 
 export default function BlueprintWorkspacePage() {
@@ -25,13 +26,29 @@ export default function BlueprintWorkspacePage() {
   const [activeTab, setActiveTab] = useState<"overview" | "architecture" | "roadmap" | "export">("overview");
   const [showVersionDiff, setShowVersionDiff] = useState(false);
   const [converting, setConverting] = useState(false);
+  const [consistencyReport, setConsistencyReport] = useState<ConsistencyReport | null>(null);
 
   useEffect(() => {
     if (!blueprintId) return;
     fetch(`/api/blueprint/${blueprintId}/section`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.success && data.blueprint) setBlueprint(data.blueprint);
+        if (data.success && data.blueprint) {
+          setBlueprint(data.blueprint);
+          const bp = data.blueprint;
+          const tech = bp.sections.find((s: any) => s.category === "tech")?.content || {};
+          const features = bp.sections.find((s: any) => s.category === "features")?.content || {};
+          const db = bp.sections.find((s: any) => s.category === "database")?.content || {};
+
+          const report = auditCrossModuleConsistency(
+            tech.techStack || bp.contextPackage?.techStack || { frontend: "Next.js 14", backend: "Next.js API", database: "Firestore", ai: "Gemini" },
+            features.mvpFeatures || bp.contextPackage?.coreFeatures || [],
+            db.collections || [],
+            bp.mermaidDiagram || "",
+            bp.idea || ""
+          );
+          setConsistencyReport(report);
+        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -58,79 +75,74 @@ export default function BlueprintWorkspacePage() {
 
   const handleDownloadStarterKit = () => {
     if (!blueprint) return;
-    const kitText = generateStarterKitBundle(blueprint);
-    downloadFile(`${blueprint.name.toLowerCase().replace(/\s+/g, "-")}-starter-kit.md`, kitText, "text/markdown");
-  };
-
-  const handleDownloadJSON = () => {
-    if (!blueprint) return;
-    downloadFile(`${blueprint.name.toLowerCase().replace(/\s+/g, "-")}-blueprint.json`, JSON.stringify(blueprint, null, 2), "application/json");
+    const bundleText = generateStarterKitBundle(blueprint);
+    downloadFile(`${blueprint.name.toLowerCase().replace(/\s+/g, "-")}-starterkit.md`, bundleText, "text/markdown");
   };
 
   if (loading) {
     return (
       <div className="p-6 md:p-8 space-y-6 max-w-6xl mx-auto w-full">
-        <div className="skeleton h-10 w-80 rounded-xl" />
-        <div className="skeleton h-6 w-full max-w-xl rounded-xl" />
-        <div className="skeleton h-40 rounded-2xl" />
-        <div className="skeleton h-64 rounded-2xl" />
+        <div className="skeleton h-10 w-72 rounded-xl" />
+        <div className="skeleton h-6 w-96 rounded-xl" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="skeleton h-52 rounded-2xl" />
+          <div className="skeleton h-52 md:col-span-2 rounded-2xl" />
+        </div>
       </div>
     );
   }
 
   if (!blueprint) {
     return (
-      <div className="p-12 text-center text-sm anim-fade" style={{ color: "var(--text-muted)" }}>
-        Blueprint document not found or expired.
+      <div className="p-12 text-center space-y-4 anim-fade">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <Lightbulb className="w-7 h-7 text-muted" />
+        </div>
+        <div className="text-sm text-muted">Blueprint record not found.</div>
+        <Link href="/blueprint/new" className="btn btn-primary">
+          + Create New Blueprint
+        </Link>
       </div>
     );
   }
 
-  const roadmapData = blueprint.sections.find((s) => s.category === "risks")?.content?.developmentPhases || [
-    { phase: "Phase 1", title: "Idea Blueprint & System Architecture", effort: "4 hrs" },
-    { phase: "Phase 2", title: "Core MVP UI & Backend Endpoints", effort: "8 hrs" },
-    { phase: "Phase 3", title: "Testing & Launch Readiness Audit", effort: "4 hrs" },
-  ];
-
-  const TABS = [
-    { id: "overview", label: "Overview", icon: Layers },
-    { id: "architecture", label: "Architecture", icon: Network },
-    { id: "roadmap", label: "Roadmap", icon: Calendar },
-    { id: "export", label: "Export", icon: FileCode2 },
-  ];
+  const foundation = blueprint.sections.find((s) => s.category === "foundation")?.content || {};
+  const market = blueprint.sections.find((s) => s.category === "market")?.content || {};
+  const features = blueprint.sections.find((s) => s.category === "features")?.content || {};
+  const tech = blueprint.sections.find((s) => s.category === "tech")?.content || {};
+  const db = blueprint.sections.find((s) => s.category === "database")?.content || {};
+  const risks = blueprint.sections.find((s) => s.category === "risks")?.content || {};
 
   return (
-    <div className="p-5 md:p-7 space-y-6 max-w-6xl mx-auto w-full anim-fade">
+    <div className="p-5 md:p-7 space-y-6 max-w-6xl mx-auto w-full anim-fade font-sans">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-5 border-b pb-6" style={{ borderColor: "var(--border)" }}>
-        <div className="space-y-2 flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(217,119,6,0.12)", border: "1px solid rgba(217,119,6,0.2)" }}>
-              <Lightbulb className="w-4 h-4" style={{ color: "var(--accent)" }} />
-            </div>
-            <h1 className="text-xl font-semibold tracking-tight truncate" style={{ color: "var(--text)" }}>{blueprint.name}</h1>
-            <span className="badge badge-amber font-mono text-[10px] uppercase flex-shrink-0">
-              AI Blueprint
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 border-b pb-5" style={{ borderColor: "var(--border)" }}>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>
+              {blueprint.name}
+            </h1>
+            <span className="badge badge-amber font-mono text-[10px] uppercase">
+              Blueprint Workspace
+            </span>
+            <span className="badge badge-muted text-[10px] font-mono uppercase">
+              Deterministic + AI Verified
             </span>
           </div>
-          <p className="text-sm max-w-2xl leading-relaxed" style={{ color: "var(--text-muted)" }}>{blueprint.idea}</p>
+
+          <p className="text-xs leading-relaxed max-w-2xl" style={{ color: "var(--text-muted)" }}>
+            {blueprint.idea}
+          </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap flex-shrink-0">
-          <button
-            onClick={() => setShowVersionDiff(!showVersionDiff)}
-            className="btn btn-secondary btn-sm"
-          >
-            <GitCompare className="w-3.5 h-3.5" style={{ color: "var(--accent)" }} />
-            {showVersionDiff ? "Hide Diff" : "Compare Versions"}
-          </button>
-
+        {/* Action CTAs */}
+        <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
           <button
             onClick={handleDownloadStarterKit}
             className="btn btn-secondary btn-sm"
           >
-            <Download className="w-3.5 h-3.5" style={{ color: "var(--success)" }} />
-            Starter Kit
+            <Download className="w-3.5 h-3.5" style={{ color: "var(--accent)" }} />
+            Download Kit (.md)
           </button>
 
           <button
@@ -139,10 +151,13 @@ export default function BlueprintWorkspacePage() {
             className="btn btn-primary btn-sm"
           >
             {converting ? (
-              <span>Binding Context...</span>
+              <>
+                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full anim-spin" />
+                Launching Workspace...
+              </>
             ) : (
               <>
-                Accept &amp; Launch Audit
+                <span>Accept &amp; Launch Audit</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </>
             )}
@@ -150,191 +165,173 @@ export default function BlueprintWorkspacePage() {
         </div>
       </div>
 
-      {/* Version Diff */}
-      {showVersionDiff && (
-        <div className="card p-5 space-y-4 anim-fade" style={{ borderColor: "rgba(217,119,6,0.3)" }}>
-          <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--border)" }}>
-            <div className="flex items-center gap-2 font-semibold text-sm" style={{ color: "var(--accent)" }}>
-              <GitCompare className="w-4 h-4" />
-              Blueprint Iteration Diff (v1.0 → v2.0)
+      {/* Cross-Module Consistency Report Banner */}
+      {consistencyReport && (
+        <div className="card p-4 space-y-3" style={{ background: "var(--bg)", borderColor: "var(--border)" }}>
+          <div className="flex items-center justify-between border-b pb-2" style={{ borderColor: "var(--border)" }}>
+            <div className="flex items-center gap-2 font-mono text-xs font-semibold" style={{ color: "var(--accent)" }}>
+              <ShieldCheck className="w-4 h-4 text-green-500" />
+              Cross-Module Consistency Audit ({consistencyReport.overallConsistencyScore}% Consistent)
             </div>
-            <span className="badge badge-green font-mono text-[10px] uppercase">
-              Iterative Optimization
+            <span className="badge badge-muted text-[10px] font-mono">
+              [Deterministic Validation]
             </span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
-            <div className="card p-4 space-y-2">
-              <div className="font-semibold text-[11px] uppercase tracking-wider pb-2 border-b" style={{ color: "var(--text-muted)", borderColor: "var(--border)" }}>
-                v1.0 — Initial Draft
-              </div>
-              <div className="space-y-1.5" style={{ color: "var(--text-muted)" }}>
-                <div className="flex items-center gap-1.5"><Minus className="w-3 h-3 text-red-400" /> Initial problem statement draft</div>
-                <div className="flex items-center gap-1.5"><Minus className="w-3 h-3 text-red-400" /> Generic 3-layer architecture</div>
-                <div className="flex items-center gap-1.5"><Minus className="w-3 h-3 text-red-400" /> Monolithic database schema</div>
-              </div>
+
+          {consistencyReport.hasConflicts ? (
+            <div className="space-y-2">
+              {consistencyReport.conflicts.map((conf) => (
+                <div key={conf.id} className="card p-3 space-y-1 text-xs" style={{ background: "var(--surface)", borderColor: "rgba(217,119,6,0.2)" }}>
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-amber-500 flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      {conf.title}
+                    </span>
+                    <span className="badge badge-amber text-[9px] font-mono">{conf.confidenceScore}% conf</span>
+                  </div>
+                  <p style={{ color: "var(--text-muted)" }}>{conf.description}</p>
+                  <div className="text-[11px] font-mono pt-1 text-green-500">
+                    Resolution: {conf.suggestedResolution}
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="card p-4 space-y-2 border-green-500/20">
-              <div className="font-semibold text-[11px] uppercase tracking-wider pb-2 border-b" style={{ color: "var(--success)", borderColor: "var(--border)" }}>
-                v2.0 — Refined OS Specification
-              </div>
-              <div className="space-y-1.5" style={{ color: "var(--text)" }}>
-                <div className="flex items-center gap-1.5 text-green-500"><Plus className="w-3 h-3" /> Bounded Context Memory + Firestore Rules</div>
-                <div className="flex items-center gap-1.5 text-green-500"><Plus className="w-3 h-3" /> Auto-Generated Mermaid Architecture</div>
-                <div className="flex items-center gap-1.5 text-green-500"><Plus className="w-3 h-3" /> One-Click Starter Kit (PRD, TRD, Schema)</div>
-              </div>
-            </div>
-          </div>
+          ) : (
+            <p className="text-xs text-green-500 font-mono">
+              ✓ Zero architectural contradictions detected across Tech Stack, Features, Database Collections, and System Architecture Diagram.
+            </p>
+          )}
         </div>
       )}
 
-      {/* Quality Score */}
+      {/* Quality Score Radial Badge */}
       <QualityScoreBadge score={blueprint.qualityScore} />
 
-      {/* Tabs */}
+      {/* Tab Navigation */}
       <div className="tabs">
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id as any;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`tab-btn ${isActive ? "active" : ""}`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              {tab.label}
-            </button>
-          );
-        })}
+        {[
+          { id: "overview" as const, label: "Blueprint Modules", icon: Layers },
+          { id: "architecture" as const, label: "System Diagram", icon: Network },
+          { id: "roadmap" as const, label: "Roadmap & Risks", icon: Calendar },
+          { id: "export" as const, label: "Starter Kit Export", icon: FileCode2 },
+        ].map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={`tab-btn ${activeTab === id ? "active" : ""}`}
+          >
+            <Icon className="w-3.5 h-3.5" />
+            {label}
+          </button>
+        ))}
       </div>
 
-      {/* TAB: OVERVIEW */}
+      {/* TAB: MODULES OVERVIEW */}
       {activeTab === "overview" && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-              Blueprint Sections
-              <span className="ml-2 badge badge-muted font-mono">{blueprint.sections.length}</span>
-            </h3>
-            <span className="text-xs" style={{ color: "var(--text-muted)" }}>Click any section to expand and edit</span>
-          </div>
-          <div className="space-y-3">
-            {blueprint.sections.map((sec) => (
-              <BlueprintCard
-                key={sec.id}
-                section={sec}
-                blueprintId={blueprint.id}
-                onUpdateSection={handleUpdateSection}
-              />
-            ))}
-          </div>
+          {blueprint.sections.map((section) => (
+            <BlueprintCard
+              key={section.id}
+              blueprintId={blueprint.id}
+              section={section}
+              onUpdateSection={handleUpdateSection}
+            />
+          ))}
         </div>
       )}
 
-      {/* TAB: ARCHITECTURE */}
+      {/* TAB: SYSTEM ARCHITECTURE DIAGRAM */}
       {activeTab === "architecture" && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Network className="w-4 h-4" style={{ color: "var(--accent)" }} />
-            <h3 className="text-sm font-semibold" style={{ color: "var(--text)" }}>System Architecture Diagram</h3>
+        <div className="card p-6 space-y-4">
+          <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--border)" }}>
+            <div className="flex items-center gap-2">
+              <Network className="w-4 h-4" style={{ color: "var(--accent)" }} />
+              <h3 className="text-sm font-semibold" style={{ color: "var(--text)" }}>System Architecture Blueprint</h3>
+            </div>
+            <span className="badge badge-amber text-[10px] font-mono">
+              [Domain-Aware Mermaid]
+            </span>
           </div>
-          <div className="card overflow-hidden">
-            <MermaidDiagram chart={blueprint.mermaidDiagram} />
+
+          <MermaidDiagram chart={blueprint.mermaidDiagram} />
+
+          <div className="card p-4 space-y-2 text-xs font-mono" style={{ background: "var(--bg)" }}>
+            <div className="font-semibold text-amber-500">Tech Stack Architecture Specifications:</div>
+            <ul className="space-y-1 text-muted">
+              <li>• Frontend: {tech.techStack?.frontend || "Next.js 14 (App Router), TypeScript, Tailwind CSS"}</li>
+              <li>• Backend API: {tech.techStack?.backend || "Next.js Server API Routes, Node.js"}</li>
+              <li>• Database: {tech.techStack?.database || "Firebase Firestore"}</li>
+              <li>• AI Inference Engine: {tech.techStack?.ai || "Gemini 1.5 Pro / OpenAI GPT-4o-mini"}</li>
+            </ul>
           </div>
         </div>
       )}
 
-      {/* TAB: ROADMAP */}
+      {/* TAB: ROADMAP & RISKS */}
       {activeTab === "roadmap" && (
-        <div className="card p-6 space-y-5">
-          <div className="flex items-center justify-between border-b pb-4" style={{ borderColor: "var(--border)" }}>
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" style={{ color: "var(--accent)" }} />
-              <h3 className="text-sm font-semibold" style={{ color: "var(--text)" }}>Phased Development Timeline</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="card p-5 space-y-4">
+            <div className="flex items-center gap-2 font-semibold text-sm border-b pb-2" style={{ borderColor: "var(--border)", color: "var(--text)" }}>
+              <Calendar className="w-4 h-4 text-amber-500" />
+              Development Phases
             </div>
-            <span className="text-xs" style={{ color: "var(--text-muted)" }}>Estimated hackathon build milestones</span>
+            <div className="space-y-3">
+              {(risks.developmentPhases || [
+                { phase: "Phase 1", title: "Idea Blueprint & Architecture", effort: "4 hrs" },
+                { phase: "Phase 2", title: "MVP Frontend & API Integration", effort: "8 hrs" },
+                { phase: "Phase 3", title: "Launch Audit & Production Verification", effort: "4 hrs" },
+              ]).map((p: any, idx: number) => (
+                <div key={idx} className="card p-3 space-y-1 text-xs" style={{ background: "var(--bg)" }}>
+                  <div className="flex items-center justify-between font-mono font-semibold" style={{ color: "var(--accent)" }}>
+                    <span>{p.phase}: {p.title}</span>
+                    <span className="badge badge-muted text-[10px]">{p.effort}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="space-y-3">
-            {roadmapData.map((item: any, idx: number) => (
-              <div key={idx} className="card p-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <span className="badge badge-amber font-mono font-bold">
-                    {item.phase || `Phase 0${idx + 1}`}
-                  </span>
-                  <span className="text-sm font-medium" style={{ color: "var(--text)" }}>{item.title}</span>
+
+          <div className="card p-5 space-y-4">
+            <div className="flex items-center gap-2 font-semibold text-sm border-b pb-2" style={{ borderColor: "var(--border)", color: "var(--text)" }}>
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
+              Risk Analysis &amp; Mitigation
+            </div>
+            <div className="space-y-3">
+              {(tech.riskAnalysis || [
+                { risk: "External API rate limiting", mitigation: "Caching and read-only auth tokens" },
+                { risk: "LLM response latency", mitigation: "Structured fallback schemas with timeout bounds" },
+              ]).map((r: any, idx: number) => (
+                <div key={idx} className="card p-3 space-y-1 text-xs" style={{ background: "var(--bg)" }}>
+                  <div className="font-semibold text-red-500">Risk: {r.risk}</div>
+                  <div className="text-muted font-mono">Mitigation: {r.mitigation}</div>
                 </div>
-                <div className="text-xs font-mono px-2.5 py-1 rounded-md" style={{ background: "var(--surface)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
-                  {item.effort}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       )}
 
       {/* TAB: EXPORT */}
       {activeTab === "export" && (
-        <div className="space-y-5">
-          <div>
-            <h3 className="text-sm font-semibold mb-1" style={{ color: "var(--text)" }}>One-Click Starter Kit</h3>
-            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-              Complete developer and investor documentation for <span style={{ color: "var(--text-secondary)" }}>{blueprint.name}</span>.
-            </p>
+        <div className="card p-6 space-y-4">
+          <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--border)" }}>
+            <div className="flex items-center gap-2">
+              <FileCode2 className="w-4 h-4 text-green-500" />
+              <h3 className="text-sm font-semibold" style={{ color: "var(--text)" }}>One-Click Starter Kit Package</h3>
+            </div>
+            <button onClick={handleDownloadStarterKit} className="btn btn-primary btn-sm">
+              <Download className="w-3.5 h-3.5" />
+              Download Complete Kit (.md)
+            </button>
           </div>
 
-          <div className="card p-5 space-y-3">
-            <div className="text-[11px] font-mono font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--accent)" }}>Package Contents</div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
-              {["README.md", "PRD.md", "TRD.md", "schema.json", "api-spec.json", ".env.example"].map((file) => (
-                <div key={file} className="card p-3 flex items-center gap-2 text-xs font-mono" style={{ color: "var(--text-secondary)" }}>
-                  <Check className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-                  <span>{file}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
+            Generates structured project starter kit containing <code className="text-amber-500 font-mono">README.md</code>, <code className="text-amber-500 font-mono">PRD.md</code>, <code className="text-amber-500 font-mono">TRD.md</code>, <code className="text-amber-500 font-mono">LICENSE</code>, <code className="text-amber-500 font-mono">.env.example</code>, <code className="text-amber-500 font-mono">api-spec.json</code>, and <code className="text-amber-500 font-mono">schema.json</code>.
+          </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="card p-5 space-y-4">
-              <div className="flex items-center gap-2">
-                <FileCode2 className="w-5 h-5" style={{ color: "var(--accent)" }} />
-                <div>
-                  <div className="text-sm font-semibold" style={{ color: "var(--text)" }}>Markdown Starter Kit</div>
-                  <div className="text-xs" style={{ color: "var(--text-muted)" }}>README, PRD, TRD, Schema, API Specs</div>
-                </div>
-              </div>
-              <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                Formatted documentation with Mermaid diagrams, ready for GitHub and Cursor integration.
-              </p>
-              <button
-                onClick={handleDownloadStarterKit}
-                className="btn btn-primary w-full"
-              >
-                <Download className="w-3.5 h-3.5" />
-                Download Starter Kit (.md)
-              </button>
-            </div>
-
-            <div className="card p-5 space-y-4">
-              <div className="flex items-center gap-2">
-                <FileCode2 className="w-5 h-5 text-green-500" />
-                <div>
-                  <div className="text-sm font-semibold" style={{ color: "var(--text)" }}>Structured JSON Blueprint</div>
-                  <div className="text-xs" style={{ color: "var(--text-muted)" }}>Machine-readable context memory</div>
-                </div>
-              </div>
-              <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                Raw structured JSON for integration into Cursor, Devin, or custom AI tooling pipelines.
-              </p>
-              <button
-                onClick={handleDownloadJSON}
-                className="btn btn-secondary w-full"
-              >
-                <Download className="w-3.5 h-3.5 text-green-500" />
-                Download Blueprint (.json)
-              </button>
-            </div>
-          </div>
+          <pre className="code-block text-[11px] max-h-96 overflow-y-auto whitespace-pre-wrap font-mono p-4 rounded-xl">
+            {generateStarterKitBundle(blueprint)}
+          </pre>
         </div>
       )}
     </div>

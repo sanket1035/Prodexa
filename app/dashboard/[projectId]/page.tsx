@@ -15,7 +15,7 @@ import { generateMarkdownReport, downloadFile } from "@/lib/pdf/exporter";
 import {
   RefreshCw, FileCode2, TrendingUp,
   Globe, GitBranch, Activity, Lightbulb, Bot,
-  CheckCircle2, PlusCircle, Sparkles, X, ChevronRight,
+  CheckCircle2, PlusCircle, Sparkles, X,
 } from "lucide-react";
 
 export default function DashboardPage() {

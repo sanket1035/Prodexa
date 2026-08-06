@@ -7,8 +7,8 @@ import { useSidebar } from "@/lib/sidebar/SidebarContext";
 import { useTheme } from "@/lib/theme/ThemeContext";
 import { useAuth } from "@/lib/auth/AuthContext";
 import {
-  Menu, ChevronRight, PlusCircle, Sparkles, Sun, Moon, Monitor,
-  Settings, LogOut, User, Check, ChevronDown, Layers
+  Menu, ChevronRight, Sparkles, Sun, Moon, Monitor,
+  Settings, LogOut, Check, ChevronDown
 } from "lucide-react";
 
 function getBreadcrumbs(pathname: string): { label: string; href: string }[] {

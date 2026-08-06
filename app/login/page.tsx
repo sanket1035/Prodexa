@@ -194,7 +194,7 @@ function LoginForm() {
                   Check your Spam / Junk folder
                 </div>
                 <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                  Verification emails may land in Spam. Mark it "Not Spam" and click the link to verify your account.
+                  Verification emails may land in Spam. Mark it &quot;Not Spam&quot; and click the link to verify your account.
                 </p>
               </div>
 

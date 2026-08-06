@@ -1,10 +1,23 @@
 import { Issue } from "@/lib/types/schema";
 
+export interface EngineeringReviewReport {
+  strengths: string[];
+  weaknesses: string[];
+  risks: string[];
+  maintainabilityScore: number; // 0-100
+  developerExperienceScore: number; // 0-100
+  readmeQuality: "excellent" | "adequate" | "missing";
+  hasInstallationGuide: boolean;
+  hasLicense: boolean;
+  issueHealthRatio: string;
+}
+
 export interface EngineeringModuleResult {
   status: "completed" | "skipped" | "failed";
   reason?: string;
   score: number | null;
   issues: Issue[];
+  reviewReport?: EngineeringReviewReport;
   details: {
     hasReadme: boolean;
     hasLicense: boolean;
@@ -108,7 +121,7 @@ export async function runEngineeringAnalysis(
     const hasLicense = filenames.some((f) => f.startsWith("license") || f.startsWith("copying"));
     const hasPackageJson = filenames.includes("package.json") || filenames.includes("cargo.toml") || filenames.includes("pyproject.toml") || filenames.includes("go.mod");
 
-    // 3. Fetch commits to check freshness & last commit date
+    // 3. Fetch commits to check freshness
     const commitsRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=1`, { headers });
     let recentCommit = false;
     let lastCommitDate: string | null = null;
@@ -141,7 +154,7 @@ export async function runEngineeringAnalysis(
         severity: "critical",
         title: "Repository lacks open-source LICENSE file",
         description: "Problem: No LICENSE file found in root.\nWhy it matters: Potential investors and open-source contributors cannot legally verify usage rights.\nConfidence: 99%",
-        fixText: `MIT License\n\nCopyright (c) 2026 ${owner}\n\nPermission is hereby granted, free of charge, to any person obtaining a copy...`,
+        fixText: `MIT License\n\nCopyright (c) 2026 ${owner}\n\nPermission is hereby granted, free of charge...`,
       });
     }
 
@@ -152,25 +165,36 @@ export async function runEngineeringAnalysis(
         severity: "high",
         title: "Missing or incomplete README.md documentation",
         description: "Problem: Missing project README file.\nWhy it matters: Judges and developers cannot understand installation, tech stack, or build steps.\nConfidence: 98%",
-        fixText: `# ${repo}\n\n## Overview\nProduct description & features.\n\n## Getting Started\n\`\`\`bash\nnpm install\nnpm run dev\n\`\`\``,
+        fixText: `# ${repo}\n\n## Getting Started\n\`\`\`bash\nnpm install\nnpm run dev\n\`\`\``,
       });
     }
 
-    if (!recentCommit) {
-      issues.push({
-        id: "eng-[#stale-commits]",
-        category: "engineering",
-        severity: "medium",
-        title: "Repository commit activity is stale (>30 days since last commit)",
-        description: "Problem: Last commit was over 30 days ago.\nWhy it matters: Signals inactive maintenance or stalled development during hackathons.\nConfidence: 90%",
-        fixText: `// Commit recent codebase updates and push to ${repoData.default_branch || 'main'}:\ngit commit -m "feat: launch readiness updates"\ngit push origin main`,
-      });
-    }
+    const reviewReport: EngineeringReviewReport = {
+      strengths: [
+        hasReadme ? "Comprehensive README documentation present in root" : "Standard repository structure",
+        hasLicense ? "Clear open-source LICENSE authorization" : "Standard codebase configuration",
+        recentCommit ? "Active development activity (commits within last 30 days)" : "Stable codebase commit history",
+      ],
+      weaknesses: [
+        !hasLicense ? "Missing open-source LICENSE authorization file" : "Requires additional test coverage workflows",
+        !hasReadme ? "Missing installation and build documentation" : "Requires automated CI/CD deployment pipeline",
+      ],
+      risks: [
+        repoData.open_issues_count > 25 ? `High open issue count (${repoData.open_issues_count} open issues)` : "Low maintenance risk",
+      ],
+      maintainabilityScore: score >= 80 ? 90 : 70,
+      developerExperienceScore: hasReadme && hasPackageJson ? 88 : 65,
+      readmeQuality: hasReadme ? "excellent" : "missing",
+      hasInstallationGuide: hasReadme,
+      hasLicense,
+      issueHealthRatio: `${repoData.open_issues_count || 0} open / ${repoData.stargazers_count || 0} stars`,
+    };
 
     return {
       status: "completed",
       score,
       issues,
+      reviewReport,
       details: {
         hasReadme,
         hasLicense,

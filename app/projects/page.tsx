@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { Project } from "@/lib/types/schema";
 import {
   PlusCircle, ExternalLink, ArrowRight, FolderGit2, Sparkles,
-  Clock, TrendingUp, ShieldCheck, Activity, Lightbulb, Zap, BarChart3
+  Clock, Activity, Lightbulb, Zap, BarChart3
 } from "lucide-react";
 
 export default function ProjectsPage() {
