@@ -6,8 +6,7 @@ const geminiApiKey = process.env.GEMINI_API_KEY;
 export const openai = openAiApiKey ? new OpenAI({ apiKey: openAiApiKey }) : null;
 
 /**
- * Primary AI Generator: Try OpenAI first (reliable), fall back to Gemini, then deterministic fallback.
- * Gemini key format must start with 'AIza' — other formats (AQ.*) are OAuth tokens, not API keys.
+ * Primary AI Generator: Accepts any valid Gemini key format (AIza... or AQ...), falls back to OpenAI, then deterministic fallback.
  */
 export async function generateModuleInsight(
   systemPrompt: string,
@@ -15,7 +14,57 @@ export async function generateModuleInsight(
   fallbackJSON: any
 ): Promise<any> {
 
-  // 1. Try OpenAI first — most reliable with JSON mode
+  // 1. Try Gemini API first if GEMINI_API_KEY exists
+  if (geminiApiKey && geminiApiKey.trim() !== "") {
+    try {
+      console.log("[AI] Calling Gemini 1.5 Flash API...");
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      // If token starts with AQ. (OAuth / Bearer token), pass Authorization header too
+      if (geminiApiKey.startsWith("AQ.") || geminiApiKey.startsWith("ya29.")) {
+        headers["Authorization"] = `Bearer ${geminiApiKey}`;
+      }
+
+      const geminiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: `${systemPrompt}\n\n${userContent}\n\nOutput strictly valid JSON.` }],
+              },
+            ],
+            generationConfig: {
+              responseMimeType: "application/json",
+              temperature: 0.7,
+            },
+          }),
+        }
+      );
+
+      if (geminiRes.ok) {
+        const geminiData = await geminiRes.json();
+        const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawText) {
+          console.log("[AI] Gemini 1.5 Flash response received successfully.");
+          return JSON.parse(rawText);
+        }
+      } else {
+        const errText = await geminiRes.text();
+        console.warn("[AI] Gemini API HTTP error:", geminiRes.status, errText);
+      }
+    } catch (geminiErr) {
+      console.warn("[AI] Gemini API call failed:", geminiErr);
+    }
+  }
+
+  // 2. Try OpenAI fallback if Gemini fails or key is missing
   if (openai) {
     try {
       console.log("[AI] Calling OpenAI GPT-4o-mini...");
@@ -40,49 +89,7 @@ export async function generateModuleInsight(
     }
   }
 
-  // 2. Try Gemini API if OpenAI fails and key looks like a valid API key (AIza...)
-  if (geminiApiKey && geminiApiKey.startsWith("AIza")) {
-    try {
-      console.log("[AI] Calling Gemini 1.5 Flash...");
-      const geminiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: "user",
-                parts: [{ text: `${systemPrompt}\n\n${userContent}\n\nOutput strictly valid JSON.` }],
-              },
-            ],
-            generationConfig: {
-              responseMimeType: "application/json",
-              temperature: 0.7,
-            },
-          }),
-        }
-      );
-
-      if (geminiRes.ok) {
-        const geminiData = await geminiRes.json();
-        const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (rawText) {
-          console.log("[AI] Gemini response received.");
-          return JSON.parse(rawText);
-        }
-      } else {
-        const errText = await geminiRes.text();
-        console.warn("[AI] Gemini API HTTP error:", geminiRes.status, errText);
-      }
-    } catch (geminiErr) {
-      console.warn("[AI] Gemini API call failed:", geminiErr);
-    }
-  } else if (geminiApiKey) {
-    console.warn("[AI] GEMINI_API_KEY appears invalid (must start with AIza). Skipping Gemini.");
-  }
-
   // 3. Final fallback to deterministic JSON schema
-  console.warn("[AI] All AI providers failed or unavailable. Using deterministic fallback.");
+  console.warn("[AI] All AI providers failed or unavailable. Using question-aware deterministic fallback.");
   return fallbackJSON;
 }
