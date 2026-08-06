@@ -33,11 +33,13 @@ export async function POST(req: NextRequest) {
   } catch (error: unknown) {
     const err = error as { name?: string; errors?: unknown; message?: string };
     if (err?.name === "ZodError") {
+      console.error("[POST /api/projects] Zod Validation Error:", JSON.stringify(err.errors));
       return NextResponse.json(
-        { success: false, errors: err.errors },
+        { success: false, errors: err.errors, message: "Invalid project parameters" },
         { status: 400 }
       );
     }
+    console.error("[POST /api/projects] Server Error:", err.message);
     return NextResponse.json(
       { success: false, message: err.message || "Failed to create project" },
       { status: 500 }
