@@ -260,8 +260,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInAsDemoUser = () => {
     const demoUser: AuthUser = {
       uid: "demo-user-123",
-      email: "founder@prodexa.ai",
-      displayName: "Alex Rivera (Demo)",
+      email: "sanket@prodexa.ai",
+      displayName: "Sanket Chaudhari",
       photoURL: null,
       emailVerified: true,
     };

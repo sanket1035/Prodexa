@@ -31,11 +31,11 @@ export default function NewBlueprintPage() {
 
   const [currentStep, setCurrentStep] = useState(1);
 
-  // Step 1: Idea Fields (Pre-populated with default sensible demo values)
-  const [name, setName] = useState("Prodexa");
-  const [idea, setIdea] = useState("Autonomous AI Product Operating System for early-stage builders");
-  const [problem, setProblem] = useState("Early-stage builders launch without structured expert review on technical feasibility, UX, and open-source licenses.");
-  const [targetUsers, setTargetUsers] = useState("Early-stage software founders, hackathon teams, incubator directors");
+  // Step 1: Idea Fields (Clean empty inputs for custom user entry)
+  const [name, setName] = useState("");
+  const [idea, setIdea] = useState("");
+  const [problem, setProblem] = useState("");
+  const [targetUsers, setTargetUsers] = useState("");
 
   // Step 2: Business Fields
   const [industry, setIndustry] = useState("");
@@ -112,12 +112,21 @@ export default function NewBlueprintPage() {
 
   const indicators = computeLiveIndicators();
 
+  const fillSampleIdea = () => {
+    setName("Prodexa");
+    setIdea("Autonomous AI Product Operating System for early-stage builders");
+    setProblem("Early-stage builders launch without structured expert review on technical feasibility, UX, and open-source licenses.");
+    setTargetUsers("Early-stage software founders, hackathon teams, incubator directors");
+    setError(null);
+  };
+
   const handleNextStep = () => {
     setError(null);
     if (currentStep === 1) {
-      if (!name.trim()) setName("Prodexa");
-      if (!idea.trim()) setIdea("Autonomous AI Product Operating System for early-stage builders");
-      if (!problem.trim()) setProblem("Early-stage builders launch without structured expert review on technical feasibility, UX, and open-source licenses.");
+      if (!name.trim() || !idea.trim() || !problem.trim()) {
+        setError("Please enter your Product Name, What you are building, and Problem Statement.");
+        return;
+      }
     }
     if (currentStep < 4) setCurrentStep(currentStep + 1);
   };
@@ -277,11 +286,21 @@ export default function NewBlueprintPage() {
         {/* STEP 1: IDEA */}
         {currentStep === 1 && (
           <div className="space-y-6 anim-fade">
-            <div className="border-b pb-4" style={{ borderColor: "var(--border)" }}>
-              <h1 className="text-xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>Step 1 — Product Concept &amp; Problem</h1>
-              <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
-                Define what you are building and who experiences this problem every day.
-              </p>
+            <div className="border-b pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style={{ borderColor: "var(--border)" }}>
+              <div>
+                <h1 className="text-xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>Step 1 — Product Concept &amp; Problem</h1>
+                <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+                  Define what you are building and who experiences this problem every day.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={fillSampleIdea}
+                className="btn btn-secondary btn-sm text-amber-500 border-amber-500/30 flex-shrink-0"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>Fill Sample Idea</span>
+              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
