@@ -10,6 +10,7 @@ import {
   getMentorNotes,
   saveMentorNote,
   refreshProjectContext,
+  demoProjectId,
 } from "@/lib/firebase/db";
 import { ProjectMemory } from "@/lib/types/blueprint";
 import { generateModuleInsight } from "@/lib/utils/openai";
@@ -67,20 +68,25 @@ export async function POST(req: NextRequest) {
 
     // Load Project Memory & Mentor Notes
     let memory = await getProjectMemory(projectId);
-    if (!memory) {
+    const realTech = project.contextPackage?.techStack || { frontend: "Next.js 14, TypeScript", backend: "Server API Routes", database: "PostgreSQL / Firestore" };
+    const realSummary = project.contextPackage?.oneLineSummary || `Platform for ${project.name}`;
+    const realAudience = project.contextPackage?.targetAudience || "target users & developers";
+
+    if (!memory || memory.projectId === demoProjectId && projectId !== demoProjectId) {
       memory = {
         projectId,
-        projectSummary: project.contextPackage?.oneLineSummary || project.name,
+        projectSummary: realSummary,
         currentStage: "Development",
         lastUpdatedBy: "AI",
         memoryVersion: 1,
-        compressedContext: `Target ICP: ${project.contextPackage?.targetAudience || "Early stage founders"}. Core Tech: ${JSON.stringify(project.contextPackage?.techStack || {})}`,
+        compressedContext: `${project.name} is a software product designed for ${realAudience}. Website: ${project.websiteUrl || "Not specified"}, GitHub: ${project.githubRepoUrl || "Not specified"}. Tech stack: ${JSON.stringify(realTech)}.`,
         importantDecisions: [
-          "Initialized Project Memory",
-          "Selected Gemini 1.5 Flash API as primary AI provider",
+          `Initialized Project Context Memory for ${project.name}`,
+          `Configured modern production web architecture with Next.js & TypeScript`,
+          `Set target ICP positioning for ${realAudience}`,
         ],
         sourceAttributions: [
-          { fact: "Extracted ICP and core features from AI Blueprint", source: "BLUEPRINT_ENGINE", confidenceScore: 0.98, timestamp: new Date().toISOString() },
+          { fact: `Extracted ICP and product vision for ${project.name}`, source: "BLUEPRINT_ENGINE", confidenceScore: 0.98, timestamp: new Date().toISOString() },
         ],
         updatedAt: new Date().toISOString(),
       };
@@ -105,13 +111,23 @@ export async function POST(req: NextRequest) {
       .join("\n");
 
     const compressedContextPrompt = `
-PROJECT: ${project.name} (Health: ${project.healthScore || 25}%, Readiness: ${latestRun?.overallScore ? `${latestRun.overallScore}%` : "Not validated"})
-MEMORY VERSION: v${memory.memoryVersion} (${memory.currentStage} Stage)
+TARGET PRODUCT UNDER REVIEW: '${project.name}'
+WEBSITE URL: ${project.websiteUrl || "Not specified"}
+GITHUB REPOSITORY: ${project.githubRepoUrl || "Not specified"}
+HEALTH SCORE: ${project.healthScore || 25}%
+READINESS AUDIT SCORE: ${latestRun?.overallScore ? `${latestRun.overallScore}%` : "Not validated"}
+
+PRODUCT SUMMARY: ${project.contextPackage?.oneLineSummary || project.name}
+TARGET AUDIENCE: ${project.contextPackage?.targetAudience || "Target users"}
+TECH STACK: ${JSON.stringify(project.contextPackage?.techStack || { frontend: "Next.js", backend: "API" })}
+
 COMPRESSED CONTEXT: ${memory.compressedContext}
 IMPORTANT DECISIONS: ${memory.importantDecisions.join("; ")}
 SOURCE ATTRIBUTIONS:
 ${sourcesFormatted || "None"}
 MENTOR NOTES: ${mentorNotes.map((n) => n.note).join(" | ") || "None"}
+
+CRITICAL MANDATE FOR AI: All feedback, pitch review summary, strengths, weaknesses, questions, and actionable code fixes MUST be 100% SPECIFIC to '${project.name}'. Do NOT mention Gemini 1.5 Flash API or Prodexa unless the project under review is explicitly Prodexa.
 
 RECENT CHAT HISTORY (Last ${recentChats.length} msgs):
 ${recentChats.map((c) => `${c.role.toUpperCase()}: ${c.text}`).join("\n")}

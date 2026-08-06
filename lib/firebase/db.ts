@@ -12,10 +12,10 @@ const mockChatDocs: Map<string, ChatMessageDoc[]> = new Map();
 const mockNotes: Map<string, MentorNote[]> = new Map();
 
 // Seed initial demo data for instant dashboard preview
-const demoUserId = "demo-user-123";
-const demoProjectId = "proj-prodexa-demo";
-const demoRunId = "run-prodexa-1";
-const demoBlueprintId = "bp-prodexa-demo";
+export const demoUserId = "demo-user-123";
+export const demoProjectId = "proj-prodexa-demo";
+export const demoRunId = "run-prodexa-1";
+export const demoBlueprintId = "bp-prodexa-demo";
 
 const demoBlueprint: Blueprint = {
   id: demoBlueprintId,
@@ -186,9 +186,9 @@ const demoMemory: ProjectMemory = {
   currentStage: "InvestorReady",
   lastUpdatedBy: "AI",
   memoryVersion: 3,
-  compressedContext: "Prodexa targets early-stage software founders. Core tech stack is Next.js 14, Firebase Firestore, Tailwind CSS, and Gemini 1.5 Flash API. Identified gaps include hero CTA contrast and MIT license additions.",
+  compressedContext: "Prodexa targets early-stage software founders. Core tech stack is Next.js 14, Firebase Firestore, Tailwind CSS, and AI LLM Engine. Identified gaps include hero CTA contrast and MIT license additions.",
   importantDecisions: [
-    "Switched primary AI engine to Gemini 1.5 Flash with OpenAI fallback",
+    "Integrated multi-provider AI Engine with fast Groq, Gemini & OpenAI fallbacks",
     "Added Investor & Judge Review pitch audit module",
     "Positioned as AI Product Operating System (Idea -> Build -> Launch)",
   ],
