@@ -181,18 +181,61 @@ Output strictly valid JSON.`;
       });
     }
 
-    // Standard Co-Founder Advisory prompt
+    // Standard Co-Founder Advisory prompt — detailed context forces question-specific answers
     const systemPrompt = `You are the AI Co-Founder & Technical Partner for '${project.name}'.
-Answer the founder's question using the compressed project context & chat history above. Never give generic boilerplate.
-Output JSON with: "replyText", "role", "actionableFix".`;
 
-    const fallbackReply = {
-      replyText: `Based on ${project.name}'s current context (${project.healthScore || 25}% health, ${latestRun?.overallScore ? `${latestRun.overallScore}% readiness` : "unvalidated"}), focus on fixing your hero CTA contrast and adding a clean LICENSE file to your repository.`,
-      role: "pm" as const,
-      actionableFix: `// Hero CTA contrast fix for ${project.name}:\n<button className="bg-[#D97B3F] text-[#0B0C0E] px-5 py-2.5 font-medium rounded-[6px] hover:bg-[#E88A4E] transition-colors">\n  Launch ${project.name}\n</button>`,
+CRITICAL: You MUST answer the SPECIFIC question asked. Do NOT give a generic response.
+The founder's question is: "${userMessage}"
+
+Use the full project context provided (blueprint, health score, readiness score, tech stack, decisions, mentor notes, and chat history) to give a SPECIFIC, ACTIONABLE answer to THIS exact question.
+
+Rules:
+- If asked about judges: list specific hackathon judge criticisms for THIS project
+- If asked about landing page: give specific UI/UX improvements for THIS project's landing page
+- If asked about critical gaps: identify the SINGLE most critical gap from the audit results
+- If asked about score: explain exactly what is dragging the score down and how to fix it
+- Never repeat a previous answer from chat history
+- Be direct, specific, and technical
+
+Output JSON: { "replyText": string (200-400 words, specific to the question), "role": "advisor"|"pm"|"engineer", "actionableFix": string (copy-pasteable code or action) }`;
+
+    // Question-aware deterministic fallback (different answer per question type)
+    const q = (userMessage || "").toLowerCase();
+    let fallbackReply: { replyText: string; role: "pm" | "advisor" | "engineer"; actionableFix: string } = {
+      replyText: `For ${project.name} (Health: ${project.healthScore || 25}%, Readiness: ${latestRun?.overallScore ?? "unvalidated"}%): ${memory.compressedContext || "Review your blueprint context for key gaps."}`,
+      role: "pm",
+      actionableFix: `// Review your blueprint and run a full audit first.`,
     };
 
-    const insight = await generateModuleInsight(systemPrompt, `Context & History:\n${compressedContextPrompt}\n\nNew User Question:\n"${userMessage}"`, fallbackReply);
+    if (q.includes("judge") || q.includes("criticize") || q.includes("hackathon")) {
+      const techStack = JSON.stringify(project.contextPackage?.techStack || {});
+      fallbackReply = {
+        replyText: `Top hackathon judge criticisms for ${project.name}:\n\n1. **No live demo URL** — judges expect a deployed link, not localhost.\n2. **Missing open-source LICENSE file** — standard MIT/Apache 2.0 required.\n3. **Landing page lacks above-the-fold value prop** — judges see 30+ projects; your hero must answer "what is this?" in 5 seconds.\n4. **Tech stack justification** — you use ${techStack}; judges will ask "why not a simpler stack?"\n5. **No documented API contracts** — judges will ask how modules communicate.\n6. **Readiness score ${latestRun?.overallScore ?? "not shown"}** means audit gaps are visible to judges who probe deeply.\n7. **No user testimonials or pilot users** — even 1-2 beta users dramatically increases credibility.`,
+        role: "advisor" as const,
+        actionableFix: `// Add to your GitHub README:\n## 🏆 Hackathon Demo\n- Live URL: https://your-app.vercel.app\n- Demo Video: https://loom.com/share/your-video\n- Test Credentials: demo@${project.name.toLowerCase().replace(/\s+/g, '')}.ai / demo123`,
+      };
+    } else if (q.includes("landing") || q.includes("hero") || q.includes("website")) {
+      fallbackReply = {
+        replyText: `Landing page improvements for ${project.name}:\n\n1. **Hero headline must answer: What is it? Who is it for? What do I get?** — Rewrite as: "${project.contextPackage?.oneLineSummary || project.name} — for ${project.contextPackage?.targetAudience || "founders"}"\n2. **Single high-contrast CTA above the fold** — use amber (#D97706) on dark background\n3. **Social proof section** — add "X projects analyzed" counter even if small\n4. **Feature grid with icons** — show your 3 core capabilities visually\n5. **Add Open Graph meta tags** — so sharing on Slack/Twitter shows a preview card\n6. **Mobile viewport meta** — verify <meta name="viewport"> is set correctly\n7. **Add a demo GIF or video** — converts 3x better than static screenshots`,
+        role: "pm" as const,
+        actionableFix: `// Hero section rewrite:\n<h1>The AI Operating System That Takes You From Idea to Launch-Ready</h1>\n<p>For ${project.contextPackage?.targetAudience || "early-stage founders"}</p>\n<button className="bg-amber-600 text-black px-6 py-3 font-semibold rounded-lg hover:bg-amber-500">\n  Generate Your Blueprint →\n</button>`,
+      };
+    } else if (q.includes("critical") || q.includes("gap") || q.includes("fix") || q.includes("launch")) {
+      const topIssue = latestRun?.issues?.[0];
+      fallbackReply = {
+        replyText: `Single most critical gap for ${project.name} before launch:\n\n${topIssue ? `**${topIssue.title}** (${topIssue.severity} severity): ${topIssue.description}\n\nFix: ${topIssue.fixText}` : `**No website URL connected yet.** Without a real deployed URL, the 6-module audit cannot analyze your actual product. Connect your landing page URL immediately — run "npm run build && vercel deploy" to get a production URL, then connect it via the Assets button.`}\n\nSecondary gaps: ${(latestRun?.issues || []).slice(1, 3).map(i => i.title).join(", ") || "Run a full audit to see all gaps."}`,
+        role: "engineer" as const,
+        actionableFix: topIssue?.fixText || `// Deploy immediately:\nnpx vercel --prod\n// Then connect URL in dashboard Assets panel`,
+      };
+    } else if (q.includes("score") || q.includes("readiness") || q.includes("improve")) {
+      fallbackReply = {
+        replyText: `Your ${project.name} Launch Readiness Score is ${latestRun?.overallScore ?? "not yet calculated"}%.\n\nScore breakdown by module:\n- Engineering Analysis: Check GitHub repo, add LICENSE, README\n- Product Understanding: Connect real website URL (not example.com)\n- UX Validation: Add viewport meta, fix missing alt tags on images\n- Performance: Reduce JS bundle, enable compression, use CDN\n- Business Review: Add pricing page, contact form, social proof\n\nTo increase score fastest: **Connect your deployed website URL** and **link your GitHub repo** — these two actions alone will unlock 4 of 6 audit modules to run against real data instead of defaults.`,
+        role: "pm" as const,
+        actionableFix: `// Quick score boost checklist:\n// 1. Connect real website URL in Assets drawer\n// 2. Connect GitHub repo URL\n// 3. Add LICENSE file to repo root\n// 4. Add <meta name="viewport"> to HTML head\n// 5. Add og:title and og:image meta tags`,
+      };
+    }
+
+    const insight = await generateModuleInsight(systemPrompt, `Project Context:\n${compressedContextPrompt}\n\nFounder Question:\n"${userMessage}"\n\nAnswer this SPECIFIC question in detail.`, fallbackReply);
 
     const replyMsg = await saveChatMessageDoc(projectId, {
       projectId,

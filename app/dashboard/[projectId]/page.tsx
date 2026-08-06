@@ -60,7 +60,7 @@ function DashboardContent() {
 
     const loadData = async () => {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3000);
+      const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout for cold Firestore start
 
       try {
         const [pRes, rRes] = await Promise.all([
@@ -72,7 +72,10 @@ function DashboardContent() {
 
         if (pRes.success) {
           setProject(pRes.project);
-          setInputWebsite(pRes.project.websiteUrl || "");
+          // Only pre-fill websiteUrl if it's a real URL (not a placeholder)
+          const rawUrl = pRes.project.websiteUrl || "";
+          const isPlaceholder = rawUrl.includes("example-landing-page.com") || rawUrl === "https://example.com";
+          setInputWebsite(isPlaceholder ? "" : rawUrl);
           setInputGithub(pRes.project.githubRepoUrl || "");
         }
 
