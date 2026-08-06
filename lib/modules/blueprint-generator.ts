@@ -1,5 +1,6 @@
-import { Blueprint, BlueprintSection, BlueprintQualityScore, ContextPackage } from "@/lib/types/blueprint";
+import { Blueprint, BlueprintSection, ContextPackage } from "@/lib/types/blueprint";
 import { generateModuleInsight } from "@/lib/utils/openai";
+import { calculateHybridQualityScore } from "@/lib/modules/quality-score-engine";
 
 export interface GenerateBlueprintInput {
   userId: string;
@@ -86,36 +87,18 @@ Target Users: ${targetUsers}
 Industry: ${industry}
 Constraints: ${input.optionalConstraints || "24-30h hackathon build scope"}`;
 
+  // Dynamic Fallback Score computation (50% Deterministic + Fallback Mode)
+  const dynamicFallbackScore = calculateHybridQualityScore({
+    name,
+    idea,
+    problem,
+    targetUsers,
+    industry,
+    isFallback: true,
+  });
+
   const fallbackJSON = {
-    qualityScore: {
-      overall: 88,
-      metrics: {
-        innovation: 88,
-        businessPotential: 86,
-        technicalFeasibility: 92,
-        scalability: 89,
-        aiNecessity: 85,
-        marketReadiness: 87,
-      },
-      metricDetails: {
-        technicalFeasibility: { value: 92, reason: `Existing mature tech stack available for ${name}`, confidence: 96 },
-        businessPotential: { value: 86, reason: `Low initial infrastructure overhead with SaaS pricing potential`, confidence: 92 },
-        innovation: { value: 88, reason: "Unique integration of Day 0 planning with pre-launch validation", confidence: 94 },
-        scalability: { value: 89, reason: "Stateless API routes with compressed context memory", confidence: 95 },
-        marketReadiness: { value: 87, reason: "One-click starter kit export ready for developer deployment", confidence: 91 },
-        aiNecessity: { value: 85, reason: "Deterministic audits paired with LLM context reasoning", confidence: 98 },
-      },
-      strengths: [
-        "Addresses a clear, painful problem for target audience",
-        "High technical feasibility using modern Next.js + Serverless stack",
-        "Scalable SaaS revenue model with low initial infrastructure overhead",
-      ],
-      weaknesses: [
-        "Initial customer acquisition requires organic community traction",
-        "Requires ongoing monitoring of LLM API cost & latency thresholds",
-      ],
-      rationale: `${name} receives an 88/100 readiness score due to its well-defined target audience (${targetUsers}), immediate developer utility, and robust technical feasibility.`,
-    },
+    qualityScore: dynamicFallbackScore,
     mermaidDiagram: dynamicMermaid,
     foundation: {
       problemStatement: problem,
@@ -124,20 +107,20 @@ Constraints: ${input.optionalConstraints || "24-30h hackathon build scope"}`;
     },
     market: {
       competitors: [
-        { name: "Generic AI Chatbots", strength: "Broad knowledge base", weakness: "Unstructured, non-persistent conversational output" },
-        { name: "Manual Consultants", strength: "Custom human review", weakness: "High financial cost ($2,000+) and days of turnaround latency" },
+        { name: "Generic Alternative", strength: "Established brand", weakness: "Lacks specialized automation workflow" },
+        { name: "Manual Consultants", strength: "Custom human review", weakness: "High cost ($2,000+) and days of turnaround latency" },
       ],
-      marketGaps: "No automated tool connects Day 0 idea planning directly with pre-launch code analysis.",
-      investorNotes: `${name} addresses a growing market of indie hackathon builders and early-stage founders seeking instant validation.`,
+      marketGaps: `No automated tool connects Day 0 idea planning for ${name} directly with pre-launch verification.`,
+      investorNotes: `${name} addresses a growing market in ${industry} seeking instant automated validation.`,
     },
     features: {
       mvpFeatures: [
-        "Dual-Entry Landing Page (Idea OS vs Readiness Audit)",
-        "Automated AI Blueprint Engine & Quality Score",
-        "Auto-Generated Domain-Aware Mermaid System Architecture",
-        "One-Click Downloadable Project Starter Kit Bundle",
+        `Core ${name} User Interface & Dashboard`,
+        "Automated AI Blueprint Engine & Dynamic Hybrid Quality Score",
+        "Domain-Aware Mermaid System Architecture Diagram",
+        "One-Click Project Starter Kit Package Download",
       ],
-      futureFeatures: ["GitHub OAuth PR Creation", "Slack / Discord Webhook Notifications"],
+      futureFeatures: ["Slack / Discord Webhook Notifications", "Automated GitHub OAuth Sync"],
       monetization: "Free tier for open-source builders; $19/mo Pro tier for team collaboration.",
     },
     tech: {
@@ -148,7 +131,7 @@ Constraints: ${input.optionalConstraints || "24-30h hackathon build scope"}`;
         ai: "Gemini 1.5 Pro / OpenAI Engine",
       },
       riskAnalysis: [
-        { risk: "Target URL blocks scraping", mitigation: "Graceful fallback to 'Unable to analyze' status" },
+        { risk: "Target URL blocks scraping", mitigation: "Graceful fallback DOM status response" },
         { risk: "API rate limits on external services", mitigation: "Caching and read-only token authorization" },
       ],
     },
@@ -161,7 +144,7 @@ Constraints: ${input.optionalConstraints || "24-30h hackathon build scope"}`;
         { name: "cofounderThreads", fields: "projectId, messages, updatedAt" },
       ],
       endpoints: [
-        { method: "POST", path: "/api/blueprint/generate", desc: "Generate 6-module AI Product Blueprint" },
+        { method: "POST", path: "/api/blueprint/generate", desc: "Generate AI Product Blueprint with Dynamic Quality Score" },
         { method: "POST", path: "/api/validate", desc: "Initiate 6-module Launch Readiness Audit" },
         { method: "POST", path: "/api/cofounder", desc: "Query AI Co-Founder Strategy Advisor" },
       ],
@@ -177,6 +160,25 @@ Constraints: ${input.optionalConstraints || "24-30h hackathon build scope"}`;
   };
 
   const aiData = await generateModuleInsight(systemPrompt, userContent, fallbackJSON);
+
+  // Compute final Dynamic Hybrid Quality Score (50% Deterministic + 50% AI metrics)
+  const finalQualityScore = calculateHybridQualityScore({
+    name,
+    idea,
+    problem,
+    targetUsers,
+    industry,
+    aiMetrics: aiData.qualityScore?.metrics,
+    aiReasonings: {
+      technicalFeasibility: aiData.qualityScore?.metricDetails?.technicalFeasibility?.reason,
+      businessPotential: aiData.qualityScore?.metricDetails?.businessPotential?.reason,
+      innovation: aiData.qualityScore?.metricDetails?.innovation?.reason,
+      scalability: aiData.qualityScore?.metricDetails?.scalability?.reason,
+      aiNecessity: aiData.qualityScore?.metricDetails?.aiNecessity?.reason,
+      marketReadiness: aiData.qualityScore?.metricDetails?.marketReadiness?.reason,
+    },
+    isFallback: !aiData.qualityScore || aiData === fallbackJSON,
+  });
 
   const contextPackage: ContextPackage = {
     blueprintId: "",
@@ -207,7 +209,7 @@ Constraints: ${input.optionalConstraints || "24-30h hackathon build scope"}`;
     targetUsers,
     optionalIndustry: input.optionalIndustry,
     optionalConstraints: input.optionalConstraints,
-    qualityScore: aiData.qualityScore || fallbackJSON.qualityScore,
+    qualityScore: finalQualityScore,
     mermaidDiagram: aiData.mermaidDiagram || dynamicMermaid,
     sections,
     contextPackage,

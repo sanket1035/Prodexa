@@ -1,5 +1,6 @@
 import { Project, ValidationRun } from "@/lib/types/schema";
 import { Blueprint, BlueprintSection, ProjectMemory, ProjectMemorySnapshot, ChatMessageDoc, MentorNote } from "@/lib/types/blueprint";
+import { calculateHybridQualityScore } from "@/lib/modules/quality-score-engine";
 
 // In-memory store fallbacks for zero-config local dev & demo safety
 const mockProjects: Map<string, Project> = new Map();
@@ -23,9 +24,13 @@ const demoBlueprint: Blueprint = {
   idea: "An end-to-end platform that guides founders from Day 0 Idea to Launch Readiness using deterministic tooling and AI context memory.",
   problem: "Early stage builders launch without structured expert feedback on engineering, UX, performance, positioning, and market viability.",
   targetUsers: "Early-stage founders, hackathon teams, indie hackers, accelerator cohort directors.",
-  qualityScore: {
-    overall: 88,
-    metrics: {
+  qualityScore: calculateHybridQualityScore({
+    name: "Prodexa — AI Product Operating System",
+    idea: "An end-to-end platform that guides founders from Day 0 Idea to Launch Readiness using deterministic tooling and AI context memory.",
+    problem: "Early stage builders launch without structured expert feedback on engineering, UX, performance, positioning, and market viability.",
+    targetUsers: "Early-stage founders, hackathon teams, indie hackers, accelerator cohort directors.",
+    industry: "SaaS / AI Product OS",
+    aiMetrics: {
       innovation: 90,
       businessPotential: 86,
       technicalFeasibility: 92,
@@ -33,17 +38,7 @@ const demoBlueprint: Blueprint = {
       aiNecessity: 85,
       marketReadiness: 87,
     },
-    strengths: [
-      "Bridges the critical gap between Day 0 idea creation and Day 30 launch audit",
-      "Combines real deterministic checks (Lighthouse, GitHub) with structured AI reasoning",
-      "Stores bounded context memory packages to eliminate prompt re-querying",
-    ],
-    weaknesses: [
-      "Requires explicit GitHub REST API access for deep engineering metadata audits",
-      "Dependent on structured LLM JSON response formatting stability",
-    ],
-    rationale: "Prodexa scores 88/100 due to its strong technical feasibility, immediate hackathon demo utility, clear monetization path, and unique positioning before development starts.",
-  },
+  }),
   mermaidDiagram: `graph TD
     Client["Next.js 14 Frontend"] --> API["Next.js Server API Routes"]
     API --> Engine["6 Blueprint & Readiness Engine Modules"]
