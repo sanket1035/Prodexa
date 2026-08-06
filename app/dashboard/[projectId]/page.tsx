@@ -217,10 +217,10 @@ function DashboardContent() {
   if (currentRun?.status === "completed") healthScore = 100;
 
   const milestoneBadges = [
-    { label: "Blueprint Created", done: healthScore >= 25 },
-    { label: "Website Connected", done: healthScore >= 50 },
-    { label: "GitHub Connected", done: healthScore >= 75 },
-    { label: "Audit Completed", done: healthScore >= 100 },
+    { label: project.blueprintId ? "Blueprint Created" : "Direct Launch Audit", done: Boolean(project.blueprintId || currentRun) },
+    { label: "Website Connected", done: Boolean(project.websiteUrl) },
+    { label: "GitHub Connected", done: Boolean(project.githubRepoUrl) },
+    { label: "Audit Completed", done: currentRun?.status === "completed" },
   ];
 
   return (
