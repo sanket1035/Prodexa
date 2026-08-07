@@ -4,22 +4,42 @@ const openAiApiKey = process.env.OPENAI_API_KEY;
 const geminiApiKey = process.env.GEMINI_API_KEY;
 const groqApiKey = process.env.GROQ_API_KEY;
 
-export const openai = openAiApiKey ? new OpenAI({ apiKey: openAiApiKey }) : null;
+export const openai = openAiApiKey && openAiApiKey.trim() !== "" ? new OpenAI({ apiKey: openAiApiKey }) : null;
+
+export interface ProviderLog {
+  provider: string;
+  latencyMs: number;
+  success: boolean;
+  status: "SUCCESS" | "FAILED" | "SKIPPED";
+  reason: string;
+}
 
 /**
  * Multi-Provider AI Generator:
- * Tries Groq (if key exists) -> Gemini 1.5 -> OpenAI -> Question-aware Fallback.
+ * Strict Sequential Pipeline: Groq (Llama 3.3 70b) -> Gemini 1.5 Flash -> OpenAI GPT-4o-mini -> Deterministic Engine
  */
 export async function generateModuleInsight(
   systemPrompt: string,
   userContent: string,
   fallbackJSON: any
 ): Promise<any> {
+  const providerLogs: ProviderLog[] = [];
 
-  // 1. Try Groq API first if GROQ_API_KEY exists (100% free & ultra fast)
+  // Helper to log provider telemetry
+  const recordLog = (provider: string, startTime: number, status: "SUCCESS" | "FAILED" | "SKIPPED", reason: string) => {
+    const latencyMs = Math.round(performance.now() - startTime);
+    const success = status === "SUCCESS";
+    const logItem: ProviderLog = { provider, latencyMs, success, status, reason };
+    providerLogs.push(logItem);
+    console.log(`[AI Provider Pipeline] Provider: ${provider} | Status: ${status} | Latency: ${latencyMs}ms | Reason: ${reason}`);
+  };
+
+  // ---------------------------------------------------------------------------
+  // 1. GROQ API (llama-3.3-70b-versatile) — 100% Free & Ultra Fast
+  // ---------------------------------------------------------------------------
+  const groqStartTime = performance.now();
   if (groqApiKey && groqApiKey.trim() !== "") {
     try {
-      console.log("[AI] Calling Groq API (llama-3.3-70b-versatile)...");
       const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -36,29 +56,43 @@ export async function generateModuleInsight(
           temperature: 0.7,
           max_tokens: 1200,
         }),
+        signal: AbortSignal.timeout(8000), // 8-second strict timeout limit
       });
 
       if (groqRes.ok) {
         const groqData = await groqRes.json();
         const content = groqData.choices?.[0]?.message?.content;
         if (content) {
-          console.log("[AI] Groq response received successfully.");
-          return JSON.parse(content);
+          try {
+            const parsed = JSON.parse(content);
+            recordLog("Groq (llama-3.3-70b-versatile)", groqStartTime, "SUCCESS", "Valid JSON response received");
+            return parsed;
+          } catch (jsonErr: any) {
+            recordLog("Groq (llama-3.3-70b-versatile)", groqStartTime, "FAILED", `JSON parse error: ${jsonErr.message}`);
+          }
+        } else {
+          recordLog("Groq (llama-3.3-70b-versatile)", groqStartTime, "FAILED", "Empty content in response body");
         }
       } else {
-        const errText = await groqRes.text();
-        console.warn("[AI] Groq API error:", groqRes.status, errText);
+        const status = groqRes.status;
+        const errReason = status === 401 ? "401 Unauthorized (Invalid GROQ_API_KEY)" : status === 429 ? "429 Rate Limit Exceeded" : `${status} HTTP Error`;
+        recordLog("Groq (llama-3.3-70b-versatile)", groqStartTime, "FAILED", errReason);
       }
-    } catch (groqErr) {
-      console.warn("[AI] Groq API call failed, falling back:", groqErr);
+    } catch (groqErr: any) {
+      const isTimeout = groqErr.name === "AbortError" || groqErr.name === "TimeoutError";
+      const reason = isTimeout ? "Network Timeout (>8s limit reached)" : `Network Exception: ${groqErr.message || groqErr}`;
+      recordLog("Groq (llama-3.3-70b-versatile)", groqStartTime, "FAILED", reason);
     }
+  } else {
+    recordLog("Groq (llama-3.3-70b-versatile)", groqStartTime, "SKIPPED", "GROQ_API_KEY missing or empty");
   }
 
-  // 2. Try Gemini API if GEMINI_API_KEY exists
+  // ---------------------------------------------------------------------------
+  // 2. GEMINI API (gemini-1.5-flash)
+  // ---------------------------------------------------------------------------
+  const geminiStartTime = performance.now();
   if (geminiApiKey && geminiApiKey.trim() !== "") {
     try {
-      console.log("[AI] Calling Gemini 1.5 Flash API...");
-
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
@@ -84,6 +118,7 @@ export async function generateModuleInsight(
               temperature: 0.7,
             },
           }),
+          signal: AbortSignal.timeout(8000), // 8-second strict timeout limit
         }
       );
 
@@ -91,22 +126,36 @@ export async function generateModuleInsight(
         const geminiData = await geminiRes.json();
         const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
         if (rawText) {
-          console.log("[AI] Gemini 1.5 Flash response received successfully.");
-          return JSON.parse(rawText);
+          try {
+            const parsed = JSON.parse(rawText);
+            recordLog("Gemini (gemini-1.5-flash)", geminiStartTime, "SUCCESS", "Valid JSON response received");
+            return parsed;
+          } catch (jsonErr: any) {
+            recordLog("Gemini (gemini-1.5-flash)", geminiStartTime, "FAILED", `JSON parse error: ${jsonErr.message}`);
+          }
+        } else {
+          recordLog("Gemini (gemini-1.5-flash)", geminiStartTime, "FAILED", "Empty content in response candidate");
         }
       } else {
-        const errText = await geminiRes.text();
-        console.warn("[AI] Gemini API HTTP error:", geminiRes.status, errText);
+        const status = geminiRes.status;
+        const errReason = status === 401 ? "401 Unauthorized (Invalid GEMINI_API_KEY)" : status === 429 ? "429 Rate Limit Exceeded" : `${status} HTTP Error`;
+        recordLog("Gemini (gemini-1.5-flash)", geminiStartTime, "FAILED", errReason);
       }
-    } catch (geminiErr) {
-      console.warn("[AI] Gemini API call failed:", geminiErr);
+    } catch (geminiErr: any) {
+      const isTimeout = geminiErr.name === "AbortError" || geminiErr.name === "TimeoutError";
+      const reason = isTimeout ? "Network Timeout (>8s limit reached)" : `Network Exception: ${geminiErr.message || geminiErr}`;
+      recordLog("Gemini (gemini-1.5-flash)", geminiStartTime, "FAILED", reason);
     }
+  } else {
+    recordLog("Gemini (gemini-1.5-flash)", geminiStartTime, "SKIPPED", "GEMINI_API_KEY missing or empty");
   }
 
-  // 3. Try OpenAI fallback if Gemini/Groq fail or keys missing
+  // ---------------------------------------------------------------------------
+  // 3. OPENAI API (gpt-4o-mini)
+  // ---------------------------------------------------------------------------
+  const openAiStartTime = performance.now();
   if (openai) {
     try {
-      console.log("[AI] Calling OpenAI GPT-4o-mini...");
       const response = await openai.chat.completions.create({
         model: process.env.NEXT_PUBLIC_OPENAI_MODEL || "gpt-4o-mini",
         messages: [
@@ -120,15 +169,29 @@ export async function generateModuleInsight(
 
       const content = response.choices[0]?.message?.content;
       if (content) {
-        console.log("[AI] OpenAI response received.");
-        return JSON.parse(content);
+        try {
+          const parsed = JSON.parse(content);
+          recordLog("OpenAI (gpt-4o-mini)", openAiStartTime, "SUCCESS", "Valid JSON response received");
+          return parsed;
+        } catch (jsonErr: any) {
+          recordLog("OpenAI (gpt-4o-mini)", openAiStartTime, "FAILED", `JSON parse error: ${jsonErr.message}`);
+        }
+      } else {
+        recordLog("OpenAI (gpt-4o-mini)", openAiStartTime, "FAILED", "Empty content in choices[0]");
       }
-    } catch (openAiErr) {
-      console.error("[AI] OpenAI API call failed:", openAiErr);
+    } catch (openAiErr: any) {
+      const status = openAiErr?.status || openAiErr?.statusCode;
+      const reason = status === 401 ? "401 Unauthorized (Invalid OPENAI_API_KEY)" : status === 429 ? "429 Rate Limit Exceeded" : `OpenAI Error: ${openAiErr.message || openAiErr}`;
+      recordLog("OpenAI (gpt-4o-mini)", openAiStartTime, "FAILED", reason);
     }
+  } else {
+    recordLog("OpenAI (gpt-4o-mini)", openAiStartTime, "SKIPPED", "OPENAI_API_KEY missing or empty");
   }
 
-  // 4. Final fallback to deterministic JSON schema
-  console.warn("[AI] All AI providers failed or unavailable. Using question-aware deterministic fallback.");
+  // ---------------------------------------------------------------------------
+  // 4. DETERMINISTIC ENGINE FALLBACK
+  // ---------------------------------------------------------------------------
+  const fallbackStartTime = performance.now();
+  recordLog("Deterministic Engine", fallbackStartTime, "SUCCESS", "Safe Question-Aware Schema Fallback activated");
   return fallbackJSON;
 }

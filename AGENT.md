@@ -329,10 +329,38 @@ Dashboard (Rendered with 100% Persistence)
 
 ---
 
+## ⚡ 10. PART 1.4 — AI Provider Pipeline Architecture & Telemetry Log
+
+### Provider Failover Architecture (`lib/utils/openai.ts`)
+
+```
+Groq API (llama-3.3-70b-versatile) [8s Timeout]
+  ↓ (Fallback on 401, 429, 500, Timeout, or Missing Key)
+Gemini API (gemini-1.5-flash) [8s Timeout]
+  ↓ (Fallback on 401, 429, 500, Timeout, or Missing Key)
+OpenAI API (gpt-4o-mini) [SDK Timeout Guard]
+  ↓ (Fallback on Exception, Rate Limit, or Missing Key)
+Deterministic Fallback Engine (Question-Aware Schema)
+```
+
+### Enforced Pipeline Rules & Safeguards:
+1. **Strict Sequential Execution**: Providers are invoked 1-by-1 sequentially. Zero parallel API calls occur to prevent rate limit spikes and wasteful quota consumption.
+2. **8-Second Strict Timeout**: `AbortSignal.timeout(8000)` cancels hanging network requests automatically, forcing instant failover to the next provider.
+3. **HTTP Status & Exception Handling**:
+   - `401 Unauthorized`: Logged & skipped cleanly.
+   - `429 Rate Limit`: Logged & failed over instantly.
+   - `500 Server Error`: Logged & failed over instantly.
+   - `Network Exception / Timeout`: Caught gracefully without unhandled promise rejections.
+4. **JSON Parse Guard**: All LLM response text is wrapped in a `try...catch` block. Malformed or partial JSON output never crashes the route.
+5. **Real-time Telemetry Logging**: Structured telemetry logs emission:
+   `[AI Provider Pipeline] Provider: Groq | Status: SUCCESS/FAILED/SKIPPED | Latency: XXms | Reason: ...`
+
+---
+
 ## ✅ VERIFICATION & STATUS CHECKPOINT
 
 STATUS: VERIFIED
 DATE: 2026-08-07
-COMMIT HASH: PART_1_3_CONTEXT_ENGINEERING_COMPLETED
+COMMIT HASH: PART_1_4_AI_PROVIDER_PIPELINE_COMPLETED
 PRODUCTION BUILD: Next.js 14.2.35 (16/16 routes compiled successfully)
 LIVE DEPLOYMENT: https://prodexa-ai-rho.vercel.app/
