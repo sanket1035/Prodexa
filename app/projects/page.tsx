@@ -50,12 +50,14 @@ export default function ProjectsPage() {
       fetch(`/api/projects?userId=${user.uid}`)
         .then((res) => res.json())
         .then((data) => {
-          if (data.success && Array.isArray(data.projects)) {
-            // Filter strictly by user.uid or show fresh list
-            const finalProjects = data.projects.filter((p: Project) => p.userId === user.uid || !p.userId || user.uid === "demo-user-123");
-            setProjects(finalProjects);
-            // Sync back to user's localStorage
-            localStorage.setItem(`prodexa_projects_${user.uid}`, JSON.stringify(finalProjects));
+          if (data.success && Array.isArray(data.projects) && data.projects.length > 0) {
+            const apiProjects = data.projects.filter((p: Project) => p.userId === user.uid || !p.userId || user.uid === "demo-user-123");
+            const combined = [...apiProjects];
+            mergedLocal.forEach((lp) => {
+              if (!combined.some((cp) => cp.id === lp.id)) combined.push(lp);
+            });
+            setProjects(combined);
+            localStorage.setItem(`prodexa_projects_${user.uid}`, JSON.stringify(combined));
           }
           setLoading(false);
         })

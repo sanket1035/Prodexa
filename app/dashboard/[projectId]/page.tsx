@@ -101,9 +101,23 @@ function DashboardContent() {
           setInputGithub(pRes.project.githubRepoUrl || "");
         }
 
-        const runs: ValidationRun[] = rRes.success ? rRes.runs : [];
+        let runs: ValidationRun[] = rRes.success && Array.isArray(rRes.runs) ? rRes.runs : [];
+        if (runs.length === 0 && typeof window !== "undefined") {
+          const cachedRunsStr = localStorage.getItem(`prodexa_runs_${projectId}`);
+          if (cachedRunsStr) {
+            try {
+              const cachedRuns = JSON.parse(cachedRunsStr);
+              if (Array.isArray(cachedRuns) && cachedRuns.length > 0) runs = cachedRuns;
+            } catch {
+              // ignore
+            }
+          }
+        }
 
         if (runs.length > 0) {
+          if (typeof window !== "undefined") {
+            localStorage.setItem(`prodexa_runs_${projectId}`, JSON.stringify(runs));
+          }
           const activeRun = runIdParam ? runs.find((r) => r.id === runIdParam) || runs[0] : runs[0];
           setCurrentRun(activeRun);
           if (runs.length > 1) setPreviousRun(runs[1]);

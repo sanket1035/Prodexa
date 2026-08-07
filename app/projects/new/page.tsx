@@ -80,6 +80,22 @@ export default function NewProjectPage() {
       const valData = await valRes.json();
       const runId = valData.runId;
 
+      if (typeof window !== "undefined") {
+        const uid = user?.uid || "demo-user-123";
+        if (valData.project) {
+          localStorage.setItem(`prodexa_proj_${projectId}`, JSON.stringify(valData.project));
+          const key = `prodexa_projects_${uid}`;
+          const existingStr = localStorage.getItem(key);
+          let existing = existingStr ? JSON.parse(existingStr) : [];
+          existing = existing.filter((p: any) => p && p.id !== projectId);
+          existing.unshift(valData.project);
+          localStorage.setItem(key, JSON.stringify(existing));
+        }
+        if (valData.run) {
+          localStorage.setItem(`prodexa_runs_${projectId}`, JSON.stringify([valData.run]));
+        }
+      }
+
       router.push(`/dashboard/${projectId}?runId=${runId || ""}`);
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred");

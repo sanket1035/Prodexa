@@ -26,13 +26,36 @@ export default function HistoryPage() {
   useEffect(() => {
     if (!projectId) return;
 
+    let cachedProj: Project | null = null;
+    let cachedRuns: ValidationRun[] = [];
+
+    if (typeof window !== "undefined") {
+      const projStr = localStorage.getItem(`prodexa_proj_${projectId}`);
+      if (projStr) {
+        try { cachedProj = JSON.parse(projStr); } catch {}
+      }
+      const runsStr = localStorage.getItem(`prodexa_runs_${projectId}`);
+      if (runsStr) {
+        try { cachedRuns = JSON.parse(runsStr); } catch {}
+      }
+    }
+
+    if (cachedProj) setProject(cachedProj);
+    if (cachedRuns.length > 0) setRuns(cachedRuns);
+
     Promise.all([
-      fetch(`/api/projects/${projectId}`).then((res) => res.json()),
-      fetch(`/api/projects/${projectId}/history`).then((res) => res.json()),
+      fetch(`/api/projects/${projectId}`).then((res) => res.json()).catch(() => ({ success: false })),
+      fetch(`/api/projects/${projectId}/history`).then((res) => res.json()).catch(() => ({ success: false })),
     ])
       .then(([pRes, rRes]) => {
-        if (pRes.success) setProject(pRes.project);
-        if (rRes.success) setRuns(rRes.runs);
+        if (pRes.success && pRes.project) {
+          setProject(pRes.project);
+          if (typeof window !== "undefined") localStorage.setItem(`prodexa_proj_${projectId}`, JSON.stringify(pRes.project));
+        }
+        if (rRes.success && Array.isArray(rRes.runs) && rRes.runs.length > 0) {
+          setRuns(rRes.runs);
+          if (typeof window !== "undefined") localStorage.setItem(`prodexa_runs_${projectId}`, JSON.stringify(rRes.runs));
+        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
