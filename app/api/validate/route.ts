@@ -39,13 +39,19 @@ export async function POST(req: NextRequest) {
     if (bodyWebUrl !== undefined && bodyWebUrl !== null) project.websiteUrl = bodyWebUrl;
     if (bodyGhUrl !== undefined && bodyGhUrl !== null) project.githubRepoUrl = bodyGhUrl;
 
-    // Auto-separate github URL if pasted in websiteUrl
-    let webUrl = project.websiteUrl;
-    let ghUrl = project.githubRepoUrl || "";
+    // Extract website & github URLs from project or request body
+    let webUrl = bodyWebUrl !== undefined && bodyWebUrl !== null ? bodyWebUrl : project.websiteUrl;
+    let ghUrl = bodyGhUrl !== undefined && bodyGhUrl !== null ? bodyGhUrl : (project.githubRepoUrl || "");
+
+    // If websiteUrl was mistakenly set to a github.com link, transfer it to githubRepoUrl
     if (webUrl && webUrl.includes("github.com")) {
       if (!ghUrl) ghUrl = webUrl;
       webUrl = null;
     }
+
+    // Always update project in-memory reference
+    project.websiteUrl = webUrl || null;
+    project.githubRepoUrl = ghUrl || null;
 
     // FB-001 FIX: Never fall back to prodexa.ai — skip web modules if no website provided
     const hasWebsite = Boolean(webUrl && webUrl.trim() !== "");
@@ -58,18 +64,25 @@ export async function POST(req: NextRequest) {
     // Web modules only execute when a real website URL is present
     const prodResult = hasWebsite
       ? await runProductUnderstanding(auditWebUrl)
-      : { status: "skipped" as const, reason: "No website URL provided.", score: null, issues: [] as Issue[], summary: "No website URL connected.", targetAudience: "Unknown", valueProposition: "Unknown" };
+      : { status: "skipped" as const, reason: "No website URL connected", score: null, issues: [], summary: "Website audit skipped", targetAudience: "N/A", valueProposition: "N/A" };
+
     const uxResult = hasWebsite
       ? await runUxValidation(auditWebUrl)
-      : { status: "skipped" as const, reason: "No website URL provided.", score: null, issues: [] as Issue[], details: { hasViewport: false, hasPrimaryCta: false, missingAltCount: 0, h1Count: 0, hasOgTags: false, hasCanonical: false, hasFavicon: false } };
+      : { status: "skipped" as const, reason: "No website URL connected", score: null, issues: [], details: { hasViewport: false, hasPrimaryCta: false, missingAltCount: 0, h1Count: 0, hasOgTags: false, hasCanonical: false, hasFavicon: false } };
+
     const perfResult = hasWebsite
       ? await runPerformanceAudit(auditWebUrl)
-      : { status: "skipped" as const, reason: "No website URL provided.", score: null, issues: [] as Issue[], details: { responseTimeMs: 0, estimatedPageSizeBytes: 0, scriptCount: 0 } };
+      : { status: "skipped" as const, reason: "No website URL connected", score: null, issues: [], details: { responseTimeMs: 0, estimatedPageSizeBytes: 0, scriptCount: 0 } };
+
     const bizResult = hasWebsite
       ? await runBusinessReview(auditWebUrl, pitchDeckText)
-      : { status: "skipped" as const, reason: "No website URL provided.", score: null, issues: [] as Issue[], businessModel: "Unknown", pricingMentioned: false, contactProvided: false };
+      : { status: "skipped" as const, reason: "No website URL connected", score: null, issues: [], businessModel: "Unknown", pricingMentioned: false, contactProvided: false };
 
-    allIssues.push(...engResult.issues, ...prodResult.issues, ...uxResult.issues, ...perfResult.issues, ...bizResult.issues);
+    if (prodResult.issues) allIssues.push(...prodResult.issues);
+    if (engResult.issues) allIssues.push(...engResult.issues);
+    if (uxResult.issues) allIssues.push(...uxResult.issues);
+    if (perfResult.issues) allIssues.push(...perfResult.issues);
+    if (bizResult.issues) allIssues.push(...bizResult.issues);
 
     const hasGithub = Boolean(ghUrl && ghUrl.trim() !== "" && !ghUrl.includes("example.com"));
     const webReachable = hasWebsite && prodResult.status !== "failed";
@@ -196,8 +209,8 @@ export async function POST(req: NextRequest) {
       latestScore: launchResult.overallScore,
       lastValidatedAt: completedAt,
       blueprintId: project.blueprintId || null,
-      websiteUrl: webUrl === null && ghUrl ? null : project.websiteUrl || null,
-      githubRepoUrl: ghUrl || project.githubRepoUrl || null,
+      websiteUrl: project.websiteUrl || null,
+      githubRepoUrl: project.githubRepoUrl || null,
     });
 
     return NextResponse.json({
