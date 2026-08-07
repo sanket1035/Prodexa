@@ -171,7 +171,7 @@ export default function NewProjectPage() {
             Website / Landing Page URL <span className="text-red-500">*</span>
           </label>
           <div className="relative">
-            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-faint)" }} />
+            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "var(--text-faint)" }} />
             <input
               type="url"
               required
@@ -192,7 +192,7 @@ export default function NewProjectPage() {
             GitHub Repository URL <span style={{ color: "var(--text-faint)" }}>(recommended)</span>
           </label>
           <div className="relative">
-            <GitBranch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-faint)" }} />
+            <GitBranch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "var(--text-faint)" }} />
             <input
               type="url"
               placeholder="https://github.com/owner/repo"

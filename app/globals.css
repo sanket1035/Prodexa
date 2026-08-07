@@ -301,6 +301,13 @@ body {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(217,119,6,0.12);
 }
+
+/* Ensure left-icon padding utilities override baseline .input padding */
+.input.pl-8 { padding-left: 2rem !important; }
+.input.pl-9 { padding-left: 2.25rem !important; }
+.input.pl-10 { padding-left: 2.5rem !important; }
+.input.pl-11 { padding-left: 2.75rem !important; }
+.input.pl-12 { padding-left: 3rem !important; }
 .input-lg { height: 42px; font-size: 14px; padding: 0 16px; border-radius: var(--radius); }
 .textarea { height: auto; padding: 10px 12px; resize: vertical; }
 

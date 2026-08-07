@@ -456,27 +456,27 @@ function DashboardContent() {
             <div className="space-y-1.5">
               <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Landing Page URL</label>
               <div className="relative">
-                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: "var(--text-faint)" }} />
+                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "var(--text-faint)" }} />
                 <input
                   type="url"
                   required
                   placeholder="https://your-landing-page.com"
                   value={inputWebsite}
                   onChange={(e) => setInputWebsite(e.target.value)}
-                  className="input pl-9 font-mono"
+                  className="input pl-10 font-mono"
                 />
               </div>
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>GitHub Repository URL</label>
               <div className="relative">
-                <GitBranch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: "var(--text-faint)" }} />
+                <GitBranch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "var(--text-faint)" }} />
                 <input
                   type="url"
                   placeholder="https://github.com/username/repo"
                   value={inputGithub}
                   onChange={(e) => setInputGithub(e.target.value)}
-                  className="input pl-9 font-mono"
+                  className="input pl-10 font-mono"
                 />
               </div>
             </div>
