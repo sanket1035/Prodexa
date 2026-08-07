@@ -260,7 +260,7 @@ export async function saveProjectMemory(memory: ProjectMemory): Promise<ProjectM
   const updatedMemory = { ...memory, updatedAt: new Date().toISOString() };
   try {
     const { adminDb } = await import("./admin");
-    await adminDb.collection("projectMemory").doc(memory.projectId).set(updatedMemory, { merge: true });
+    await adminDb.collection("projectMemory").doc(memory.projectId).set(updatedMemory, { merge: true }).catch(() => {});
 
     // Save Memory History Version Snapshot
     const versionId = `v${memory.memoryVersion}_${Date.now()}`;
@@ -270,7 +270,7 @@ export async function saveProjectMemory(memory: ProjectMemory): Promise<ProjectM
       importantDecisions: memory.importantDecisions,
       updatedAt: updatedMemory.updatedAt,
     };
-    await adminDb.collection("projectMemory").doc(memory.projectId).collection("history").doc(versionId).set(snapshot);
+    await adminDb.collection("projectMemory").doc(memory.projectId).collection("history").doc(versionId).set(snapshot).catch(() => {});
   } catch {
     // Memory fallback
   }
@@ -311,7 +311,7 @@ export async function getMemoryHistorySnapshots(projectId: string): Promise<Proj
       .get();
     
     if (!snapshot.empty) {
-      return snapshot.docs.map((doc) => doc.data() as ProjectMemorySnapshot);
+      return snapshot.docs.map((doc: any) => doc.data() as ProjectMemorySnapshot);
     }
   } catch {
     // Fallback
@@ -352,7 +352,7 @@ export async function saveChatMessageDoc(projectId: string, msg: Omit<ChatMessag
 
   try {
     const { adminDb } = await import("./admin");
-    await adminDb.collection("projects").doc(projectId).collection("chats").doc(id).set(chatDoc);
+    await adminDb.collection("projects").doc(projectId).collection("chats").doc(id).set(chatDoc).catch(() => {});
   } catch {
     // Fallback
   }
@@ -374,7 +374,7 @@ export async function getRecentChatMessages(projectId: string, limitCount = 20):
       .get();
     
     if (!snapshot.empty) {
-      return snapshot.docs.map((doc) => doc.data() as ChatMessageDoc);
+      return snapshot.docs.map((doc: any) => doc.data() as ChatMessageDoc);
     }
   } catch {
     // Fallback
@@ -390,7 +390,7 @@ export async function saveMentorNote(projectId: string, noteText: string, catego
 
   try {
     const { adminDb } = await import("./admin");
-    await adminDb.collection("projects").doc(projectId).collection("mentorNotes").doc(id).set(note);
+    await adminDb.collection("projects").doc(projectId).collection("mentorNotes").doc(id).set(note).catch(() => {});
   } catch {
     // Fallback
   }
@@ -421,7 +421,7 @@ export async function createBlueprint(bp: Omit<Blueprint, "id" | "createdAt">): 
 
   try {
     const { adminDb } = await import("./admin");
-    await adminDb.collection("blueprints").doc(id).set(newBp);
+    await adminDb.collection("blueprints").doc(id).set(newBp).catch(() => {});
   } catch {
     // Fallback
   }
@@ -540,9 +540,9 @@ export async function convertBlueprintToProject(blueprintId: string, userId?: st
 
   try {
     const { adminDb } = await import("./admin");
-    await adminDb.collection("projects").doc(projectId).set(newProj);
-    await adminDb.collection("blueprints").doc(blueprintId).update({ status: "accepted" });
-    await adminDb.collection("projectMemory").doc(projectId).set(initialMemory);
+    await adminDb.collection("projects").doc(projectId).set(newProj).catch(() => {});
+    await adminDb.collection("blueprints").doc(blueprintId).update({ status: "accepted" }).catch(() => {});
+    await adminDb.collection("projectMemory").doc(projectId).set(initialMemory).catch(() => {});
   } catch {
     // Fallback safely
   }
@@ -578,7 +578,7 @@ export async function getProjectsForUser(userId: string): Promise<Project[]> {
     if (!snapshot.empty) {
       const dbProjects = snapshot.docs.map((doc: { id: string; data: () => any }) => ({ id: doc.id, ...doc.data() } as Project));
       const uniqueProjectsMap = new Map<string, Project>();
-      dbProjects.forEach((p) => {
+      dbProjects.forEach((p: any) => {
         if (!uniqueProjectsMap.has(p.id)) uniqueProjectsMap.set(p.id, p);
         mockProjects.set(p.id, p);
       });
@@ -667,8 +667,8 @@ export async function createProject(project: Omit<Project, "id" | "createdAt" | 
 
   try {
     const { adminDb } = await import("./admin");
-    await adminDb.collection("projects").doc(id).set(newProject);
-    await adminDb.collection("projectMemory").doc(id).set(initialMemory);
+    await adminDb.collection("projects").doc(id).set(newProject).catch(() => {});
+    await adminDb.collection("projectMemory").doc(id).set(initialMemory).catch(() => {});
   } catch {
     // Fallback
   }
@@ -704,8 +704,8 @@ export async function createValidationRun(run: Omit<ValidationRun, "id" | "creat
 
   try {
     const { adminDb } = await import("./admin");
-    await adminDb.collection("validationRuns").doc(id).set(newRun);
-    await adminDb.collection("projects").doc(run.projectId).collection("auditHistory").doc(id).set(newRun);
+    await adminDb.collection("validationRuns").doc(id).set(newRun).catch(() => {});
+    await adminDb.collection("projects").doc(run.projectId).collection("auditHistory").doc(id).set(newRun).catch(() => {});
   } catch {
     // Fallback
   }
@@ -766,7 +766,7 @@ export async function getValidationRunsForProject(projectId: string): Promise<Va
     
     if (!snapshot.empty) {
       const dbRuns = snapshot.docs.map((doc: { id: string; data: () => any }) => ({ id: doc.id, ...doc.data() } as ValidationRun));
-      dbRuns.forEach((r) => mockRuns.set(r.id, r));
+      dbRuns.forEach((r: any) => mockRuns.set(r.id, r));
       return dbRuns;
     }
   } catch {

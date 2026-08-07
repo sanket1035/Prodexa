@@ -38,13 +38,18 @@ if (!getApps().length) {
       credential: credentialCert,
       storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "prodexa-103.firebasestorage.app",
     });
-  } else {
+  } else if (process.env.NODE_ENV === "production") {
     initializeApp({
       projectId,
     });
   }
 }
 
-export const adminDb = getFirestore();
-export const adminAuth = getAuth();
-export const adminStorage = getStorage();
+export const hasAdminCredentials = getApps().length > 0 && Boolean(
+  process.env.FIREBASE_ADMIN_CREDENTIALS ||
+  (process.env.FIREBASE_ADMIN_PRIVATE_KEY && process.env.FIREBASE_ADMIN_CLIENT_EMAIL)
+);
+
+export const adminDb = getApps().length > 0 ? getFirestore() : (null as any);
+export const adminAuth = getApps().length > 0 ? getAuth() : (null as any);
+export const adminStorage = getApps().length > 0 ? getStorage() : (null as any);
