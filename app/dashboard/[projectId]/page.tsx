@@ -169,24 +169,28 @@ function DashboardContent() {
     finally { setUpdatingAssets(false); }
   };
 
-  const handleRevalidate = async (overrideWebUrl?: string | React.MouseEvent, overrideGhUrl?: string) => {
+  const handleRevalidate = async (webUrlOverride?: string, ghUrlOverride?: string) => {
     if (!project) return;
     setRevalidating(true);
     try {
-      const targetWebUrl = typeof overrideWebUrl === "string" ? overrideWebUrl : inputWebsite;
-      const targetGhUrl = typeof overrideGhUrl === "string" ? overrideGhUrl : inputGithub;
+      const targetWebUrl = typeof webUrlOverride === "string" ? webUrlOverride : (project.websiteUrl || inputWebsite || null);
+      const targetGhUrl = typeof ghUrlOverride === "string" ? ghUrlOverride : (project.githubRepoUrl || inputGithub || null);
 
       const res = await fetch("/api/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           projectId: project.id,
-          userId: project.userId,
-          websiteUrl: targetWebUrl || null,
-          githubRepoUrl: targetGhUrl || null,
+          userId: project.userId || "demo-user-123",
+          websiteUrl: targetWebUrl,
+          githubRepoUrl: targetGhUrl,
         }),
       });
       const data = await res.json();
+      if (!data.success) {
+        console.error("Audit error:", data.message);
+        return;
+      }
       if (data.success && data.runId) {
         if (data.run) {
           setCurrentRun(data.run);
@@ -265,7 +269,6 @@ function DashboardContent() {
     );
   }
 
-  const isRunning = currentRun?.status === "running";
   const scores = currentRun?.moduleScores;
 
   const currentOverall = currentRun?.overallScore;
@@ -294,6 +297,8 @@ function DashboardContent() {
     { label: ghOk ? "GitHub Connected" : (project.githubRepoUrl ? "GitHub Not Found (404)" : "GitHub Optional"), done: ghOk, failed: Boolean(project.githubRepoUrl) && !ghOk },
     { label: currentRun?.status === "completed" ? "Audit Completed" : "Audit Pending", done: currentRun?.status === "completed", failed: false },
   ];
+
+  const isRunning = currentRun?.status === "running";
 
   return (
     <div className="p-5 md:p-7 space-y-6 max-w-6xl mx-auto w-full anim-fade">
@@ -383,11 +388,11 @@ function DashboardContent() {
             <span>Export (.md)</span>
           </button>
           <button
-            onClick={handleRevalidate}
-            disabled={revalidating || isRunning}
+            onClick={() => handleRevalidate()}
+            disabled={revalidating}
             className="btn btn-primary btn-sm"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${revalidating || isRunning ? "anim-spin" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${revalidating ? "anim-spin" : ""}`} />
             Run Audit
           </button>
         </div>
@@ -584,7 +589,7 @@ function DashboardContent() {
 
                   {!currentRun && (
                     <button
-                      onClick={handleRevalidate}
+                      onClick={() => handleRevalidate()}
                       disabled={revalidating}
                       className="btn btn-primary"
                     >
