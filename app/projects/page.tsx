@@ -126,7 +126,30 @@ export default function ProjectsPage() {
     );
   }
 
-  const validScores = projects.map((p) => p.latestScore).filter((s): s is number => s !== null);
+  const getEffectiveProjectScore = (p: Project) => {
+    if (p.latestScore !== null && p.latestScore !== undefined) {
+      return { score: p.latestScore, date: p.lastValidatedAt };
+    }
+    if (typeof window !== "undefined") {
+      const cachedRunsStr = localStorage.getItem(`prodexa_runs_${p.id}`);
+      if (cachedRunsStr) {
+        try {
+          const cachedRuns = JSON.parse(cachedRunsStr);
+          if (Array.isArray(cachedRuns) && cachedRuns.length > 0) {
+            const latest = cachedRuns[0];
+            if (latest && latest.overallScore !== undefined && latest.overallScore !== null) {
+              return { score: latest.overallScore as number, date: latest.completedAt || latest.createdAt };
+            }
+          }
+        } catch {}
+      }
+    }
+    return { score: null, date: p.lastValidatedAt };
+  };
+
+  const validScores = projects
+    .map((p) => getEffectiveProjectScore(p).score)
+    .filter((s): s is number => s !== null);
   const avgScore = validScores.length > 0 ? Math.round(validScores.reduce((a, b) => a + b, 0) / validScores.length) : null;
   const maxScore = validScores.length > 0 ? Math.max(...validScores) : null;
 
@@ -194,63 +217,65 @@ export default function ProjectsPage() {
             </div>
 
             <div className="space-y-3">
-              {projects.map((project, idx) => (
-                <div
-                  key={project.id}
-                  className="card p-5 space-y-4 anim-fade-up"
-                  style={{ animationDelay: `${idx * 40}ms` }}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/dashboard/${project.id}`}
-                          className="text-base font-semibold transition-colors hover:text-[color:var(--accent)] truncate"
-                          style={{ color: "var(--text)", textDecoration: "none" }}
-                        >
-                          {project.name}
-                        </Link>
-                        {project.blueprintId && (
-                          <span className="badge badge-amber text-[10px] font-mono">
-                            Blueprint
-                          </span>
+              {projects.map((project, idx) => {
+                const { score: effectiveScore, date: effectiveDate } = getEffectiveProjectScore(project);
+                return (
+                  <div
+                    key={project.id}
+                    className="card p-5 space-y-4 anim-fade-up"
+                    style={{ animationDelay: `${idx * 40}ms` }}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/dashboard/${project.id}`}
+                            className="text-base font-semibold transition-colors hover:text-[color:var(--accent)] truncate"
+                            style={{ color: "var(--text)", textDecoration: "none" }}
+                          >
+                            {project.name}
+                          </Link>
+                          {project.blueprintId && (
+                            <span className="badge badge-amber text-[10px] font-mono">
+                              Blueprint
+                            </span>
+                          )}
+                        </div>
+
+                        {project.websiteUrl && (
+                          <a
+                            href={project.websiteUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1.5 text-xs font-mono transition-colors"
+                            style={{ color: "var(--text-muted)" }}
+                          >
+                            <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate">{project.websiteUrl.replace(/^https?:\/\//, "")}</span>
+                          </a>
                         )}
                       </div>
 
-                      {project.websiteUrl && (
-                        <a
-                          href={project.websiteUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center gap-1.5 text-xs font-mono transition-colors"
-                          style={{ color: "var(--text-muted)" }}
-                        >
-                          <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                          <span className="truncate">{project.websiteUrl.replace(/^https?:\/\//, "")}</span>
-                        </a>
-                      )}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className={`font-mono font-bold text-sm px-2.5 py-1 ${getScoreBadgeClass(effectiveScore)}`}>
+                          {effectiveScore !== null ? `${effectiveScore}%` : "Unaudited"}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className={`font-mono font-bold text-sm px-2.5 py-1 ${getScoreBadgeClass(project.latestScore)}`}>
-                        {project.latestScore !== null ? `${project.latestScore}%` : "Unaudited"}
-                      </span>
-                    </div>
-                  </div>
+                    {project.githubRepoUrl && (
+                      <div className="text-xs font-mono truncate" style={{ color: "var(--text-faint)" }}>
+                        GitHub: <span style={{ color: "var(--text-muted)" }}>{project.githubRepoUrl.replace("https://github.com/", "")}</span>
+                      </div>
+                    )}
 
-                  {project.githubRepoUrl && (
-                    <div className="text-xs font-mono truncate" style={{ color: "var(--text-faint)" }}>
-                      GitHub: <span style={{ color: "var(--text-muted)" }}>{project.githubRepoUrl.replace("https://github.com/", "")}</span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between pt-3 border-t text-xs" style={{ borderColor: "var(--border)" }}>
-                    <div className="flex items-center gap-1.5" style={{ color: "var(--text-muted)" }}>
-                      <Clock className="w-3 h-3" />
-                      {project.lastValidatedAt
-                        ? `Audited ${new Date(project.lastValidatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-                        : "Ready for launch audit"}
-                    </div>
+                    <div className="flex items-center justify-between pt-3 border-t text-xs" style={{ borderColor: "var(--border)" }}>
+                      <div className="flex items-center gap-1.5" style={{ color: "var(--text-muted)" }}>
+                        <Clock className="w-3 h-3" />
+                        {effectiveDate
+                          ? `Audited ${new Date(effectiveDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                          : "Ready for launch audit"}
+                      </div>
 
                     <div className="flex items-center gap-2">
                       <button
@@ -273,7 +298,8 @@ export default function ProjectsPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           </div>
 
