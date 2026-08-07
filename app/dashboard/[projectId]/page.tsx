@@ -11,9 +11,10 @@ import IssueRow from "@/components/dashboard/IssueRow";
 import RoadmapSection from "@/components/dashboard/RoadmapSection";
 import AICofounderTab from "@/components/dashboard/AICofounderTab";
 import { generateMarkdownReport, downloadFile } from "@/lib/pdf/exporter";
+import { useAuth } from "@/lib/auth/AuthContext";
 
 import {
-  RefreshCw, FileCode2, TrendingUp,
+  RefreshCw, FileCode2, FileText, TrendingUp,
   Globe, GitBranch, Activity, Lightbulb, Bot,
   CheckCircle2, AlertCircle, PlusCircle, Sparkles, X,
 } from "lucide-react";
@@ -36,6 +37,7 @@ export default function DashboardPage() {
 }
 
 function DashboardContent() {
+  const { user } = useAuth();
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -177,9 +179,32 @@ function DashboardContent() {
         body: JSON.stringify({ projectId: project.id, userId: project.userId }),
       });
       const data = await res.json();
-      if (data.success && data.runId) router.push(`/dashboard/${project.id}?runId=${data.runId}`);
+      if (data.success && data.runId) {
+        if (data.project) {
+          setProject(data.project);
+          if (typeof window !== "undefined" && user) {
+            const userCached = localStorage.getItem(`prodexa_projects_${user.uid}`);
+            if (userCached) {
+              try {
+                const parsed: Project[] = JSON.parse(userCached);
+                const updated = parsed.map((p) => (p.id === data.project.id ? data.project : p));
+                localStorage.setItem(`prodexa_projects_${user.uid}`, JSON.stringify(updated));
+              } catch {
+                // ignore
+              }
+            }
+          }
+        }
+        router.push(`/dashboard/${project.id}?runId=${data.runId}`);
+      }
     } catch (e) { console.error(e); }
     finally { setRevalidating(false); }
+  };
+
+  const handleExportPDF = () => {
+    if (!project || !currentRun) return;
+    // Trigger browser print/save-to-pdf dialog cleanly
+    window.print();
   };
 
   const handleExportMarkdown = () => {
@@ -317,11 +342,20 @@ function DashboardContent() {
             Assets
           </button>
           <button
+            onClick={handleExportPDF}
+            className="btn btn-secondary btn-sm text-amber-400 border-amber-500/30 hover:bg-amber-500/10"
+            title="Export launch report as PDF / Print document"
+          >
+            <FileText className="w-3.5 h-3.5" style={{ color: "var(--accent)" }} />
+            <span>Export PDF</span>
+          </button>
+          <button
             onClick={handleExportMarkdown}
             className="btn btn-secondary btn-sm"
+            title="Download markdown report file (.md)"
           >
             <FileCode2 className="w-3.5 h-3.5" style={{ color: "var(--success)" }} />
-            Export
+            <span>Export (.md)</span>
           </button>
           <button
             onClick={handleRevalidate}

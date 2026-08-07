@@ -201,7 +201,7 @@ export async function POST(req: NextRequest) {
       runId: completedRun.id,
       status: "completed",
       run: completedRun,
-      project,
+      project: updatedProj || project,
       blueprintId: project.blueprintId,
     });
   } catch (error: unknown) {

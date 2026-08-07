@@ -495,3 +495,22 @@ body {
   .card { padding: 1rem !important; }
 }
 
+/* Print styles for Export PDF feature */
+@media print {
+  aside, nav, header, button, .no-print {
+    display: none !important;
+  }
+  body {
+    background: #09090b !important;
+    color: #f4f4f5 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .card {
+    border: 1px solid #27272a !important;
+    background: #18181b !important;
+    color: #f4f4f5 !important;
+    break-inside: avoid;
+  }
+}
+

@@ -52,10 +52,19 @@ export default function ProjectsPage() {
         .then((data) => {
           if (data.success && Array.isArray(data.projects) && data.projects.length > 0) {
             const apiProjects = data.projects.filter((p: Project) => p.userId === user.uid || !p.userId || user.uid === "demo-user-123");
-            const combined = [...apiProjects];
-            mergedLocal.forEach((lp) => {
-              if (!combined.some((cp) => cp.id === lp.id)) combined.push(lp);
+            const combinedMap = new Map<string, Project>();
+            apiProjects.forEach((p: Project) => combinedMap.set(p.id, p));
+            mergedLocal.forEach((lp: Project) => {
+              if (!combinedMap.has(lp.id)) {
+                combinedMap.set(lp.id, lp);
+              } else {
+                const existing = combinedMap.get(lp.id)!;
+                if (existing.latestScore === null && lp.latestScore !== null) {
+                  combinedMap.set(lp.id, { ...existing, latestScore: lp.latestScore, lastValidatedAt: lp.lastValidatedAt });
+                }
+              }
             });
+            const combined = Array.from(combinedMap.values());
             setProjects(combined);
             localStorage.setItem(`prodexa_projects_${user.uid}`, JSON.stringify(combined));
           }
