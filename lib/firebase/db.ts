@@ -648,17 +648,52 @@ export async function createProject(project: Omit<Project, "id" | "createdAt" | 
     latestScore: null,
   };
 
+  const initialMemory: ProjectMemory = {
+    projectId: id,
+    projectSummary: project.name,
+    currentStage: "Development",
+    lastUpdatedBy: "AI",
+    memoryVersion: 1,
+    compressedContext: `${project.name} launch audit project created. Website: ${project.websiteUrl || "Not specified"}, GitHub: ${project.githubRepoUrl || "Not specified"}.`,
+    importantDecisions: [
+      `Initialized Launch Audit Project Workspace for ${project.name}`,
+    ],
+    sourceAttributions: [
+      { fact: `Created Project Workspace for ${project.name}`, source: "BLUEPRINT_ENGINE" as any, confidenceScore: 0.98, timestamp: now },
+    ],
+    updatedAt: now,
+  };
+
   try {
     const { adminDb } = await import("./admin");
     await adminDb.collection("projects").doc(id).set(newProject);
+    await adminDb.collection("projectMemory").doc(id).set(initialMemory);
   } catch {
     // Fallback
   }
 
   // Store cleanly in memory
   mockProjects.set(id, newProject);
+  mockMemories.set(id, initialMemory);
 
   return newProject;
+}
+
+export async function updateProject(projectId: string, updates: Partial<Project>): Promise<Project | null> {
+  const existing = await getProjectById(projectId);
+  if (!existing) return null;
+
+  const updated: Project = { ...existing, ...updates };
+
+  try {
+    const { adminDb } = await import("./admin");
+    await adminDb.collection("projects").doc(projectId).update(updates);
+  } catch {
+    // Fallback
+  }
+
+  mockProjects.set(projectId, updated);
+  return updated;
 }
 
 export async function createValidationRun(run: Omit<ValidationRun, "id" | "createdAt">): Promise<ValidationRun> {

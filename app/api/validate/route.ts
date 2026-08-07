@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProjectById, createValidationRun, createBlueprint } from "@/lib/firebase/db";
+import { getProjectById, createValidationRun, createBlueprint, updateProject } from "@/lib/firebase/db";
 import { runEngineeringAnalysis } from "@/lib/modules/engineering-analysis";
 import { runProductUnderstanding } from "@/lib/modules/product-understanding";
 import { runUxValidation } from "@/lib/modules/ux-validation";
@@ -162,27 +162,15 @@ export async function POST(req: NextRequest) {
       completedAt,
     });
 
-    // Update project health score to 100% (Launch Audit Completed)
-    try {
-      project.healthScore = 100;
-      project.latestScore = launchResult.overallScore;
-      project.lastValidatedAt = completedAt;
-      if (webUrl === null && ghUrl) {
-        project.websiteUrl = null;
-        project.githubRepoUrl = ghUrl;
-      }
-      const { adminDb } = await import("@/lib/firebase/admin");
-      await adminDb.collection("projects").doc(projectId).update({
-        healthScore: 100,
-        latestScore: project.latestScore,
-        lastValidatedAt: completedAt,
-        blueprintId: project.blueprintId || null,
-        websiteUrl: project.websiteUrl || null,
-        githubRepoUrl: project.githubRepoUrl || null,
-      });
-    } catch {
-      // Memory fallback store
-    }
+    // Update project health score, latestScore, and lastValidatedAt
+    const updatedProj = await updateProject(projectId, {
+      healthScore: 100,
+      latestScore: launchResult.overallScore,
+      lastValidatedAt: completedAt,
+      blueprintId: project.blueprintId || null,
+      websiteUrl: webUrl === null && ghUrl ? null : project.websiteUrl || null,
+      githubRepoUrl: ghUrl || project.githubRepoUrl || null,
+    });
 
     return NextResponse.json({
       success: true,
