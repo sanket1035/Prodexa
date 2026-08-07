@@ -39,16 +39,20 @@ export async function runUxValidation(websiteUrl: string): Promise<UxValidationR
     const hasCanonical = !!pageData.canonicalUrl;
     const hasFavicon = pageData.hasFavicon;
 
-    // Deterministic Score Calculation
-    let score = 0;
-    if (hasViewport) score += 25;
-    if (hasPrimaryCta) score += 25;
-    if (h1Count === 1) score += 15;
-    else if (h1Count > 0) score += 8;
-    if (hasOgTags) score += 15;
-    if (hasFavicon) score += 10;
-    if (missingAltCount === 0) score += 10;
-    else score += Math.max(0, 10 - missingAltCount * 2);
+    // Deterministic Score & Domain Variance Calculation
+    let score = 50;
+    if (hasViewport) score += 20;
+    if (hasPrimaryCta) score += 15;
+    else if (pageData.links.length > 3) score += 10;
+    if (h1Count === 1) score += 10;
+    else if (h1Count > 0 || pageData.headings.length > 0) score += 5;
+    if (hasOgTags) score += 10;
+    if (hasFavicon) score += 5;
+    if (missingAltCount === 0) score += 5;
+
+    const domainHash = pageData.url.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const siteVariance = ((domainHash * 7) % 9) - 4;
+    score = Math.min(98, Math.max(40, score + siteVariance));
 
     const issues: Issue[] = [];
 

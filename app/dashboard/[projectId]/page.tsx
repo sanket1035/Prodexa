@@ -163,20 +163,28 @@ function DashboardContent() {
       if (data.success && data.project) {
         setProject(data.project);
         setShowAssetDrawer(false);
-        handleRevalidate();
+        await handleRevalidate(inputWebsite, inputGithub);
       }
     } catch (err) { console.error(err); }
     finally { setUpdatingAssets(false); }
   };
 
-  const handleRevalidate = async () => {
+  const handleRevalidate = async (overrideWebUrl?: string | React.MouseEvent, overrideGhUrl?: string) => {
     if (!project) return;
     setRevalidating(true);
     try {
+      const targetWebUrl = typeof overrideWebUrl === "string" ? overrideWebUrl : inputWebsite;
+      const targetGhUrl = typeof overrideGhUrl === "string" ? overrideGhUrl : inputGithub;
+
       const res = await fetch("/api/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId: project.id, userId: project.userId }),
+        body: JSON.stringify({
+          projectId: project.id,
+          userId: project.userId,
+          websiteUrl: targetWebUrl || null,
+          githubRepoUrl: targetGhUrl || null,
+        }),
       });
       const data = await res.json();
       if (data.success && data.runId) {
@@ -185,6 +193,10 @@ function DashboardContent() {
         }
         if (data.project) {
           setProject(data.project);
+          const rawUrl = data.project.websiteUrl || "";
+          const isPlaceholder = rawUrl.includes("example-landing-page.com") || rawUrl === "https://example.com";
+          setInputWebsite(isPlaceholder ? "" : rawUrl);
+          setInputGithub(data.project.githubRepoUrl || "");
           if (typeof window !== "undefined" && user) {
             const userCached = localStorage.getItem(`prodexa_projects_${user.uid}`);
             if (userCached) {

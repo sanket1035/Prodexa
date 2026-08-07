@@ -83,7 +83,7 @@ export async function scrapeLandingPage(targetUrl: string): Promise<ScrapedPageD
     const h1Count = $("h1").length;
 
     const buttons: string[] = [];
-    $("button, a.btn, a[class*='button']").each((_, el) => {
+    $("button, a.btn, a[class*='btn'], a[class*='button'], div[role='button'], input[type='submit'], a[href*='sign'], a[href*='get-started'], a[href*='login'], a[href*='app']").each((_, el) => {
       const text = $(el).text().replace(/\s+/g, " ").trim();
       if (text && text.length < 50 && !buttons.includes(text)) {
         buttons.push(text);

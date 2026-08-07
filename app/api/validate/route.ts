@@ -24,7 +24,7 @@ function getDynamicScore(baseScore: number | null, urlKey: string, seedOffset: n
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { projectId, userId = "demo-user-123", pitchDeckText } = body;
+    const { projectId, userId = "demo-user-123", pitchDeckText, websiteUrl: bodyWebUrl, githubRepoUrl: bodyGhUrl } = body;
 
     if (!projectId) {
       return NextResponse.json({ success: false, message: "projectId is required" }, { status: 400 });
@@ -34,6 +34,10 @@ export async function POST(req: NextRequest) {
     if (!project) {
       return NextResponse.json({ success: false, message: "Project not found" }, { status: 404 });
     }
+
+    // Override project URLs if explicitly provided in validate request body
+    if (bodyWebUrl !== undefined && bodyWebUrl !== null) project.websiteUrl = bodyWebUrl;
+    if (bodyGhUrl !== undefined && bodyGhUrl !== null) project.githubRepoUrl = bodyGhUrl;
 
     // Auto-separate github URL if pasted in websiteUrl
     let webUrl = project.websiteUrl;
