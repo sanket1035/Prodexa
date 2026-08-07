@@ -72,7 +72,7 @@ export async function runProductUnderstanding(
         severity: "medium",
         title: "Page title tag is underspecified",
         description: "The `<title>` tag should contain both product name and primary core benefit.",
-        fixText: `<title>${pageData.title || 'Prodexa'} — Autonomous Pre-Launch Readiness Platform</title>`,
+        fixText: `<title>${pageData.title || 'Your Product'} — Clear Value Proposition Here</title>`, // FB-003 FIX: removed Prodexa brand reference
       });
     }
 

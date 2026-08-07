@@ -125,7 +125,7 @@ export async function scrapeLandingPage(targetUrl: string): Promise<ScrapedPageD
       title,
       metaDescription,
       headings: headings.length > 0 ? headings : [{ level: "h1", text: title }],
-      buttons: buttons.length > 0 ? buttons : ["Get Started"],
+      buttons, // FB-005 FIX: never inject fake buttons — empty array means no CTA detected
       links,
       images,
       hasViewportMeta,
@@ -138,7 +138,7 @@ export async function scrapeLandingPage(targetUrl: string): Promise<ScrapedPageD
       hasStructuredData,
       missingAltCount,
       h1Count,
-      textLength: Math.max(500, bodyText.length),
+      textLength: bodyText.length, // FB-006 FIX: real length, no artificial inflation
       bodyText: bodyText.substring(0, 4000) || `${domainName} official production website.`,
       htmlContent: html.substring(0, 10000),
       fetchTimeMs,

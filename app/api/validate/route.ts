@@ -43,48 +43,61 @@ export async function POST(req: NextRequest) {
       webUrl = null;
     }
 
-    const auditWebUrl = webUrl || "https://prodexa.ai";
+    // FB-001 FIX: Never fall back to prodexa.ai — skip web modules if no website provided
+    const hasWebsite = Boolean(webUrl && webUrl.trim() !== "");
+    const auditWebUrl = webUrl as string; // only used when hasWebsite is true
 
     // Execute 6 readiness analysis modules synchronously
     const allIssues: Issue[] = [];
     const engResult = await runEngineeringAnalysis(ghUrl || null);
-    const prodResult = await runProductUnderstanding(auditWebUrl);
-    const uxResult = await runUxValidation(auditWebUrl);
-    const perfResult = await runPerformanceAudit(auditWebUrl);
-    const bizResult = await runBusinessReview(auditWebUrl, pitchDeckText);
+
+    // Web modules only execute when a real website URL is present
+    const prodResult = hasWebsite
+      ? await runProductUnderstanding(auditWebUrl)
+      : { status: "skipped" as const, reason: "No website URL provided.", score: null, issues: [] as Issue[], summary: "No website URL connected.", targetAudience: "Unknown", valueProposition: "Unknown" };
+    const uxResult = hasWebsite
+      ? await runUxValidation(auditWebUrl)
+      : { status: "skipped" as const, reason: "No website URL provided.", score: null, issues: [] as Issue[], details: { hasViewport: false, hasPrimaryCta: false, missingAltCount: 0, h1Count: 0, hasOgTags: false, hasCanonical: false, hasFavicon: false } };
+    const perfResult = hasWebsite
+      ? await runPerformanceAudit(auditWebUrl)
+      : { status: "skipped" as const, reason: "No website URL provided.", score: null, issues: [] as Issue[], details: { responseTimeMs: 0, estimatedPageSizeBytes: 0, scriptCount: 0 } };
+    const bizResult = hasWebsite
+      ? await runBusinessReview(auditWebUrl, pitchDeckText)
+      : { status: "skipped" as const, reason: "No website URL provided.", score: null, issues: [] as Issue[], businessModel: "Unknown", pricingMentioned: false, contactProvided: false };
 
     allIssues.push(...engResult.issues, ...prodResult.issues, ...uxResult.issues, ...perfResult.issues, ...bizResult.issues);
 
     const hasGithub = Boolean(ghUrl && ghUrl.trim() !== "" && !ghUrl.includes("example.com"));
-    const webReachable = prodResult.status !== "failed";
+    const webReachable = hasWebsite && prodResult.status !== "failed";
     const ghReachable = hasGithub && engResult.status !== "failed";
 
+    const urlSeed = (webUrl || "") + project.name;
     const moduleScores = {
       engineering: hasGithub ? (ghReachable ? getDynamicScore(engResult.score, ghUrl, 1, 65, 95) : 35) : null,
-      productUnderstanding: webReachable ? getDynamicScore(prodResult.score, auditWebUrl, 2, 70, 96) : 30,
-      ux: webReachable ? getDynamicScore(uxResult.score, auditWebUrl, 3, 64, 92) : 25,
-      accessibility: webReachable ? getDynamicScore(uxResult.score ? Math.max(50, uxResult.score - 5) : null, auditWebUrl, 4, 60, 90) : 25,
-      performance: webReachable ? getDynamicScore(perfResult.score, auditWebUrl, 5, 75, 98) : 20,
-      business: getDynamicScore(bizResult.score, (webUrl || "") + project.name, 6, 60, 90),
+      productUnderstanding: webReachable ? getDynamicScore(prodResult.score, auditWebUrl, 2, 70, 96) : (hasWebsite ? 30 : null),
+      ux: webReachable ? getDynamicScore(uxResult.score, auditWebUrl, 3, 64, 92) : (hasWebsite ? 25 : null),
+      accessibility: webReachable ? getDynamicScore(uxResult.score ? Math.max(50, uxResult.score - 5) : null, auditWebUrl, 4, 60, 90) : (hasWebsite ? 25 : null),
+      performance: webReachable ? getDynamicScore(perfResult.score, auditWebUrl, 5, 75, 98) : (hasWebsite ? 20 : null),
+      business: hasWebsite ? getDynamicScore(bizResult.score, urlSeed, 6, 60, 90) : null,
     };
 
     const moduleStatusMap = {
       engineering: { status: hasGithub ? (ghReachable ? ("completed" as const) : ("failed" as const)) : ("skipped" as const), reason: engResult.reason || "No GitHub repository connected" },
-      productUnderstanding: { status: webReachable ? ("completed" as const) : ("failed" as const), reason: prodResult.reason },
-      ux: { status: webReachable ? ("completed" as const) : ("failed" as const), reason: uxResult.reason },
-      accessibility: { status: webReachable ? ("completed" as const) : ("failed" as const) },
-      performance: { status: webReachable ? ("completed" as const) : ("failed" as const), reason: perfResult.reason },
-      business: { status: "completed" as const, reason: bizResult.reason },
+      productUnderstanding: { status: !hasWebsite ? ("skipped" as const) : webReachable ? ("completed" as const) : ("failed" as const), reason: prodResult.reason },
+      ux: { status: !hasWebsite ? ("skipped" as const) : webReachable ? ("completed" as const) : ("failed" as const), reason: (uxResult as any).reason },
+      accessibility: { status: !hasWebsite ? ("skipped" as const) : webReachable ? ("completed" as const) : ("failed" as const) },
+      performance: { status: !hasWebsite ? ("skipped" as const) : webReachable ? ("completed" as const) : ("failed" as const), reason: (perfResult as any).reason },
+      business: { status: !hasWebsite ? ("skipped" as const) : ("completed" as const), reason: (bizResult as any).reason },
     };
 
     let launchResult = runLaunchPlanner(moduleScores, allIssues);
-    // If website is offline or github repo 404, penalize overall launch score dynamically
-    if (!webReachable && !ghReachable) {
-      launchResult.overallScore = 38;
-    } else if (!webReachable) {
-      launchResult.overallScore = 48;
+    // Penalize score when provided inputs fail — do NOT penalize for intentionally omitted website
+    if (!webReachable && hasWebsite && !ghReachable) {
+      launchResult.overallScore = 38; // Both provided but both unreachable
+    } else if (!webReachable && hasWebsite) {
+      launchResult.overallScore = 48; // Website provided but offline
     } else if (hasGithub && !ghReachable) {
-      launchResult.overallScore = 62;
+      launchResult.overallScore = 62; // GitHub provided but 404
     }
 
     const completedAt = new Date().toISOString();
@@ -175,7 +188,7 @@ export async function POST(req: NextRequest) {
 
     // Update project health score, latestScore, and lastValidatedAt
     const updatedProj = await updateProject(projectId, {
-      healthScore: 100,
+      healthScore: launchResult.overallScore, // FB-002 FIX: derived from actual audit score
       latestScore: launchResult.overallScore,
       lastValidatedAt: completedAt,
       blueprintId: project.blueprintId || null,

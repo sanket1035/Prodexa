@@ -73,8 +73,8 @@ export async function runBusinessReview(
         title: "Missing clear contact or support channel link",
         description: "No support email, Discord, or Twitter link was detected in footer or navigation.",
         fixText: `<div className="text-xs text-[#8B8F97]">
-  Have feedback? Reach out to <a href="mailto:support@prodexa.ai" className="text-[#D97B3F] underline">support@prodexa.ai</a> or join our Discord.
-</div>`,
+  Have feedback? Add a support channel: <a href="mailto:support@yourdomain.com" className="text-[#D97B3F] underline">support@yourdomain.com</a>
+</div>`, // FB-004 FIX: removed support@prodexa.ai hardcoded reference
       });
     }
 
