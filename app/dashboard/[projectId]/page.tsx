@@ -180,6 +180,9 @@ function DashboardContent() {
       });
       const data = await res.json();
       if (data.success && data.runId) {
+        if (data.run) {
+          setCurrentRun(data.run);
+        }
         if (data.project) {
           setProject(data.project);
           if (typeof window !== "undefined" && user) {
@@ -194,6 +197,16 @@ function DashboardContent() {
               }
             }
           }
+        }
+        // Immediately sync cached runs in localStorage so history and dashboard update instantly
+        if (typeof window !== "undefined" && data.run) {
+          const cachedRunsStr = localStorage.getItem(`prodexa_runs_${project.id}`);
+          let runsList: ValidationRun[] = [];
+          if (cachedRunsStr) {
+            try { runsList = JSON.parse(cachedRunsStr); } catch {}
+          }
+          runsList = [data.run, ...runsList.filter((r) => r.id !== data.run.id)];
+          localStorage.setItem(`prodexa_runs_${project.id}`, JSON.stringify(runsList));
         }
         router.push(`/dashboard/${project.id}?runId=${data.runId}`);
       }
