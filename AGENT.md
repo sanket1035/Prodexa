@@ -1114,6 +1114,39 @@ FROZEN POLICY:
 =========================================================
 ```
 
+---
+
+## 🎨 16. UI FIXES — Export PDF Button & Workspace Audit Status Sync
+
+### Fix Date: 2026-08-07
+### Commit Hash: `d1d8389`
+
+---
+
+### Bug Fixes Applied
+
+#### 1. PDF Export Button & Styling Added (`app/dashboard/[projectId]/page.tsx`, `app/globals.css`)
+- **Problem**: Header only had an ambiguous "Export" button that downloaded Markdown (`.md`). No explicit PDF button existed.
+- **Fix**: 
+  - Added an explicit **Export PDF** button (`FileText` icon) right next to **Export (.md)** (`FileCode2` icon) in the project dashboard header.
+  - Added `handleExportPDF` handler which invokes `window.print()` (triggering browser native Save-as-PDF / Print dialog).
+  - Added `@media print` CSS rules in `app/globals.css` to hide sidebars, navigation headers, and action buttons during print/save, producing a clean, beautifully formatted 1-page/multi-page Launch Readiness PDF Report.
+
+#### 2. Project Audit Status Sync Fixed (`app/api/validate/route.ts`, `app/projects/page.tsx`)
+- **Problem**: Newly audited projects sometimes displayed `"Unaudited"` in the `/projects` workspace list right after running an audit on the dashboard.
+- **Fix**:
+  - `app/api/validate/route.ts`: Updated response JSON to return `project: updatedProj || project` (which includes `latestScore` and `lastValidatedAt`) instead of returning stale pre-audit `project`.
+  - `app/dashboard/[projectId]/page.tsx`: `handleRevalidate` now updates `setProject(data.project)` and updates `localStorage` cached projects immediately upon audit completion.
+  - `app/projects/page.tsx`: Updated project state merging logic using `Map<string, Project>` so that authoritative server state and local cache merge without dropping non-null `latestScore`.
+
+---
+
+### Build Status
+- **TypeScript**: ✅ 0 errors (`tsc --noEmit`)
+- **Next.js Build**: ✅ 16/16 static & dynamic routes compiled 100% clean
+- **Commit Hash**: `d1d8389`
+
+
 
 
 
