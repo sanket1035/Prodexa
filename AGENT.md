@@ -174,6 +174,16 @@ export interface ProjectMemory {
 - **Files Modified**: `lib/modules/engineering-analysis.ts`
 - **Verification Steps**: Audited `https://github.com/sanket1035/prodexa`, verified license check passed with 0 critical errors.
 
+### [BUG-007] Dashboard Milestone Badges Show No Visual Feedback For 404 / Failed Modules
+- **Problem**: When a module fails (e.g. GitHub API returns 404 for project `proj_2d6x6ej`), the dashboard milestone badges showed the same neutral "not done" grey style — no red error state visible to users.
+- **Root Cause**: `milestoneBadges` array in `app/dashboard/[projectId]/page.tsx` only handled `done: true | false` states. No `failed` property was computed or rendered.
+- **Solution**:
+  1. Updated milestone badge computation to set `failed: true` when `status === "failed"` for each module badge.
+  2. Updated JSX rendering to show red background, red text, and `AlertCircle` icon for any badge with `failed: true`.
+  3. Added `AlertCircle` to lucide-react import list.
+- **Files Modified**: `app/dashboard/[projectId]/page.tsx`
+- **Verification Steps**: Confirmed `tsc --noEmit` returns 0 errors. Confirmed `npm run build` completes 16/16 routes clean.
+
 ---
 
 ## 🎨 6. Design System & UI/UX Standards

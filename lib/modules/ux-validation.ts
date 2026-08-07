@@ -21,10 +21,10 @@ export async function runUxValidation(websiteUrl: string): Promise<UxValidationR
   try {
     const pageData: ScrapedPageData | null = await scrapeLandingPage(websiteUrl);
 
-    if (!pageData) {
+    if (!pageData || !pageData.isReachable) {
       return {
         status: "failed",
-        reason: "Landing page HTML unreachable for UX heuristic audit",
+        reason: `UX validation skipped: website ${websiteUrl} is offline (HTTP ${pageData?.httpStatus || 404})`,
         score: null,
         issues: [],
         details: { hasViewport: false, hasPrimaryCta: false, missingAltCount: 0, h1Count: 0, hasOgTags: false, hasCanonical: false, hasFavicon: false },

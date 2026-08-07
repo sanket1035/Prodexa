@@ -102,10 +102,40 @@ export async function runEngineeringAnalysis(
 
     // 1. Fetch main repo metadata
     const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
-    let repoData: any = {};
-    if (repoRes.ok) {
-      repoData = await repoRes.json();
+    if (!repoRes.ok) {
+      return {
+        status: "failed",
+        reason: `GitHub repository https://github.com/${owner}/${repo} returned HTTP ${repoRes.status} (Not Found or Private)`,
+        score: null,
+        issues: [
+          {
+            id: "eng-github-404",
+            category: "engineering",
+            severity: "critical",
+            title: `GitHub Repository Not Found (HTTP ${repoRes.status})`,
+            description: `Problem: The specified GitHub repository (${owner}/${repo}) returned HTTP ${repoRes.status}.\nWhy it matters: Engineering readiness audit cannot verify codebase structure, README, or license files.\nConfidence: 100%`,
+            fixText: `Verify that https://github.com/${owner}/${repo} is public and correctly named.`,
+          },
+        ],
+        details: {
+          hasReadme: false,
+          hasLicense: false,
+          hasPackageJson: false,
+          recentCommit: false,
+          openIssuesCount: 0,
+          starsCount: 0,
+          forksCount: 0,
+          watchersCount: 0,
+          defaultBranch: "main",
+          primaryLanguage: "Unknown",
+          repoSizeKb: 0,
+          lastCommitDate: null,
+          topics: [],
+        },
+      };
     }
+
+    const repoData: any = await repoRes.json();
 
     // 2. Fetch contents to verify README, LICENSE, package.json
     const contentsRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents`, { headers });

@@ -56,26 +56,37 @@ export async function POST(req: NextRequest) {
     allIssues.push(...engResult.issues, ...prodResult.issues, ...uxResult.issues, ...perfResult.issues, ...bizResult.issues);
 
     const hasGithub = Boolean(ghUrl && ghUrl.trim() !== "" && !ghUrl.includes("example.com"));
+    const webReachable = prodResult.status !== "failed";
+    const ghReachable = hasGithub && engResult.status !== "failed";
 
     const moduleScores = {
-      engineering: hasGithub ? getDynamicScore(engResult.score, ghUrl, 1, 65, 95) : null,
-      productUnderstanding: getDynamicScore(prodResult.score, auditWebUrl, 2, 70, 96),
-      ux: getDynamicScore(uxResult.score, auditWebUrl, 3, 64, 92),
-      accessibility: getDynamicScore(uxResult.score ? Math.max(50, uxResult.score - 5) : null, auditWebUrl, 4, 60, 90),
-      performance: getDynamicScore(perfResult.score, auditWebUrl, 5, 75, 98),
-      business: getDynamicScore(bizResult.score, auditWebUrl + project.name, 6, 68, 94),
+      engineering: hasGithub ? (ghReachable ? getDynamicScore(engResult.score, ghUrl, 1, 65, 95) : 35) : null,
+      productUnderstanding: webReachable ? getDynamicScore(prodResult.score, auditWebUrl, 2, 70, 96) : 30,
+      ux: webReachable ? getDynamicScore(uxResult.score, auditWebUrl, 3, 64, 92) : 25,
+      accessibility: webReachable ? getDynamicScore(uxResult.score ? Math.max(50, uxResult.score - 5) : null, auditWebUrl, 4, 60, 90) : 25,
+      performance: webReachable ? getDynamicScore(perfResult.score, auditWebUrl, 5, 75, 98) : 20,
+      business: getDynamicScore(bizResult.score, (webUrl || "") + project.name, 6, 60, 90),
     };
 
     const moduleStatusMap = {
-      engineering: { status: hasGithub ? "completed" as const : "skipped" as const, reason: engResult.reason || "No GitHub repository connected" },
-      productUnderstanding: { status: "completed" as const, reason: prodResult.reason },
-      ux: { status: "completed" as const, reason: uxResult.reason },
-      accessibility: { status: "completed" as const },
-      performance: { status: "completed" as const, reason: perfResult.reason },
+      engineering: { status: hasGithub ? (ghReachable ? ("completed" as const) : ("failed" as const)) : ("skipped" as const), reason: engResult.reason || "No GitHub repository connected" },
+      productUnderstanding: { status: webReachable ? ("completed" as const) : ("failed" as const), reason: prodResult.reason },
+      ux: { status: webReachable ? ("completed" as const) : ("failed" as const), reason: uxResult.reason },
+      accessibility: { status: webReachable ? ("completed" as const) : ("failed" as const) },
+      performance: { status: webReachable ? ("completed" as const) : ("failed" as const), reason: perfResult.reason },
       business: { status: "completed" as const, reason: bizResult.reason },
     };
 
-    const launchResult = runLaunchPlanner(moduleScores, allIssues);
+    let launchResult = runLaunchPlanner(moduleScores, allIssues);
+    // If website is offline or github repo 404, penalize overall launch score dynamically
+    if (!webReachable && !ghReachable) {
+      launchResult.overallScore = 38;
+    } else if (!webReachable) {
+      launchResult.overallScore = 48;
+    } else if (hasGithub && !ghReachable) {
+      launchResult.overallScore = 62;
+    }
+
     const completedAt = new Date().toISOString();
 
     // Auto-generate AI Blueprint during Launch Audit if project doesn't have one attached!

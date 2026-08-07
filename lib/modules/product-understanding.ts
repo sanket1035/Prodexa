@@ -18,13 +18,23 @@ export async function runProductUnderstanding(
   try {
     const pageData: ScrapedPageData | null = await scrapeLandingPage(websiteUrl);
 
-    if (!pageData) {
+    if (!pageData || !pageData.isReachable) {
+      const statusReason = `Website URL ${websiteUrl} is unreachable (HTTP ${pageData?.httpStatus || 404})`;
       return {
         status: "failed",
-        reason: "Unable to reach or parse landing page HTML",
+        reason: statusReason,
         score: null,
-        issues: [],
-        summary: "Landing page could not be analyzed.",
+        issues: [
+          {
+            id: "prod-website-unreachable",
+            category: "product",
+            severity: "critical",
+            title: `Website Offline or Unreachable (HTTP ${pageData?.httpStatus || 404})`,
+            description: `Problem: The target website URL (${websiteUrl}) returned HTTP ${pageData?.httpStatus || 404} or failed DNS lookup.\nWhy it matters: Pre-launch readiness audit requires a live landing page to evaluate product value proposition, typography, and meta tags.\nConfidence: 100%`,
+            fixText: `Deploy a live website to ${websiteUrl} and run audit again.`,
+          },
+        ],
+        summary: "Target website is unreachable or offline.",
         targetAudience: "Unknown",
         valueProposition: "Unknown",
       };

@@ -15,7 +15,7 @@ import { generateMarkdownReport, downloadFile } from "@/lib/pdf/exporter";
 import {
   RefreshCw, FileCode2, TrendingUp,
   Globe, GitBranch, Activity, Lightbulb, Bot,
-  CheckCircle2, PlusCircle, Sparkles, X,
+  CheckCircle2, AlertCircle, PlusCircle, Sparkles, X,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -228,13 +228,21 @@ function DashboardContent() {
   }
 
   let healthScore = project.healthScore || 25;
-  if (currentRun?.status === "completed") healthScore = 100;
+  const prodStatus = currentRun?.moduleStatus?.productUnderstanding?.status;
+  const engStatus = currentRun?.moduleStatus?.engineering?.status;
+
+  const webOk = Boolean(project.websiteUrl) && prodStatus !== "failed";
+  const ghOk = Boolean(project.githubRepoUrl) && engStatus !== "failed";
+
+  if (currentRun?.status === "completed") {
+    healthScore = (!webOk && !ghOk) ? 35 : (!webOk || (project.githubRepoUrl && !ghOk)) ? 60 : 100;
+  }
 
   const milestoneBadges = [
-    { label: project.blueprintId ? "Blueprint Created" : "Direct Launch Audit", done: Boolean(project.blueprintId || currentRun) },
-    { label: "Website Connected", done: Boolean(project.websiteUrl) },
-    { label: "GitHub Connected", done: Boolean(project.githubRepoUrl) },
-    { label: "Audit Completed", done: currentRun?.status === "completed" },
+    { label: project.blueprintId ? "Blueprint Created" : "Direct Launch Audit", done: Boolean(project.blueprintId || currentRun), failed: false },
+    { label: webOk ? "Website Connected" : (project.websiteUrl ? "Website Offline (404)" : "Website Optional"), done: webOk, failed: Boolean(project.websiteUrl) && !webOk },
+    { label: ghOk ? "GitHub Connected" : (project.githubRepoUrl ? "GitHub Not Found (404)" : "GitHub Optional"), done: ghOk, failed: Boolean(project.githubRepoUrl) && !ghOk },
+    { label: currentRun?.status === "completed" ? "Audit Completed" : "Audit Pending", done: currentRun?.status === "completed", failed: false },
   ];
 
   return (
@@ -349,12 +357,18 @@ function DashboardContent() {
             <div
               key={idx}
               className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs transition-all ${
-                m.done
+                m.failed
+                  ? "bg-red-500/10 border-red-500/30 text-red-400"
+                  : m.done
                   ? "badge-green"
                   : "badge-muted"
               }`}
             >
-              <CheckCircle2 className={`w-3.5 h-3.5 flex-shrink-0 ${m.done ? "text-green-500" : "opacity-40"}`} />
+              {m.failed ? (
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 text-red-500" />
+              ) : (
+                <CheckCircle2 className={`w-3.5 h-3.5 flex-shrink-0 ${m.done ? "text-green-500" : "opacity-40"}`} />
+              )}
               <span className="font-medium truncate">{m.label}</span>
             </div>
           ))}

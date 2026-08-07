@@ -2,6 +2,8 @@ import * as cheerio from "cheerio";
 
 export interface ScrapedPageData {
   url: string;
+  isReachable: boolean;
+  httpStatus: number | null;
   title: string;
   metaDescription: string;
   headings: { level: string; text: string }[];
@@ -53,7 +55,7 @@ export async function scrapeLandingPage(targetUrl: string): Promise<ScrapedPageD
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      return createDynamicFallback(targetUrl, domainName, isHttps, Date.now() - startTime);
+      return createUnreachableFallback(targetUrl, domainName, isHttps, res.status, Date.now() - startTime);
     }
 
     const html = await res.text();
@@ -118,6 +120,8 @@ export async function scrapeLandingPage(targetUrl: string): Promise<ScrapedPageD
 
     return {
       url: targetUrl,
+      isReachable: true,
+      httpStatus: res.status,
       title,
       metaDescription,
       headings: headings.length > 0 ? headings : [{ level: "h1", text: title }],
@@ -142,32 +146,40 @@ export async function scrapeLandingPage(targetUrl: string): Promise<ScrapedPageD
   } catch (error) {
     const isHttps = targetUrl.startsWith("https://");
     const domainName = targetUrl.replace(/^https?:\/\//, "").split("/")[0] || "Target Website";
-    return createDynamicFallback(targetUrl, domainName, isHttps, Date.now() - startTime);
+    return createUnreachableFallback(targetUrl, domainName, isHttps, null, Date.now() - startTime);
   }
 }
 
-function createDynamicFallback(targetUrl: string, domainName: string, isHttps: boolean, fetchTimeMs: number): ScrapedPageData {
+function createUnreachableFallback(
+  targetUrl: string,
+  domainName: string,
+  isHttps: boolean,
+  httpStatus: number | null,
+  fetchTimeMs: number
+): ScrapedPageData {
   return {
     url: targetUrl,
-    title: `${domainName} — Production Application`,
-    metaDescription: `Official website and product landing page for ${domainName}.`,
-    headings: [{ level: "h1", text: `${domainName} — Official Portal` }],
-    buttons: ["Get Started", "Learn More"],
-    links: [{ text: "Documentation", href: "/docs" }, { text: "Contact", href: "/contact" }],
-    images: [{ alt: `${domainName} Hero Image`, src: "/hero.png" }],
-    hasViewportMeta: true,
-    canonicalUrl: targetUrl,
-    hasOgTitle: true,
-    hasOgImage: true,
-    hasTwitterCard: true,
-    hasFavicon: true,
+    isReachable: false,
+    httpStatus: httpStatus || 404,
+    title: `404 Not Found — ${domainName}`,
+    metaDescription: `Website at ${targetUrl} returned HTTP ${httpStatus || 404} or was unreachable.`,
+    headings: [],
+    buttons: [],
+    links: [],
+    images: [],
+    hasViewportMeta: false,
+    canonicalUrl: null,
+    hasOgTitle: false,
+    hasOgImage: false,
+    hasTwitterCard: false,
+    hasFavicon: false,
     isHttps,
-    hasStructuredData: true,
+    hasStructuredData: false,
     missingAltCount: 0,
-    h1Count: 1,
-    textLength: 1200,
-    bodyText: `${domainName} is an active web application. Verified via Prodexa Scraper Engine.`,
-    htmlContent: `<html><head><title>${domainName}</title></head><body><h1>${domainName}</h1></body></html>`,
+    h1Count: 0,
+    textLength: 0,
+    bodyText: "",
+    htmlContent: "",
     fetchTimeMs,
   };
 }

@@ -19,10 +19,10 @@ export async function runPerformanceAudit(websiteUrl: string): Promise<Performan
     const pageData = await scrapeLandingPage(websiteUrl);
     const responseTimeMs = pageData ? pageData.fetchTimeMs : Date.now() - startTime;
 
-    if (!pageData) {
+    if (!pageData || !pageData.isReachable) {
       return {
         status: "failed",
-        reason: "Performance snapshot unable to measure HTTP latency",
+        reason: `Performance audit skipped: website ${websiteUrl} is offline (HTTP ${pageData?.httpStatus || 404})`,
         score: null,
         issues: [],
         details: { responseTimeMs: 0, estimatedPageSizeBytes: 0, scriptCount: 0 },
