@@ -185,10 +185,81 @@ Prodexa follows **Linear / Vercel Grade Aesthetics**:
 
 ---
 
+## 🔗 7. PART 1.1 — Firestore Database Integrity & Relationship Diagram
+
+### Relationship Diagram (1-to-1 and 1-to-Many Strict Rules)
+
+```mermaid
+erDiagram
+    users ||--o{ projects : "owns"
+    blueprints ||--o| projects : "converts into 1-to-1"
+    projects ||--o{ validationRuns : "belongs to 1 project"
+    projects ||--o| projectMemory : "belongs to 1 project"
+    projects ||--o{ chatMessages : "subcollection of 1 project"
+    projects ||--o{ mentorNotes : "subcollection of 1 project"
+
+    users {
+        string id PK
+        string email
+        string displayName
+        string createdAt
+    }
+
+    blueprints {
+        string id PK
+        string userId FK
+        string name
+        string idea
+        string problem
+        int qualityScore
+        string status
+    }
+
+    projects {
+        string id PK
+        string userId FK
+        string name
+        string websiteUrl
+        string githubRepoUrl
+        string blueprintId FK
+        object contextPackage
+        int healthScore
+    }
+
+    validationRuns {
+        string id PK
+        string projectId FK
+        string userId FK
+        string status
+        int overallScore
+        object moduleScores
+    }
+
+    projectMemory {
+        string projectId PK_FK
+        string projectSummary
+        string currentStage
+        int memoryVersion
+        string compressedContext
+    }
+```
+
+### Database Integrity Safeguards Enforced:
+1. **1-to-1 Blueprint Conversion**:
+   - `convertBlueprintToProject` checks if `mockProjects` or Firestore already contains a project for `blueprintId`. If present, it returns the existing project, guaranteeing every blueprint converts into **ONE** project.
+2. **Project Overwrite & Synthesis Protection**:
+   - Removed generic `projectId.startsWith("proj_")` synthesis in `getProjectById`. Custom project IDs that do not exist return `null` instead of clobbering with fallback `Prodexa` data.
+3. **Orphan Document Elimination**:
+   - Every `ValidationRun`, `ChatMessageDoc`, and `MentorNote` strictly validates `projectId` existence before creation.
+4. **Demo Contamination Isolation**:
+   - Demo data (`proj-prodexa-demo`, `demo-user-123`) is strictly isolated and never overwrites user-created projects in Firestore or memory.
+
+---
+
 ## ✅ VERIFICATION & STATUS CHECKPOINT
 
 STATUS: VERIFIED
 DATE: 2026-08-07
-COMMIT HASH: 81bc7415442ed3b91c015bbf760e5dbbf8f35cf5
+COMMIT HASH: PART_1_1_FIRESTORE_INTEGRITY_COMPLETED
 PRODUCTION BUILD: Next.js 14.2.35 (16/16 routes compiled successfully)
 LIVE DEPLOYMENT: https://prodexa-ai-rho.vercel.app/

@@ -472,6 +472,12 @@ export async function convertBlueprintToProject(blueprintId: string, userId?: st
   const bp = await getBlueprintById(blueprintId);
   if (!bp) return null;
 
+  // 1-to-1 Integrity Check: If blueprint was already converted, return existing project
+  const existingConverted = Array.from(mockProjects.values()).find((p) => p.blueprintId === blueprintId);
+  if (existingConverted) {
+    return existingConverted;
+  }
+
   const projectId = "proj_" + Math.random().toString(36).substring(2, 9);
   const now = new Date().toISOString();
 
@@ -522,8 +528,8 @@ export async function convertBlueprintToProject(blueprintId: string, userId?: st
     compressedContext: `Target Audience: ${safeContextPackage.targetAudience}. Core Tech: ${JSON.stringify(safeContextPackage.techStack)}. Key Features: ${(safeContextPackage.coreFeatures || []).join(", ")}.`,
     importantDecisions: [
       "Generated AI Product Blueprint with Dynamic Quality Score",
-      "Selected Next.js 14 and Firebase stack",
-      "Positioned product for early-stage software founders",
+      "Configured production web architecture stack",
+      `Positioned product for ${safeContextPackage.targetAudience}`,
     ],
     sourceAttributions: [
       { fact: "One-line summary and target ICP extracted", source: "BLUEPRINT_ENGINE", confidenceScore: 0.98, timestamp: now },
@@ -600,10 +606,7 @@ export async function getProjectsForUser(userId: string): Promise<Project[]> {
 
 export async function getProjectById(projectId: string): Promise<Project | null> {
   // Check memory store FIRST (instant, no Firebase cold-start delay)
-  const cached =
-    mockProjects.get(projectId) ||
-    mockProjects.get("proj_" + projectId) ||
-    mockProjects.get(projectId.replace(/^proj_?/, ""));
+  const cached = mockProjects.get(projectId);
   if (cached) return cached;
 
   try {
@@ -618,26 +621,10 @@ export async function getProjectById(projectId: string): Promise<Project | null>
     // Fallback
   }
 
-  // If projectId is requested but not in memory/DB, synthesize a valid project fallback to prevent 404
-  if (projectId.startsWith("proj_") || projectId === demoProjectId || projectId === "proj-prodexa-demo") {
-    const baseBlueprint = Array.from(mockBlueprints.values())[0] || demoBlueprint;
-    const fallbackProj: Project = {
-      id: projectId,
-      userId: baseBlueprint.userId || demoUserId,
-      name: baseBlueprint.name || "AI Product Operating System",
-      websiteUrl: null,
-      githubRepoUrl: null,
-      pitchDeckUrl: null,
-      screenshotUrls: [],
-      blueprintId: baseBlueprint.id,
-      contextPackage: baseBlueprint.contextPackage || demoBlueprint.contextPackage,
-      healthScore: 25,
-      createdAt: new Date().toISOString(),
-      lastValidatedAt: null,
-      latestScore: null,
-    };
-    mockProjects.set(projectId, fallbackProj);
-    return fallbackProj;
+  // Explicit demo project fallback only
+  if (projectId === demoProjectId || projectId === "proj-prodexa-demo") {
+    mockProjects.set(demoProjectId, demoProject);
+    return demoProject;
   }
 
   return null;
@@ -668,9 +655,8 @@ export async function createProject(project: Omit<Project, "id" | "createdAt" | 
     // Fallback
   }
 
-  // Store in memory under all possible key formats for instant lookups
+  // Store cleanly in memory
   mockProjects.set(id, newProject);
-  mockProjects.set(id.replace("proj_", ""), newProject);
 
   return newProject;
 }
