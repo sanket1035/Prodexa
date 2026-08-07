@@ -484,21 +484,22 @@ export async function convertBlueprintToProject(blueprintId: string, userId?: st
   const safeContextPackage: ContextPackage = bp.contextPackage || {
     blueprintId: bp.id,
     projectName: bp.name,
-    oneLineSummary: bp.idea || bp.name,
-    problemStatement: bp.problem || "Early-stage software builders launch without structured pre-launch audit feedback.",
-    targetAudience: bp.targetUsers || "Early stage software founders, hackathon teams, incubator directors",
+    oneLineSummary: bp.idea || `Platform for ${bp.name}`,
+    problemStatement: bp.problem || `Solving core user pain points for ${bp.name}`,
+    targetAudience: bp.targetUsers || "Target users & developers",
     coreFeatures: [
-      "AI Blueprint Generator & Architecture Visualizer",
-      "6-Module Deterministic Launch Readiness Audit",
-      "Context-Aware AI Co-Founder Strategy Advisor",
-      "One-Click Starter Kit Multi-File Exporter"
+      `Core Workflow Engine for ${bp.name}`,
+      `User Management & Data Pipeline`,
+      `Interactive Analytics Dashboard`,
     ],
     techStack: {
       frontend: "Next.js 14, React, Tailwind CSS",
-      backend: "Next.js Server API Routes",
-      database: "Firebase Firestore",
+      backend: "Server API Routes",
+      database: "PostgreSQL / Firestore",
       hosting: "Vercel Serverless Network"
-    }
+    },
+    keyCompetitors: ["Legacy Workflows", "Manual Processes"],
+    generatedAt: now,
   };
 
   const effectiveUserId = userId || bp.userId || demoUserId;
