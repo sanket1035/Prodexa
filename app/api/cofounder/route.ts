@@ -31,13 +31,16 @@ export async function GET(req: NextRequest) {
     }
 
     const project = await getProjectById(projectId);
-    const projectName = project ? getDerivedProjectName(project) : "Product Workspace";
+    const rawName = project ? getDerivedProjectName(project) : null;
+    // Never expose the generic fallback to the client — use a project-id slug if all else fails
+    const projectName = (rawName && rawName !== "Product Workspace") ? rawName : (projectId.replace(/-/g, " ") || "Your Project");
 
+    const GENERIC_NAMES_RE = /Product Workspace|Workspace Project/g;
     const messages = await getRecentChatMessages(projectId, 50);
     const cleanedMessages = messages.map((m) => ({
       ...m,
-      text: m.text ? m.text.replace(/Workspace Project/g, projectName).replace(/Product Workspace/g, projectName) : m.text,
-      actionableFix: m.actionableFix ? m.actionableFix.replace(/Workspace Project/g, projectName).replace(/Product Workspace/g, projectName) : m.actionableFix,
+      text: m.text ? m.text.replace(GENERIC_NAMES_RE, projectName) : m.text,
+      actionableFix: m.actionableFix ? m.actionableFix.replace(GENERIC_NAMES_RE, projectName) : m.actionableFix,
     }));
 
     const memory = await getProjectMemory(projectId);
@@ -290,19 +293,10 @@ Output JSON: { "replyText": string (200-400 words, specific to the question), "r
     let finalReplyText = insight.replyText || fallbackReply.replyText;
     let finalActionableFix = insight.actionableFix || fallbackReply.actionableFix;
 
-    // Sanitize any generic brand leakage
-    if (finalReplyText.includes("Product Workspace")) {
-      finalReplyText = finalReplyText.replace(/Product Workspace/g, projectName);
-    }
-    if (finalReplyText.includes("Workspace Project")) {
-      finalReplyText = finalReplyText.replace(/Workspace Project/g, projectName);
-    }
-    if (finalActionableFix.includes("Product Workspace")) {
-      finalActionableFix = finalActionableFix.replace(/Product Workspace/g, projectName);
-    }
-    if (finalActionableFix.includes("Workspace Project")) {
-      finalActionableFix = finalActionableFix.replace(/Workspace Project/g, projectName);
-    }
+    // Aggressively sanitize ALL generic brand leakage patterns (AI sometimes hallucinates these)
+    const GENERIC_NAMES_POST = /Product Workspace|Workspace Project/g;
+    finalReplyText = finalReplyText.replace(GENERIC_NAMES_POST, projectName);
+    finalActionableFix = finalActionableFix.replace(GENERIC_NAMES_POST, projectName);
 
     const replyMsg = await saveChatMessageDoc(projectId, {
       projectId,

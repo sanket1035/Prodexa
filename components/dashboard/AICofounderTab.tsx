@@ -56,12 +56,13 @@ export default function AICofounderTab({
       .then((res) => res.json())
       .then((data) => {
         if (data.success && Array.isArray(data.messages) && data.messages.length > 0) {
+          const GENERIC_RE = /Product Workspace|Workspace Project/g;
           const loadedMsgs: CoFounderMessage[] = data.messages.map((m: any) => ({
             id: m.id,
             sender: m.role === "user" ? "user" : "cofounder",
-            text: m.text,
+            text: m.text ? m.text.replace(GENERIC_RE, projectName) : m.text,
             role: m.advisorRole || "advisor",
-            actionableFix: m.actionableFix,
+            actionableFix: m.actionableFix ? m.actionableFix.replace(GENERIC_RE, projectName) : m.actionableFix,
             timestamp: m.createdAt || new Date().toISOString(),
           }));
           setMessages(loadedMsgs);
