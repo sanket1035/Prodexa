@@ -102,6 +102,23 @@ function DashboardContent() {
             try {
               const c = localStorage.getItem(`prodexa_proj_${projectId}`);
               if (c) cachedProj = JSON.parse(c);
+
+              if (!cachedProj || !cachedProj.websiteUrl || !cachedProj.githubRepoUrl) {
+                for (let i = 0; i < localStorage.length; i++) {
+                  const key = localStorage.key(i);
+                  if (key && key.startsWith("prodexa_projects_")) {
+                    const listStr = localStorage.getItem(key);
+                    if (listStr) {
+                      const list: Project[] = JSON.parse(listStr);
+                      const found = list.find((p: Project) => p.id === projectId);
+                      if (found) {
+                        cachedProj = { ...found, ...cachedProj };
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
             } catch {}
           }
           const realName = (cachedProj && cachedProj.name && cachedProj.name !== "Workspace Project" && cachedProj.name !== "Product Workspace")
@@ -721,7 +738,7 @@ function DashboardContent() {
                   { name: "UX", score: scores?.ux },
                   { name: "Performance", score: scores?.performance },
                   { name: "Business", score: scores?.business },
-                  { name: "Planner", score: (scores as any)?.planner },
+                  { name: "Planner", score: currentRun?.overallScore ?? null },
                 ].map((m) => {
                   const val = m.score ?? 0;
                   const isSkipped = m.score === null || m.score === undefined;
