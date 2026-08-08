@@ -490,7 +490,7 @@ export default function ProjectsPage() {
                         <button
                           onClick={(e) => handleDeleteProject(project.id, e)}
                           disabled={deletingId === project.id}
-                          className="p-1.5 rounded-lg text-xs transition-colors hover:bg-red-500/20 hover:text-red-400"
+                          className="p-1.5 rounded-lg text-xs transition-colors hover:bg-red-500/20 hover:text-red-400 hidden"
                           style={{ color: "var(--text-faint)", border: "1px solid var(--border)" }}
                           title="Delete project from workspace"
                         >
