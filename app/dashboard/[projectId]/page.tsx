@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { Project, ValidationRun } from "@/lib/types/schema";
 import ScoreRadial from "@/components/dashboard/ScoreRadial";
-import ProgressTracker from "@/components/dashboard/ProgressTracker";
+import ProgressTracker, { AuditPipelineViewer } from "@/components/dashboard/ProgressTracker";
 import CategoryCard from "@/components/dashboard/CategoryCard";
 import IssueRow from "@/components/dashboard/IssueRow";
 import RoadmapSection from "@/components/dashboard/RoadmapSection";
@@ -50,6 +50,7 @@ function DashboardContent() {
   const [previousRun, setPreviousRun] = useState<ValidationRun | null>(null);
   const [loading, setLoading] = useState(true);
   const [revalidating, setRevalidating] = useState(false);
+  const [isAuditExecuting, setIsAuditExecuting] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "cofounder">("overview");
   const [showAssetDrawer, setShowAssetDrawer] = useState(false);
   const [inputWebsite, setInputWebsite] = useState("");
@@ -172,6 +173,7 @@ function DashboardContent() {
   const handleRevalidate = async (webUrlOverride?: string, ghUrlOverride?: string) => {
     if (!project) return;
     setRevalidating(true);
+    setIsAuditExecuting(true);
     try {
       const targetWebUrl = typeof webUrlOverride === "string" ? webUrlOverride : (project.websiteUrl || inputWebsite || null);
       const targetGhUrl = typeof ghUrlOverride === "string" ? ghUrlOverride : (project.githubRepoUrl || inputGithub || null);
@@ -189,6 +191,8 @@ function DashboardContent() {
       const data = await res.json();
       if (!data.success) {
         console.error("Audit error:", data.message);
+        setIsAuditExecuting(false);
+        setRevalidating(false);
         return;
       }
       if (data.success && data.runId) {
@@ -524,8 +528,19 @@ function DashboardContent() {
         />
       )}
 
-      {/* TAB: OVERVIEW */}
-      {activeTab === "overview" && (
+      {/* AUDIT PIPELINE EXECUTION VIEW */}
+      {isAuditExecuting ? (
+        <AuditPipelineViewer
+          isExecuting={true}
+          completedRun={currentRun}
+          websiteUrl={project?.websiteUrl || inputWebsite}
+          githubRepoUrl={project?.githubRepoUrl || inputGithub}
+          onFinish={() => {
+            setIsAuditExecuting(false);
+            setRevalidating(false);
+          }}
+        />
+      ) : activeTab === "overview" && (
         <div className="space-y-6">
           {/* Score Improvement Banner */}
           {scoreComparisonText && (

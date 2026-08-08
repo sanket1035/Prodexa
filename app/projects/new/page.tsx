@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthContext";
+import AuditPipelineViewer from "@/components/dashboard/AuditPipelineViewer";
 import { Globe, GitBranch, ArrowRight, AlertCircle, Sparkles, CheckCircle2, Loader2, FileText } from "lucide-react";
 
 const STEPS = [
@@ -24,6 +25,8 @@ export default function NewProjectPage() {
   const [pitchDeckText, setPitchDeckText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [createdTarget, setCreatedTarget] = useState<{ projectId: string; runId: string; completedRun: any } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,7 +99,7 @@ export default function NewProjectPage() {
         }
       }
 
-      router.push(`/dashboard/${projectId}?runId=${runId || ""}`);
+      setCreatedTarget({ projectId, runId, completedRun: valData.run });
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred");
       setLoading(false);
@@ -105,24 +108,20 @@ export default function NewProjectPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="max-w-sm w-full card p-8 space-y-6 text-center anim-fade">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto" style={{ background: "rgba(217,119,6,0.12)", border: "1px solid rgba(217,119,6,0.2)" }}>
-            <Loader2 className="w-6 h-6 anim-spin" style={{ color: "var(--accent)" }} />
-          </div>
-          <div>
-            <h3 className="text-base font-semibold" style={{ color: "var(--text)" }}>Initializing Analysis</h3>
-            <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>Running 6 readiness modules...</p>
-          </div>
-          <div className="space-y-2.5 text-left pt-2 border-t" style={{ borderColor: "var(--border)" }}>
-            {STEPS.map((st, idx) => (
-              <div key={idx} className="flex items-center gap-2.5 text-xs">
-                <div className="w-1.5 h-1.5 rounded-full anim-pulse flex-shrink-0" style={{ background: "var(--accent)" }} />
-                <span className="font-mono" style={{ color: "var(--text-muted)" }}>{st.replace("...", "")}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="p-6 md:p-8 max-w-4xl mx-auto w-full">
+        <AuditPipelineViewer
+          isExecuting={true}
+          completedRun={createdTarget?.completedRun || null}
+          websiteUrl={websiteUrl}
+          githubRepoUrl={githubRepoUrl}
+          onFinish={() => {
+            if (createdTarget) {
+              router.push(`/dashboard/${createdTarget.projectId}?runId=${createdTarget.runId || ""}`);
+            } else {
+              setLoading(false);
+            }
+          }}
+        />
       </div>
     );
   }
