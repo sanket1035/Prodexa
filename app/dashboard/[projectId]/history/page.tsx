@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Project, ValidationRun } from "@/lib/types/schema";
+import { getDerivedProjectName } from "@/lib/utils/project-name";
 import { ArrowLeft, TrendingUp, History, CheckCircle2, ShieldCheck, Sparkles, Clock, Calendar } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -113,7 +114,7 @@ export default function HistoryPage() {
             Back to Launch Dashboard
           </Link>
           <h1 className="text-xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>
-            {project.name} — Execution Timeline
+            {getDerivedProjectName(project)} — Execution Timeline
           </h1>
         </div>
 
