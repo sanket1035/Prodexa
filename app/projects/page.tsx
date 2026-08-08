@@ -334,8 +334,25 @@ export default function ProjectsPage() {
             <div className="space-y-3">
               {projects.map((project, idx) => {
                 const { score: effectiveScore, date: effectiveDate } = getEffectiveProjectScore(project);
-                const hasWebsite = Boolean(project.websiteUrl && !project.websiteUrl.includes("example-landing-page.com"));
-                const hasGithub = Boolean(project.githubRepoUrl && project.githubRepoUrl.trim() !== "");
+
+                // Try to read URLs from cached runs if project object has null URLs
+                let effectiveWebUrl = project.websiteUrl && !project.websiteUrl.includes("example-landing-page.com") ? project.websiteUrl : null;
+                let effectiveGhUrl = project.githubRepoUrl && project.githubRepoUrl.trim() !== "" ? project.githubRepoUrl : null;
+                if ((!effectiveWebUrl || !effectiveGhUrl) && typeof window !== "undefined") {
+                  const cachedRunsStr = localStorage.getItem(`prodexa_runs_${project.id}`);
+                  if (cachedRunsStr) {
+                    try {
+                      const runs = JSON.parse(cachedRunsStr);
+                      if (Array.isArray(runs) && runs.length > 0) {
+                        const latestRun = runs[0];
+                        if (!effectiveWebUrl && latestRun.websiteUrl && !latestRun.websiteUrl.includes("example-landing-page.com")) effectiveWebUrl = latestRun.websiteUrl;
+                        if (!effectiveGhUrl && latestRun.githubRepoUrl && latestRun.githubRepoUrl.trim() !== "") effectiveGhUrl = latestRun.githubRepoUrl;
+                      }
+                    } catch {}
+                  }
+                }
+                const hasWebsite = Boolean(effectiveWebUrl);
+                const hasGithub = Boolean(effectiveGhUrl);
 
                 return (
                   <div
@@ -408,12 +425,12 @@ export default function ProjectsPage() {
                         <div className="flex items-center gap-3 text-xs font-mono pt-1">
                           <div className={`flex items-center gap-1.5 ${hasWebsite ? "text-green-400" : "text-zinc-500"}`}>
                             <Globe className="w-3.5 h-3.5" />
-                            <span>{hasWebsite ? project.websiteUrl?.replace(/^https?:\/\//, "").split("/")[0] : "Website Unconnected"}</span>
+                            <span>{hasWebsite ? effectiveWebUrl?.replace(/^https?:\/\//, "").split("/")[0] : "Website Unconnected"}</span>
                           </div>
 
                           <div className={`flex items-center gap-1.5 ${hasGithub ? "text-amber-400" : "text-zinc-500"}`}>
                             <GitBranch className="w-3.5 h-3.5" />
-                            <span>{hasGithub ? project.githubRepoUrl?.replace("https://github.com/", "") : "Repo Unconnected"}</span>
+                            <span>{hasGithub ? effectiveGhUrl?.replace("https://github.com/", "") : "Repo Unconnected"}</span>
                           </div>
                         </div>
 

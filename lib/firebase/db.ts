@@ -717,6 +717,7 @@ export async function updateProject(projectId: string, updates: Partial<Project>
   if (!existing) return null;
 
   const safeUpdates: Partial<Project> = { ...updates };
+  // Only skip update if both: new value is falsy AND existing already has a value (don't clear a set URL)
   if (!safeUpdates.websiteUrl && existing.websiteUrl) delete safeUpdates.websiteUrl;
   if (!safeUpdates.githubRepoUrl && existing.githubRepoUrl) delete safeUpdates.githubRepoUrl;
   if ((!safeUpdates.name || safeUpdates.name === "Workspace Project" || safeUpdates.name === "Product Workspace") && existing.name && existing.name !== "Workspace Project" && existing.name !== "Product Workspace") {
