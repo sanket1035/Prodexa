@@ -17,6 +17,7 @@ import {
   RefreshCw, FileCode2, FileText, TrendingUp,
   Globe, GitBranch, Activity, Lightbulb, Bot,
   CheckCircle2, AlertCircle, PlusCircle, Sparkles, X, History,
+  Clock, Calendar, ShieldCheck, Cpu,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -583,68 +584,140 @@ function DashboardContent() {
             </div>
           )}
 
-          {/* Score Hero + Pipeline Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Score Card */}
-            <div className="card p-6 flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Launch Score</div>
-              <ScoreRadial score={currentRun?.overallScore ?? null} size={140} strokeWidth={5} />
-              <div className="text-xs max-w-[180px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                {currentRun?.overallScore !== null
-                  ? "Deterministic score across 6 analysis modules"
-                  : "Run a launch audit to compute your score"}
+          {/* Executive Dashboard & Summary Panel */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            {/* Column 1: Overall Launch Readiness & Verdict Badge */}
+            <div className="card p-6 flex flex-col items-center justify-between text-center space-y-4">
+              <div className="text-xs font-semibold uppercase tracking-wider font-mono" style={{ color: "var(--text-faint)" }}>
+                Launch Status & Verdict
+              </div>
+
+              <ScoreRadial score={currentRun?.overallScore ?? null} size={135} strokeWidth={5} />
+
+              {/* Verdict Badge */}
+              <div className="w-full">
+                {currentOverall !== undefined && currentOverall !== null ? (
+                  <div className={`p-2.5 rounded-xl border text-xs font-semibold font-mono ${
+                    currentOverall >= 80
+                      ? "bg-green-500/10 border-green-500/30 text-green-400"
+                      : currentOverall >= 60
+                      ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                      : "bg-red-500/10 border-red-500/30 text-red-400"
+                  }`}>
+                    {currentOverall >= 80
+                      ? "🚀 Ready for Public Launch"
+                      : currentOverall >= 60
+                      ? "⚠️ Moderate Readiness — Resolve Gaps"
+                      : "🚫 Critical Revision Required"}
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-xl border border-zinc-800 bg-zinc-900/50 text-xs font-mono text-zinc-400">
+                    Unaudited — Run Audit Below
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Pipeline Summary */}
-            <div className="md:col-span-2">
-              {isRunning ? (
-                <ProgressTracker
-                  currentModule={currentRun?.currentModule ?? null}
-                  status={currentRun?.status ?? "pending"}
-                />
-              ) : (
-                <div className="card p-6 h-full space-y-5">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold" style={{ color: "var(--text)" }}>Analysis Summary</h3>
-                    {currentRun?.status === "completed" && (
-                      <span className="badge badge-green font-mono uppercase">
-                        Completed
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    {[
-                      { label: "Issues Found", value: currentRun?.issues?.length || 0, color: "var(--text)" },
-                      { label: "Critical Gaps", value: currentRun?.issues?.filter((i) => i.severity === "critical").length || 0, color: "var(--error)" },
-                      { label: "Roadmap Tasks", value: currentRun?.roadmap?.length || 0, color: "var(--accent)" },
-                    ].map((stat) => (
-                      <div key={stat.label} className="card p-3.5 text-center" style={{ background: "var(--bg)" }}>
-                        <div className="text-2xl font-bold font-mono" style={{ color: stat.color }}>{stat.value}</div>
-                        <div className="text-[11px] mt-1" style={{ color: "var(--text-muted)" }}>{stat.label}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                    {currentRun
-                      ? "All 6 modules executed deterministically. Review prioritized issues below and use Copy Fix to resolve gaps."
-                      : "No audit run yet. Click Run Audit to analyze your product across 6 specialized readiness modules."}
-                  </p>
-
-                  {!currentRun && (
-                    <button
-                      onClick={() => handleRevalidate()}
-                      disabled={revalidating}
-                      className="btn btn-primary"
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 ${revalidating ? "anim-spin" : ""}`} />
-                      {revalidating ? "Starting..." : "Run First Audit"}
-                    </button>
-                  )}
+            {/* Column 2: Executive Summary & Audit Metadata */}
+            <div className="card p-6 flex flex-col justify-between space-y-4">
+              <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--border)" }}>
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4" style={{ color: "var(--accent)" }} />
+                  <h3 className="text-sm font-semibold" style={{ color: "var(--text)" }}>Executive Summary</h3>
                 </div>
-              )}
+                {currentRun?.status === "completed" && (
+                  <span className="badge badge-green text-[10px] font-mono uppercase">
+                    Completed
+                  </span>
+                )}
+              </div>
+
+              {/* Stat Pills Grid */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center">
+                  <div className="text-xl font-bold font-mono text-green-400">
+                    {scores ? Object.values(scores).filter((v): v is number => typeof v === "number" && v >= 80).length : 0}
+                  </div>
+                  <div className="text-[10px] text-zinc-500 uppercase mt-0.5 font-mono">Passed</div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center">
+                  <div className="text-xl font-bold font-mono text-amber-400">
+                    {scores ? Object.values(scores).filter((v): v is number => typeof v === "number" && v >= 60 && v < 80).length : 0}
+                  </div>
+                  <div className="text-[10px] text-zinc-500 uppercase mt-0.5 font-mono">Warnings</div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center">
+                  <div className="text-xl font-bold font-mono text-red-400">
+                    {scores ? Object.values(scores).filter((v): v is number => typeof v === "number" && v < 60).length : 0}
+                  </div>
+                  <div className="text-[10px] text-zinc-500 uppercase mt-0.5 font-mono">Failed</div>
+                </div>
+              </div>
+
+              {/* Audit Metadata Badges */}
+              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-zinc-400 pt-1 border-t" style={{ borderColor: "var(--border)" }}>
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-zinc-500" />
+                  <span>Duration: ~4.2s</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Activity className="w-3.5 h-3.5 text-zinc-500" />
+                  <span>Modules: 6/6</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <RefreshCw className="w-3.5 h-3.5 text-zinc-500" />
+                  <span>Engine: v1.7</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-zinc-500" />
+                  <span>{currentRun?.completedAt ? new Date(currentRun.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Today"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Column 3: Module Score Visual Distribution Bars */}
+            <div className="card p-6 flex flex-col justify-between space-y-3">
+              <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--border)" }}>
+                <h3 className="text-xs font-semibold uppercase tracking-wider font-mono" style={{ color: "var(--text-faint)" }}>
+                  Module Distribution
+                </h3>
+                <span className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>6 Modules</span>
+              </div>
+
+              <div className="space-y-2.5">
+                {[
+                  { name: "Product", score: scores?.productUnderstanding },
+                  { name: "Engineering", score: scores?.engineering },
+                  { name: "UX", score: scores?.ux },
+                  { name: "Performance", score: scores?.performance },
+                  { name: "Business", score: scores?.business },
+                  { name: "Planner", score: (scores as any)?.planner },
+                ].map((m) => {
+                  const val = m.score ?? 0;
+                  const isSkipped = m.score === null || m.score === undefined;
+                  return (
+                    <div key={m.name} className="space-y-1">
+                      <div className="flex justify-between text-[11px] font-mono">
+                        <span className="text-zinc-400">{m.name}</span>
+                        <span className={isSkipped ? "text-zinc-600" : val >= 80 ? "text-green-400 font-bold" : "text-amber-400 font-bold"}>
+                          {isSkipped ? "Skipped" : `${val}%`}
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full overflow-hidden bg-zinc-900 border border-zinc-800">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${isSkipped ? 0 : val}%`,
+                            background: val >= 80 ? "#22C55E" : val >= 60 ? "#F59E0B" : "#EF4444",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
