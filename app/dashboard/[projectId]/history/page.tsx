@@ -83,13 +83,17 @@ export default function HistoryPage() {
   const chartData = [...runs]
     .reverse()
     .filter((r) => r.overallScore !== null)
-    .map((r) => ({
-      date: new Date(r.createdAt).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
-      score: r.overallScore,
-    }));
+    .map((r, i) => {
+      const d = new Date(r.createdAt);
+      const dateLabel = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const timeLabel = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+      return {
+        // Use "Aug 8 · 11:49" so runs on same day get unique X positions
+        date: `${dateLabel} · ${timeLabel}`,
+        label: `Run #${i + 1}`,
+        score: r.overallScore,
+      };
+    });
 
   const firstScore = chartData[0]?.score || 0;
   const latestScore = chartData[chartData.length - 1]?.score || 0;
@@ -145,12 +149,15 @@ export default function HistoryPage() {
         ) : (
           <div className="h-64 w-full pt-4">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
+              <LineChart data={chartData} margin={{ bottom: 30 }}>
                 <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
                 <XAxis
                   dataKey="date"
                   stroke="var(--text-muted)"
-                  tick={{ fill: "var(--text-muted)", fontSize: 12, fontFamily: "monospace" }}
+                  tick={{ fill: "var(--text-muted)", fontSize: 10, fontFamily: "monospace" }}
+                  angle={-30}
+                  textAnchor="end"
+                  interval={0}
                 />
                 <YAxis
                   domain={[0, 100]}
@@ -165,6 +172,11 @@ export default function HistoryPage() {
                     color: "var(--text)",
                     fontFamily: "monospace",
                   }}
+                  formatter={(value: any, _name: any, props: any) => [
+                    `${value}%`,
+                    props?.payload?.label || "Score",
+                  ]}
+                  labelFormatter={(label) => label}
                 />
                 <Line
                   type="monotone"
