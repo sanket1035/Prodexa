@@ -178,6 +178,18 @@ export default function NewBlueprintPage() {
 
       if (typeof window !== "undefined" && data.blueprint) {
         localStorage.setItem(`prodexa_bp_${data.blueprintId}`, JSON.stringify(data.blueprint));
+        // Also cache companion project so it shows up in Projects page immediately
+        if (data.project) {
+          const uid = data.project.userId || "demo-user-123";
+          const cacheKey = `prodexa_projects_${uid}`;
+          try {
+            const existing = JSON.parse(localStorage.getItem(cacheKey) || "[]");
+            if (!existing.some((p: any) => p.id === data.project.id)) {
+              existing.unshift(data.project);
+              localStorage.setItem(cacheKey, JSON.stringify(existing));
+            }
+          } catch {}
+        }
       }
 
       router.push(`/blueprint/${data.blueprintId}`);

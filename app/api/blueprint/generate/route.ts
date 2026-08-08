@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateAIBlueprint } from "@/lib/modules/blueprint-generator";
-import { createBlueprint } from "@/lib/firebase/db";
+import { createBlueprint, createProject } from "@/lib/firebase/db";
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,7 +29,28 @@ export async function POST(req: NextRequest) {
     // Update contextPackage blueprintId reference
     savedBp.contextPackage.blueprintId = savedBp.id;
 
-    return NextResponse.json({ success: true, blueprint: savedBp, blueprintId: savedBp.id }, { status: 201 });
+    // Auto-create a companion Project so blueprint appears in the Projects page
+    let companionProject = null;
+    try {
+      companionProject = await createProject({
+        userId,
+        name,
+        websiteUrl: null,
+        githubRepoUrl: null,
+        pitchDeckUrl: null,
+        screenshotUrls: [],
+        blueprintId: savedBp.id,
+      });
+    } catch {
+      // Non-fatal — blueprint still saved
+    }
+
+    return NextResponse.json({
+      success: true,
+      blueprint: savedBp,
+      blueprintId: savedBp.id,
+      project: companionProject,
+    }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message || "Blueprint generation failed" }, { status: 500 });
   }
