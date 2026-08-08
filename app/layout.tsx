@@ -11,6 +11,31 @@ export const metadata: Metadata = {
   description:
     "From idea to launch-ready product. Prodexa guides founders through AI Blueprint generation, architecture design, and launch readiness auditing.",
   keywords: ["AI", "product blueprint", "startup", "launch audit"],
+  metadataBase: new URL("https://prodexa-ai-rho.vercel.app"),
+  openGraph: {
+    title: "Prodexa — AI Product Operating System",
+    description:
+      "From idea to launch-ready product. Prodexa guides founders through AI Blueprint generation, architecture design, and launch readiness auditing.",
+    url: "https://prodexa-ai-rho.vercel.app",
+    siteName: "Prodexa AI",
+    images: [
+      {
+        url: "/og-preview.png",
+        width: 1200,
+        height: 630,
+        alt: "Prodexa — AI Product Operating System",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Prodexa — AI Product Operating System",
+    description:
+      "From idea to launch-ready product. Prodexa guides founders through AI Blueprint generation, architecture design, and launch readiness auditing.",
+    images: ["/og-preview.png"],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
