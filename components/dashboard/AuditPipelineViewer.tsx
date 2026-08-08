@@ -246,13 +246,7 @@ export default function AuditPipelineViewer({
       };
       setLogs((prev) => [...prev, finalLog]);
       setIsFinished(true);
-
-      // Brief 1-second pause before inviting full report reveal
-      setTimeout(() => {
-        if (isSubscribed && onFinish) {
-          onFinish();
-        }
-      }, 1200);
+      // onFinish() is only called by the "View Readiness Report" button below — NOT auto-triggered here
     };
 
     executeStepsSequentially();
