@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: "Project not found" }, { status: 404 });
     }
 
-    // Override generic "Workspace Project" with derived human-readable product name
+    // Strictly resolve project identity and derive clean product name
     const projectName = getDerivedProjectName(project);
     project.name = projectName;
 
@@ -149,6 +149,19 @@ ${recentChats.map((c) => `${c.role.toUpperCase()}: ${c.text}`).join("\n")}
 `;
 
     if (isMentorReview) {
+      const targetAudience = project.contextPackage?.targetAudience || "target users";
+      const realIssues = latestRun?.issues || [];
+      const hasRepo = Boolean(project.githubRepoUrl && !project.githubRepoUrl.includes("example.com"));
+      const hasWeb = Boolean(project.websiteUrl && !project.websiteUrl.includes("example.com"));
+
+      // Deterministically calculate overall investor readiness score from stored project data
+      let calcInvestorScore = overallScoreNum;
+      if (hasWeb) calcInvestorScore += 5;
+      if (hasRepo) calcInvestorScore += 5;
+      if (project.blueprintId) calcInvestorScore += 5;
+      if (realIssues.length > 0) calcInvestorScore -= Math.min(25, realIssues.length * 4);
+      calcInvestorScore = Math.max(40, Math.min(98, calcInvestorScore));
+
       const mentorSystemPrompt = `You are a YC Senior Partner & Investor Judge reviewing '${projectName}'.
 Provide a brutally honest Investor & Judge Pitch Audit JSON containing:
 1. "replyText": string (executive summary of pitch readiness for '${projectName}')
@@ -160,13 +173,8 @@ Provide a brutally honest Investor & Judge Pitch Audit JSON containing:
 
 Output strictly valid JSON.`;
 
-      const targetAudience = project.contextPackage?.targetAudience || "target users";
-      const realIssues = latestRun?.issues || [];
-      const hasRepo = Boolean(project.githubRepoUrl && !project.githubRepoUrl.includes("example.com"));
-      const hasWeb = Boolean(project.websiteUrl && !project.websiteUrl.includes("example.com"));
-
       const fallbackMentor = {
-        replyText: `Investor & Judge Pitch Review for '${projectName}': The project ${hasWeb ? `is live at ${project.websiteUrl}` : "has no live landing page connected"} and ${hasRepo ? `has repository ${project.githubRepoUrl}` : "has no GitHub repository connected"}. Current Launch Readiness Score is ${overallScoreNum}%. ${realIssues.length > 0 ? `Identified ${realIssues.length} issues that require attention.` : "All readiness checks passed cleanly."}`,
+        replyText: `Investor & Judge Pitch Review for '${projectName}': The project ${hasWeb ? `is live at ${project.websiteUrl}` : "has no live landing page connected"} and ${hasRepo ? `has repository ${project.githubRepoUrl}` : "has no GitHub repository connected"}. Calculated Investor Readiness Score is ${calcInvestorScore}%. ${realIssues.length > 0 ? `Identified ${realIssues.length} issues that require attention.` : "All readiness checks passed cleanly."}`,
         strengths: [
           `Product concept '${projectName}' targets ${targetAudience}`,
           hasWeb ? `Deployed web application accessible at ${project.websiteUrl}` : `Clear project concept and scope`,
@@ -205,6 +213,7 @@ Output strictly valid JSON.`;
         isMentorReview: true,
         review: {
           id: "mentor_" + Math.random().toString(36).substring(2, 9),
+          overallInvestorScore: calcInvestorScore,
           summary: mentorInsight.replyText || fallbackMentor.replyText,
           strengths: mentorInsight.strengths || fallbackMentor.strengths,
           weaknesses: mentorInsight.weaknesses || fallbackMentor.weaknesses,

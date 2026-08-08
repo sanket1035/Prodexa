@@ -387,11 +387,6 @@ export default function ProjectsPage() {
                             >
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
-                            {project.blueprintId && (
-                              <span className="badge badge-amber text-[10px] font-mono">
-                                Blueprint
-                              </span>
-                            )}
                             <span className="badge badge-zinc text-[10px] font-mono">
                               AI Memory v1
                             </span>
@@ -408,6 +403,58 @@ export default function ProjectsPage() {
                           <div className={`flex items-center gap-1.5 ${hasGithub ? "text-amber-400" : "text-zinc-500"}`}>
                             <GitBranch className="w-3.5 h-3.5" />
                             <span>{hasGithub ? project.githubRepoUrl?.replace("https://github.com/", "") : "Repo Unconnected"}</span>
+                          </div>
+                        </div>
+
+                        {/* 2-Folder Logical Layout */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-3">
+                          {/* Folder A: Blueprint */}
+                          <div className="p-3 rounded-xl border space-y-1" style={{ background: "rgba(24, 24, 27, 0.4)", borderColor: "var(--border)" }}>
+                            <div className="flex items-center justify-between text-zinc-400 font-mono text-[10px] font-semibold">
+                              <div className="flex items-center gap-1.5">
+                                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                <span>📁 BLUEPRINT</span>
+                              </div>
+                              {project.blueprintId ? (
+                                <span className="text-amber-400 font-mono text-[9px] bg-amber-500/10 px-1.5 py-0.5 rounded">CONNECTED</span>
+                              ) : (
+                                <span className="text-zinc-500 font-mono text-[9px]">NOT CREATED</span>
+                              )}
+                            </div>
+                            {project.blueprintId ? (
+                              <Link
+                                href={`/blueprint/${project.blueprintId}`}
+                                className="text-xs text-amber-300 hover:underline flex items-center gap-1 font-medium truncate pt-0.5"
+                              >
+                                <span>View Blueprint →</span>
+                              </Link>
+                            ) : (
+                              <Link
+                                href="/blueprint/new"
+                                className="text-xs text-zinc-400 hover:text-amber-400 flex items-center gap-1 pt-0.5"
+                              >
+                                <span>+ Create Blueprint</span>
+                              </Link>
+                            )}
+                          </div>
+
+                          {/* Folder B: Audits */}
+                          <div className="p-3 rounded-xl border space-y-1" style={{ background: "rgba(24, 24, 27, 0.4)", borderColor: "var(--border)" }}>
+                            <div className="flex items-center justify-between text-zinc-400 font-mono text-[10px] font-semibold">
+                              <div className="flex items-center gap-1.5">
+                                <ShieldCheck className="w-3.5 h-3.5 text-green-500" />
+                                <span>📁 AUDITS</span>
+                              </div>
+                              <span className={`font-mono text-[9px] px-1.5 py-0.5 rounded ${getScoreBadgeClass(effectiveScore)}`}>
+                                {effectiveScore !== null ? `${effectiveScore}%` : "Unaudited"}
+                              </span>
+                            </div>
+                            <Link
+                              href={`/dashboard/${project.id}/history`}
+                              className="text-xs text-zinc-300 hover:text-amber-400 flex items-center gap-1 font-medium pt-0.5"
+                            >
+                              <span>View Audit Runs →</span>
+                            </Link>
                           </div>
                         </div>
                       </div>
