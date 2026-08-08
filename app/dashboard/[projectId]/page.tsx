@@ -93,15 +93,26 @@ function DashboardContent() {
 
         clearTimeout(timeout);
 
-        if (pRes.success) {
-          setProject(pRes.project);
+        if (pRes.success && pRes.project) {
+          let cachedProj: Project | null = null;
           if (typeof window !== "undefined") {
-            localStorage.setItem(`prodexa_proj_${projectId}`, JSON.stringify(pRes.project));
+            try {
+              const c = localStorage.getItem(`prodexa_proj_${projectId}`);
+              if (c) cachedProj = JSON.parse(c);
+            } catch {}
           }
-          const rawUrl = pRes.project.websiteUrl || "";
+          const realName = (cachedProj && cachedProj.name && cachedProj.name !== "Workspace Project")
+            ? cachedProj.name
+            : pRes.project.name;
+          const finalProj = { ...pRes.project, name: realName };
+          setProject(finalProj);
+          if (typeof window !== "undefined") {
+            localStorage.setItem(`prodexa_proj_${projectId}`, JSON.stringify(finalProj));
+          }
+          const rawUrl = finalProj.websiteUrl || "";
           const isPlaceholder = rawUrl.includes("example-landing-page.com") || rawUrl === "https://example.com";
           setInputWebsite(isPlaceholder ? "" : rawUrl);
-          setInputGithub(pRes.project.githubRepoUrl || "");
+          setInputGithub(finalProj.githubRepoUrl || "");
         }
 
         let runs: ValidationRun[] = rRes.success && Array.isArray(rRes.runs) ? rRes.runs : [];

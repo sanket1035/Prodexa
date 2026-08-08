@@ -82,19 +82,23 @@ export default function ProjectsPage() {
 
     setDeletingId(projectId);
     try {
-      await fetch(`/api/projects?id=${projectId}`, { method: "DELETE" });
+      await Promise.all([
+        fetch(`/api/projects?id=${projectId}`, { method: "DELETE" }),
+        fetch(`/api/projects/${projectId}`, { method: "DELETE" }),
+      ]).catch(() => {});
 
       // Update state
       const updated = projects.filter((p) => p.id !== projectId);
       setProjects(updated);
 
-      // Update localStorage
+      // Update localStorage for user
       if (user) {
         localStorage.setItem(`prodexa_projects_${user.uid}`, JSON.stringify(updated));
       }
       localStorage.removeItem(`prodexa_proj_${projectId}`);
-    } catch {
-      // ignore
+      localStorage.removeItem(`prodexa_runs_${projectId}`);
+    } catch (err) {
+      console.error(err);
     } finally {
       setDeletingId(null);
     }

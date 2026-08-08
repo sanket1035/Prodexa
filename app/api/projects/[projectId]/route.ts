@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProjectById } from "@/lib/firebase/db";
+import { getProjectById, deleteProject } from "@/lib/firebase/db";
 
 export async function GET(
   req: NextRequest,
@@ -58,6 +58,19 @@ export async function PATCH(
     }
 
     return NextResponse.json({ success: true, project });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { projectId: string } }
+) {
+  try {
+    const { projectId } = params;
+    await deleteProject(projectId);
+    return NextResponse.json({ success: true, projectId });
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
