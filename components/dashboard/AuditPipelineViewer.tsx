@@ -123,6 +123,11 @@ export default function AuditPipelineViewer({
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const startTimeRef = useRef<number>(Date.now());
 
+  const completedRunRef = useRef(completedRun);
+  useEffect(() => {
+    completedRunRef.current = completedRun;
+  }, [completedRun]);
+
   const hasWebsite = Boolean(websiteUrl && websiteUrl.trim() !== "");
   const hasGithub = Boolean(githubRepoUrl && githubRepoUrl.trim() !== "");
 
@@ -140,7 +145,7 @@ export default function AuditPipelineViewer({
     terminalEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs]);
 
-  // Main Sequential Pipeline Execution Effect
+  // Main Sequential Pipeline Execution Effect — runs ONCE per audit execution
   useEffect(() => {
     if (!isExecuting) return;
 
@@ -148,6 +153,14 @@ export default function AuditPipelineViewer({
     setCurrentStepIndex(0);
     setIsFinished(false);
     setElapsedMs(0);
+    setStepStatuses({
+      productUnderstanding: "waiting",
+      engineering: "waiting",
+      ux: "waiting",
+      performance: "waiting",
+      business: "waiting",
+      planner: "waiting",
+    });
 
     const initialLog: LogEntry = {
       timestamp: "00:00.0",
@@ -198,10 +211,11 @@ export default function AuditPipelineViewer({
           // Simulate active module execution duration
           await new Promise((res) => setTimeout(res, step.estimatedDurationMs));
 
-          // Read real module status if completedRun is provided
+          // Read real module status from ref if available
           let realScore: number | null = null;
-          if (completedRun?.moduleScores) {
-            const mScores = completedRun.moduleScores as unknown as Record<string, number | null>;
+          const currentRunData = completedRunRef.current;
+          if (currentRunData?.moduleScores) {
+            const mScores = currentRunData.moduleScores as unknown as Record<string, number | null>;
             realScore = mScores[step.id] ?? null;
           }
 
@@ -220,8 +234,9 @@ export default function AuditPipelineViewer({
 
       // Final Completion Step
       const finalMs = Date.now() - startTimeRef.current;
-      const scoreText = completedRun?.overallScore !== undefined && completedRun?.overallScore !== null
-        ? ` Readiness Score: ${completedRun.overallScore}%`
+      const finalRun = completedRunRef.current;
+      const scoreText = finalRun?.overallScore !== undefined && finalRun?.overallScore !== null
+        ? ` Readiness Score: ${finalRun.overallScore}%`
         : "";
 
       const finalLog: LogEntry = {
@@ -246,7 +261,7 @@ export default function AuditPipelineViewer({
       isSubscribed = false;
       clearInterval(timerInterval);
     };
-  }, [isExecuting, completedRun, hasWebsite, hasGithub]);
+  }, [isExecuting]);
 
   const completedCount = Object.values(stepStatuses).filter((s) => s === "completed" || s === "skipped").length;
   const progressPercent = Math.min(100, Math.round((completedCount / 6) * 100));
