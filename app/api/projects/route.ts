@@ -63,12 +63,18 @@ export async function POST(req: NextRequest) {
   }
 }
 
+import { getDerivedProjectName } from "@/lib/utils/project-name";
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId") || "demo-user-123";
 
   try {
-    const projects = await getProjectsForUser(userId);
+    const rawProjects = await getProjectsForUser(userId);
+    const projects = rawProjects.map((p) => ({
+      ...p,
+      name: getDerivedProjectName(p),
+    }));
     return NextResponse.json({ success: true, projects });
   } catch (error: unknown) {
     const err = error as { message?: string };

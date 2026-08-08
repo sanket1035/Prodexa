@@ -14,6 +14,7 @@ import {
 } from "@/lib/firebase/db";
 import { ProjectMemory } from "@/lib/types/blueprint";
 import { generateModuleInsight } from "@/lib/utils/openai";
+import { getDerivedProjectName } from "@/lib/utils/project-name";
 
 export async function GET(req: NextRequest) {
   try {
@@ -29,13 +30,22 @@ export async function GET(req: NextRequest) {
       await refreshProjectContext(projectId);
     }
 
+    const project = await getProjectById(projectId);
+    const projectName = project ? getDerivedProjectName(project) : "Product Workspace";
+
     const messages = await getRecentChatMessages(projectId, 50);
+    const cleanedMessages = messages.map((m) => ({
+      ...m,
+      text: m.text ? m.text.replace(/Workspace Project/g, projectName).replace(/Product Workspace/g, projectName) : m.text,
+      actionableFix: m.actionableFix ? m.actionableFix.replace(/Workspace Project/g, projectName).replace(/Product Workspace/g, projectName) : m.actionableFix,
+    }));
+
     const memory = await getProjectMemory(projectId);
     const notes = await getMentorNotes(projectId);
 
     return NextResponse.json({
       success: true,
-      messages,
+      messages: cleanedMessages,
       memory,
       mentorNotes: notes,
     });
@@ -57,6 +67,9 @@ export async function POST(req: NextRequest) {
     if (!project) {
       return NextResponse.json({ success: false, message: "Project not found" }, { status: 404 });
     }
+
+    // Override generic "Workspace Project" with derived human-readable product name
+    project.name = getDerivedProjectName(project);
 
     const runs = await getValidationRunsForProject(projectId);
     const latestRun = runs.length > 0 ? runs[0] : null;
