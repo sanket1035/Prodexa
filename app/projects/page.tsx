@@ -73,7 +73,13 @@ export default function ProjectsPage() {
                 });
               }
             });
-            const combined = Array.from(combinedMap.values());
+            const combined = Array.from(combinedMap.values()).map((p: Project) => {
+              // Sanitize legacy auto-generated audit blueprints
+              if (p.blueprintId && (p.blueprintId.includes("auto") || p.blueprintId.includes("temp"))) {
+                return { ...p, blueprintId: null };
+              }
+              return p;
+            });
             setProjects(combined);
             localStorage.setItem(`prodexa_projects_${user.uid}`, JSON.stringify(combined));
           }
@@ -370,6 +376,11 @@ export default function ProjectsPage() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <Link
                               href={`/dashboard/${project.id}`}
+                              onClick={() => {
+                                if (typeof window !== "undefined") {
+                                  localStorage.setItem(`prodexa_proj_${project.id}`, JSON.stringify(project));
+                                }
+                              }}
                               className="text-base font-semibold transition-colors hover:text-[color:var(--accent)] truncate"
                               style={{ color: "var(--text)", textDecoration: "none" }}
                             >
@@ -488,6 +499,11 @@ export default function ProjectsPage() {
 
                         <Link
                           href={`/dashboard/${project.id}`}
+                          onClick={() => {
+                            if (typeof window !== "undefined") {
+                              localStorage.setItem(`prodexa_proj_${project.id}`, JSON.stringify(project));
+                            }
+                          }}
                           className="btn btn-secondary btn-sm"
                         >
                           <span>Open Workspace</span>

@@ -12,6 +12,7 @@ import RoadmapSection from "@/components/dashboard/RoadmapSection";
 import AICofounderTab from "@/components/dashboard/AICofounderTab";
 import { generateMarkdownReport, exportExecutivePDFReport, downloadFile } from "@/lib/pdf/exporter";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { getDerivedProjectName } from "@/lib/utils/project-name";
 
 import {
   RefreshCw, FileCode2, FileText, TrendingUp,
@@ -121,18 +122,20 @@ function DashboardContent() {
               }
             } catch {}
           }
-          const realName = (cachedProj && cachedProj.name && cachedProj.name !== "Workspace Project" && cachedProj.name !== "Product Workspace")
-            ? cachedProj.name
-            : (pRes.project.name && pRes.project.name !== "Workspace Project" ? pRes.project.name : "My Product Workspace");
-
           const realWebUrl = cachedProj?.websiteUrl || pRes.project.websiteUrl || null;
           const realGhUrl = cachedProj?.githubRepoUrl || pRes.project.githubRepoUrl || null;
 
-          const finalProj = {
+          const tempProj = {
             ...pRes.project,
-            name: realName,
+            name: (cachedProj && cachedProj.name && cachedProj.name !== "Workspace Project" && cachedProj.name !== "Product Workspace" && cachedProj.name !== "My Product Workspace") ? cachedProj.name : pRes.project.name,
             websiteUrl: realWebUrl,
             githubRepoUrl: realGhUrl,
+          };
+          const realName = getDerivedProjectName(tempProj);
+
+          const finalProj = {
+            ...tempProj,
+            name: realName,
           };
 
           setProject(finalProj);

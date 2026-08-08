@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProjectById, deleteProject } from "@/lib/firebase/db";
+import { getDerivedProjectName } from "@/lib/utils/project-name";
 
 export async function GET(
   req: NextRequest,
@@ -12,6 +13,9 @@ export async function GET(
     if (!project) {
       return NextResponse.json({ success: false, message: "Project not found" }, { status: 404 });
     }
+
+    const derivedName = getDerivedProjectName(project);
+    project.name = derivedName;
 
     return NextResponse.json({ success: true, project });
   } catch (error: any) {
@@ -54,9 +58,10 @@ export async function PATCH(
         githubRepoUrl: project.githubRepoUrl,
         pitchDeckUrl: project.pitchDeckUrl,
         healthScore: project.healthScore,
+        updatedAt: new Date().toISOString(),
       });
     } catch {
-      // Memory fallback store updated automatically
+      // Fallback
     }
 
     return NextResponse.json({ success: true, project });
@@ -72,7 +77,7 @@ export async function DELETE(
   try {
     const { projectId } = params;
     await deleteProject(projectId);
-    return NextResponse.json({ success: true, projectId });
+    return NextResponse.json({ success: true, message: "Project deleted successfully" });
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
