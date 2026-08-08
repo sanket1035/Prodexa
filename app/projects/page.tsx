@@ -108,6 +108,39 @@ export default function ProjectsPage() {
       setDeletingId(null);
     }
   };
+  const getDisplayProjectName = (p: Project): string => {
+    const name = p.name;
+    if (name && name !== "Workspace Project" && name !== "Product Workspace" && name !== "Untitled Project" && name.trim() !== "") {
+      return name;
+    }
+
+    if (p.websiteUrl) {
+      const clean = p.websiteUrl
+        .replace(/^https?:\/\//, "")
+        .replace(/\/.*$/, "")
+        .replace(/\.vercel\.app$/, "")
+        .replace(/\.app$/, "")
+        .replace(/\.in$/, "")
+        .replace(/\.com$/, "")
+        .replace(/\.io$/, "")
+        .replace(/\.ai$/, "");
+
+      const parts = clean.split(/[-_.]/).filter((x) => x && !x.match(/^[a-z0-9]{6,10}$/));
+      if (parts.length > 0) {
+        return parts.map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
+      }
+    }
+
+    if (p.githubRepoUrl) {
+      const repo = p.githubRepoUrl.replace("https://github.com/", "").split("/")[1] || "";
+      if (repo) {
+        const parts = repo.split(/[-_.]/).filter(Boolean);
+        return parts.map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
+      }
+    }
+
+    return "Product Workspace";
+  };
 
   const getScoreBadgeClass = (score: number | null) => {
     if (score === null) return "badge badge-muted";
@@ -271,7 +304,7 @@ export default function ProjectsPage() {
                             className="text-base font-semibold transition-colors hover:text-[color:var(--accent)] truncate"
                             style={{ color: "var(--text)", textDecoration: "none" }}
                           >
-                            {project.name}
+                            {getDisplayProjectName(project)}
                           </Link>
                           {project.blueprintId && (
                             <span className="badge badge-amber text-[10px] font-mono">
