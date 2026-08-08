@@ -101,10 +101,20 @@ function DashboardContent() {
               if (c) cachedProj = JSON.parse(c);
             } catch {}
           }
-          const realName = (cachedProj && cachedProj.name && cachedProj.name !== "Workspace Project")
+          const realName = (cachedProj && cachedProj.name && cachedProj.name !== "Workspace Project" && cachedProj.name !== "Product Workspace")
             ? cachedProj.name
-            : pRes.project.name;
-          const finalProj = { ...pRes.project, name: realName };
+            : (pRes.project.name && pRes.project.name !== "Workspace Project" ? pRes.project.name : "My Product Workspace");
+
+          const realWebUrl = cachedProj?.websiteUrl || pRes.project.websiteUrl || null;
+          const realGhUrl = cachedProj?.githubRepoUrl || pRes.project.githubRepoUrl || null;
+
+          const finalProj = {
+            ...pRes.project,
+            name: realName,
+            websiteUrl: realWebUrl,
+            githubRepoUrl: realGhUrl,
+          };
+
           setProject(finalProj);
           if (typeof window !== "undefined") {
             localStorage.setItem(`prodexa_proj_${projectId}`, JSON.stringify(finalProj));

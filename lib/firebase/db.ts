@@ -716,11 +716,18 @@ export async function updateProject(projectId: string, updates: Partial<Project>
   const existing = await getProjectById(projectId);
   if (!existing) return null;
 
-  const updated: Project = { ...existing, ...updates };
+  const safeUpdates: Partial<Project> = { ...updates };
+  if (!safeUpdates.websiteUrl && existing.websiteUrl) delete safeUpdates.websiteUrl;
+  if (!safeUpdates.githubRepoUrl && existing.githubRepoUrl) delete safeUpdates.githubRepoUrl;
+  if ((!safeUpdates.name || safeUpdates.name === "Workspace Project" || safeUpdates.name === "Product Workspace") && existing.name && existing.name !== "Workspace Project" && existing.name !== "Product Workspace") {
+    delete safeUpdates.name;
+  }
+
+  const updated: Project = { ...existing, ...safeUpdates };
 
   try {
     const { adminDb } = await import("./admin");
-    await adminDb.collection("projects").doc(projectId).update(updates);
+    await adminDb.collection("projects").doc(projectId).update(safeUpdates);
   } catch {
     // Fallback
   }

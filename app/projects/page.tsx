@@ -59,9 +59,14 @@ export default function ProjectsPage() {
                 combinedMap.set(lp.id, lp);
               } else {
                 const existing = combinedMap.get(lp.id)!;
-                if (existing.latestScore === null && lp.latestScore !== null) {
-                  combinedMap.set(lp.id, { ...existing, latestScore: lp.latestScore, lastValidatedAt: lp.lastValidatedAt });
-                }
+                combinedMap.set(lp.id, {
+                  ...existing,
+                  name: (lp.name && lp.name !== "Workspace Project" && lp.name !== "Product Workspace") ? lp.name : existing.name,
+                  websiteUrl: lp.websiteUrl || existing.websiteUrl || null,
+                  githubRepoUrl: lp.githubRepoUrl || existing.githubRepoUrl || null,
+                  latestScore: existing.latestScore ?? lp.latestScore,
+                  lastValidatedAt: existing.lastValidatedAt || lp.lastValidatedAt,
+                });
               }
             });
             const combined = Array.from(combinedMap.values());
