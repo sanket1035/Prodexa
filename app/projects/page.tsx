@@ -7,7 +7,8 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { Project } from "@/lib/types/schema";
 import {
   PlusCircle, ExternalLink, ArrowRight, FolderGit2, Sparkles,
-  Clock, Zap, BarChart3, Trash2, Globe, GitBranch, Cpu, ShieldCheck
+  Clock, Zap, BarChart3, Trash2, Globe, GitBranch, Cpu, ShieldCheck,
+  Pencil, X, Check
 } from "lucide-react";
 
 export default function ProjectsPage() {
@@ -16,6 +17,9 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const [savingName, setSavingName] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -106,6 +110,43 @@ export default function ProjectsPage() {
       console.error(err);
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleSaveProjectName = async (projectId: string, e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingName.trim()) return;
+
+    setSavingName(true);
+    const newName = editingName.trim();
+
+    try {
+      await fetch(`/api/projects/${projectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName }),
+      }).catch(() => {});
+
+      const updated = projects.map((p) => (p.id === projectId ? { ...p, name: newName } : p));
+      setProjects(updated);
+
+      if (user) {
+        localStorage.setItem(`prodexa_projects_${user.uid}`, JSON.stringify(updated));
+      }
+
+      const existingSingle = localStorage.getItem(`prodexa_proj_${projectId}`);
+      if (existingSingle) {
+        try {
+          const parsed = JSON.parse(existingSingle);
+          localStorage.setItem(`prodexa_proj_${projectId}`, JSON.stringify({ ...parsed, name: newName }));
+        } catch {}
+      }
+
+      setEditingProjectId(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingName(false);
     }
   };
   const getDisplayProjectName = (p: Project): string => {
@@ -298,23 +339,64 @@ export default function ProjectsPage() {
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0 space-y-1.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Link
-                            href={`/dashboard/${project.id}`}
-                            className="text-base font-semibold transition-colors hover:text-[color:var(--accent)] truncate"
-                            style={{ color: "var(--text)", textDecoration: "none" }}
-                          >
-                            {getDisplayProjectName(project)}
-                          </Link>
-                          {project.blueprintId && (
-                            <span className="badge badge-amber text-[10px] font-mono">
-                              Blueprint
+                        {editingProjectId === project.id ? (
+                          <form onSubmit={(e) => handleSaveProjectName(project.id, e)} className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              autoFocus
+                              value={editingName}
+                              onChange={(e) => setEditingName(e.target.value)}
+                              placeholder="Enter product name..."
+                              className="input py-1 px-2.5 text-xs font-semibold w-full max-w-xs"
+                            />
+                            <button
+                              type="submit"
+                              disabled={savingName}
+                              className="btn btn-primary btn-sm px-2 py-1"
+                              title="Save Product Name"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingProjectId(null)}
+                              className="btn btn-secondary btn-sm px-2 py-1"
+                              title="Cancel"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </form>
+                        ) : (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Link
+                              href={`/dashboard/${project.id}`}
+                              className="text-base font-semibold transition-colors hover:text-[color:var(--accent)] truncate"
+                              style={{ color: "var(--text)", textDecoration: "none" }}
+                            >
+                              {getDisplayProjectName(project)}
+                            </Link>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setEditingProjectId(project.id);
+                                setEditingName(getDisplayProjectName(project));
+                              }}
+                              className="p-1 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-amber-400 transition-colors"
+                              title="Rename Product"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            {project.blueprintId && (
+                              <span className="badge badge-amber text-[10px] font-mono">
+                                Blueprint
+                              </span>
+                            )}
+                            <span className="badge badge-zinc text-[10px] font-mono">
+                              AI Memory v1
                             </span>
-                          )}
-                          <span className="badge badge-zinc text-[10px] font-mono">
-                            AI Memory v1
-                          </span>
-                        </div>
+                          </div>
+                        )}
 
                         {/* Connected Assets Badges */}
                         <div className="flex items-center gap-3 text-xs font-mono pt-1">

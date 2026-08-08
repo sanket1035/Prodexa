@@ -26,13 +26,14 @@ export async function PATCH(
   try {
     const { projectId } = params;
     const body = await req.json();
-    const { websiteUrl, githubRepoUrl, pitchDeckUrl } = body;
+    const { name, websiteUrl, githubRepoUrl, pitchDeckUrl } = body;
 
     const project = await getProjectById(projectId);
     if (!project) {
       return NextResponse.json({ success: false, message: "Project not found" }, { status: 404 });
     }
 
+    if (name !== undefined && name.trim() !== "") project.name = name.trim();
     if (websiteUrl !== undefined) project.websiteUrl = websiteUrl;
     if (githubRepoUrl !== undefined) project.githubRepoUrl = githubRepoUrl;
     if (pitchDeckUrl !== undefined) project.pitchDeckUrl = pitchDeckUrl;
@@ -48,6 +49,7 @@ export async function PATCH(
     try {
       const { adminDb } = await import("@/lib/firebase/admin");
       await adminDb.collection("projects").doc(projectId).update({
+        name: project.name,
         websiteUrl: project.websiteUrl,
         githubRepoUrl: project.githubRepoUrl,
         pitchDeckUrl: project.pitchDeckUrl,

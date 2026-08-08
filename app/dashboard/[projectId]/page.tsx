@@ -56,6 +56,7 @@ function DashboardContent() {
   const [showAssetDrawer, setShowAssetDrawer] = useState(false);
   const [inputWebsite, setInputWebsite] = useState("");
   const [inputGithub, setInputGithub] = useState("");
+  const [inputProjectName, setInputProjectName] = useState("");
   const [updatingAssets, setUpdatingAssets] = useState(false);
   const [issueFilter, setIssueFilter] = useState<"all" | "critical" | "high" | "medium" | "low">("all");
 
@@ -173,6 +174,14 @@ function DashboardContent() {
     return () => { if (intervalId) clearInterval(intervalId); };
   }, [projectId, runIdParam]);
 
+  useEffect(() => {
+    if (project) {
+      setInputWebsite(project.websiteUrl || "");
+      setInputGithub(project.githubRepoUrl || "");
+      setInputProjectName(project.name || "");
+    }
+  }, [project]);
+
   const handleUpdateAssets = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!project) return;
@@ -181,11 +190,15 @@ function DashboardContent() {
       const res = await fetch(`/api/projects/${project.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ websiteUrl: inputWebsite, githubRepoUrl: inputGithub }),
+        body: JSON.stringify({ name: inputProjectName, websiteUrl: inputWebsite, githubRepoUrl: inputGithub }),
       });
       const data = await res.json();
       if (data.success && data.project) {
-        setProject(data.project);
+        const updatedProj = { ...data.project, name: inputProjectName || data.project.name };
+        setProject(updatedProj);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(`prodexa_proj_${project.id}`, JSON.stringify(updatedProj));
+        }
         setShowAssetDrawer(false);
         await handleRevalidate(inputWebsite, inputGithub);
       }
@@ -490,6 +503,20 @@ function DashboardContent() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Product Name</label>
+              <div className="relative">
+                <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "var(--text-faint)" }} />
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Prodexa AI Operating System"
+                  value={inputProjectName}
+                  onChange={(e) => setInputProjectName(e.target.value)}
+                  className="input pl-10 font-medium"
+                />
+              </div>
+            </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Landing Page URL</label>
               <div className="relative">
