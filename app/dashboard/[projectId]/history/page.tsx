@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Project, ValidationRun } from "@/lib/types/schema";
-import { ArrowLeft, TrendingUp, History } from "lucide-react";
+import { ArrowLeft, TrendingUp, History, CheckCircle2, ShieldCheck, Sparkles, Clock, Calendar } from "lucide-react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -63,16 +63,19 @@ export default function HistoryPage() {
 
   if (loading) {
     return (
-      <div className="p-8 space-y-6 max-w-5xl mx-auto w-full">
-        <div className="h-8 w-48 bg-[#16181B] rounded animate-pulse" />
-        <div className="h-64 bg-[#16181B] border border-[#2A2D31] rounded-[6px] animate-pulse" />
+      <div className="p-6 md:p-8 space-y-6 max-w-5xl mx-auto w-full">
+        <div className="skeleton h-8 w-48 rounded-lg" />
+        <div className="skeleton h-64 w-full rounded-2xl" />
+        <div className="skeleton h-80 w-full rounded-2xl" />
       </div>
     );
   }
 
   if (!project) {
     return (
-      <div className="p-8 text-center text-[#8B8F97]">Project not found.</div>
+      <div className="p-12 text-center text-xs font-mono" style={{ color: "var(--text-muted)" }}>
+        Project workspace not found.
+      </div>
     );
   }
 
@@ -93,81 +96,83 @@ export default function HistoryPage() {
   const scoreDiff = latestScore - firstScore;
 
   return (
-    <div className="p-6 md:p-8 space-y-8 max-w-5xl mx-auto w-full">
-      <div className="flex items-center justify-between border-b border-[#2A2D31] pb-4">
-        <div className="space-y-1">
+    <div className="p-6 md:p-8 space-y-8 max-w-5xl mx-auto w-full anim-fade">
+      {/* Header & Breadcrumb */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-5" style={{ borderColor: "var(--border)" }}>
+        <div className="space-y-1.5">
           <Link
             href={`/dashboard/${projectId}`}
-            className="inline-flex items-center gap-1.5 text-xs font-mono text-[#D97B3F] hover:underline"
+            className="inline-flex items-center gap-1.5 text-xs font-mono transition-colors hover:underline"
+            style={{ color: "var(--accent)" }}
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Back to Project Dashboard
+            Back to Launch Dashboard
           </Link>
-          <h1 className="text-2xl font-medium text-[#EDEDEF]">
-            {project.name} — Readiness Score History
+          <h1 className="text-xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>
+            {project.name} — Execution Timeline
           </h1>
         </div>
 
         {chartData.length > 1 && (
-          <div className="px-3 py-1.5 bg-[#16181B] border border-[#2A2D31] rounded-[6px] text-xs font-mono flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-[#5FA88A]" />
-            <span className="text-[#8B8F97]">Trend:</span>
-            <span className={scoreDiff >= 0 ? "text-[#5FA88A]" : "text-[#C25A4D]"}>
+          <div className="px-3 py-1.5 rounded-xl border text-xs font-mono flex items-center gap-2" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
+            <TrendingUp className="w-4 h-4 text-green-400" />
+            <span style={{ color: "var(--text-muted)" }}>Readiness Growth:</span>
+            <span className={scoreDiff >= 0 ? "text-green-400 font-bold" : "text-red-400 font-bold"}>
               {scoreDiff >= 0 ? `+${scoreDiff}%` : `${scoreDiff}%`}
             </span>
           </div>
         )}
       </div>
 
-      {/* Chart Card */}
-      <div className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] p-6 space-y-6">
+      {/* Readiness Score Over Time Chart */}
+      <div className="card p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h3 className="text-sm font-medium text-[#EDEDEF] uppercase font-mono tracking-wider flex items-center gap-2">
-              <History className="w-4 h-4 text-[#D97B3F]" />
-              Score Over Time
+            <h3 className="text-sm font-semibold uppercase font-mono tracking-wider flex items-center gap-2" style={{ color: "var(--text)" }}>
+              <History className="w-4 h-4 text-amber-500" />
+              Readiness Score Trend
             </h3>
-            <p className="text-xs text-[#8B8F97]">
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
               Historical readiness scores across all validation runs.
             </p>
           </div>
         </div>
 
         {chartData.length === 0 ? (
-          <div className="py-12 text-center text-xs text-[#8B8F97] font-mono">
+          <div className="py-12 text-center text-xs font-mono" style={{ color: "var(--text-muted)" }}>
             No completed validation runs recorded yet.
           </div>
         ) : (
           <div className="h-64 w-full pt-4">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <CartesianGrid stroke="#2A2D31" strokeDasharray="3 3" vertical={false} />
+                <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
                 <XAxis
                   dataKey="date"
-                  stroke="#8B8F97"
-                  tick={{ fill: "#8B8F97", fontSize: 12, fontFamily: "monospace" }}
+                  stroke="var(--text-muted)"
+                  tick={{ fill: "var(--text-muted)", fontSize: 12, fontFamily: "monospace" }}
                 />
                 <YAxis
                   domain={[0, 100]}
-                  stroke="#8B8F97"
-                  tick={{ fill: "#8B8F97", fontSize: 12, fontFamily: "monospace" }}
+                  stroke="var(--text-muted)"
+                  tick={{ fill: "var(--text-muted)", fontSize: 12, fontFamily: "monospace" }}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "#0B0C0E",
-                    borderColor: "#2A2D31",
-                    borderRadius: "6px",
-                    color: "#EDEDEF",
+                    backgroundColor: "var(--surface)",
+                    borderColor: "var(--border)",
+                    borderRadius: "12px",
+                    color: "var(--text)",
                     fontFamily: "monospace",
                   }}
                 />
                 <Line
                   type="monotone"
                   dataKey="score"
-                  stroke="#D97B3F"
+                  stroke="var(--accent)"
                   strokeWidth={2.5}
-                  dot={{ fill: "#D97B3F", r: 4 }}
-                  activeDot={{ r: 6, fill: "#E88A4E" }}
+                  dot={{ fill: "var(--accent)", r: 5 }}
+                  activeDot={{ r: 7, fill: "var(--accent)" }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -175,34 +180,96 @@ export default function HistoryPage() {
         )}
       </div>
 
-      {/* History Table */}
-      <div className="bg-[#16181B] border border-[#2A2D31] rounded-[6px] overflow-hidden space-y-0">
-        <div className="p-4 bg-[#1E2124] border-b border-[#2A2D31] text-xs font-mono uppercase tracking-wider text-[#8B8F97] grid grid-cols-4">
-          <span>Run ID</span>
-          <span>Date</span>
-          <span>Status</span>
-          <span className="text-right">Score</span>
+      {/* Vercel / Linear Style Sequential Timeline */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold uppercase font-mono tracking-wider" style={{ color: "var(--text-faint)" }}>
+            Deployment & Audit Milestones ({runs.length})
+          </h3>
         </div>
 
-        <div className="divide-y divide-[#2A2D31]">
-          {runs.map((r) => (
-            <div key={r.id} className="p-4 grid grid-cols-4 items-center text-sm">
-              <span className="font-mono text-xs text-[#EDEDEF]">{r.id}</span>
-              <span className="text-xs text-[#8B8F97]">
-                {new Date(r.createdAt).toLocaleString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-              <span className="text-xs font-mono text-[#D97B3F] uppercase">{r.status}</span>
-              <span className="text-right font-mono font-bold text-[#EDEDEF]">
-                {r.overallScore !== null ? `${r.overallScore}%` : "—"}
-              </span>
-            </div>
-          ))}
-        </div>
+        {runs.length === 0 ? (
+          <div className="card p-8 text-center space-y-3">
+            <ShieldCheck className="w-8 h-8 mx-auto text-zinc-600" />
+            <p className="text-xs text-zinc-400 font-mono">No audit runs recorded in timeline.</p>
+          </div>
+        ) : (
+          <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-zinc-800">
+            {runs.map((r, index) => {
+              const runDate = new Date(r.createdAt);
+              const scores = (r.moduleScores || {}) as unknown as Record<string, number | null>;
+
+              return (
+                <div key={r.id} className="relative flex items-start gap-4 group">
+                  {/* Timeline Dot */}
+                  <div className="absolute -left-6 top-1.5 w-5 h-5 rounded-full bg-zinc-900 border-2 border-amber-500 flex items-center justify-center text-amber-500 shadow-md">
+                    <CheckCircle2 className="w-3 h-3" />
+                  </div>
+
+                  {/* Milestone Card */}
+                  <div className="card p-5 flex-1 space-y-3 transition-all hover:border-zinc-700/80">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3" style={{ borderColor: "var(--border)" }}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-semibold text-zinc-200">
+                          Launch Audit Run #{runs.length - index}
+                        </span>
+                        <span className="badge badge-amber font-mono text-[10px]">
+                          {r.id}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5 text-xs text-zinc-400 font-mono">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>{runDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                          <span className="text-zinc-600">at</span>
+                          <span>{runDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</span>
+                        </div>
+
+                        <span className={`font-mono font-bold text-xs px-2.5 py-1 rounded-full ${
+                          r.overallScore && r.overallScore >= 80
+                            ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                            : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                        }`}>
+                          Score: {r.overallScore !== null ? `${r.overallScore}%` : "Unaudited"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Module Score Breakdown Chips */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-[11px] font-mono pt-1">
+                      {[
+                        { label: "Product", val: scores.productUnderstanding },
+                        { label: "Engineering", val: scores.engineering },
+                        { label: "UX", val: scores.ux },
+                        { label: "Performance", val: scores.performance },
+                        { label: "Business", val: scores.business },
+                        { label: "Planner", val: scores.planner },
+                      ].map((m) => (
+                        <div key={m.label} className="p-2 rounded-lg bg-zinc-900/60 border border-zinc-800 text-center">
+                          <div className="text-zinc-500 text-[10px] uppercase">{m.label}</div>
+                          <div className={`font-bold mt-0.5 ${m.val !== null && m.val !== undefined ? "text-zinc-200" : "text-zinc-600"}`}>
+                            {m.val !== null && m.val !== undefined ? `${m.val}%` : "Skipped"}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Footer Action */}
+                    <div className="flex justify-end pt-2">
+                      <Link
+                        href={`/dashboard/${projectId}?runId=${r.id}`}
+                        className="text-xs font-mono text-amber-500 hover:underline flex items-center gap-1"
+                      >
+                        View Full Run Report →
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

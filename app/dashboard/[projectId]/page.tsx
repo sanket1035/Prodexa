@@ -16,7 +16,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import {
   RefreshCw, FileCode2, FileText, TrendingUp,
   Globe, GitBranch, Activity, Lightbulb, Bot,
-  CheckCircle2, AlertCircle, PlusCircle, Sparkles, X,
+  CheckCircle2, AlertCircle, PlusCircle, Sparkles, X, History,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -337,6 +337,17 @@ function DashboardContent() {
             <span className="badge badge-amber font-mono text-[10px] uppercase">
               Launch Report
             </span>
+            <span className="badge badge-zinc font-mono text-[10px]">
+              AI Memory v1
+            </span>
+            <Link
+              href={`/dashboard/${project.id}/history`}
+              className="badge badge-zinc font-mono text-[10px] hover:border-amber-500 transition-colors flex items-center gap-1"
+              style={{ textDecoration: "none" }}
+            >
+              <History className="w-3 h-3 text-amber-500" />
+              Timeline History
+            </Link>
             {project.blueprintId && (
               <Link
                 href={`/blueprint/${project.blueprintId}`}

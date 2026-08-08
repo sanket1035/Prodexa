@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { Project } from "@/lib/types/schema";
 import {
   PlusCircle, ExternalLink, ArrowRight, FolderGit2, Sparkles,
-  Clock, Zap, BarChart3, Trash2
+  Clock, Zap, BarChart3, Trash2, Globe, GitBranch, Cpu, ShieldCheck
 } from "lucide-react";
 
 export default function ProjectsPage() {
@@ -120,16 +120,19 @@ export default function ProjectsPage() {
     return (
       <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
         <div className="flex items-center justify-between border-b pb-5" style={{ borderColor: "var(--border)" }}>
-          <div className="skeleton h-8 w-40" />
-          <div className="skeleton h-9 w-32" />
+          <div className="skeleton h-8 w-48 rounded-lg" />
+          <div className="flex gap-2">
+            <div className="skeleton h-9 w-32 rounded-lg" />
+            <div className="skeleton h-9 w-32 rounded-lg" />
+          </div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="skeleton h-36 w-full" />
+              <div key={i} className="skeleton h-44 w-full rounded-2xl" />
             ))}
           </div>
-          <div className="skeleton h-96 w-full" />
+          <div className="skeleton h-96 w-full rounded-2xl" />
         </div>
       </div>
     );
@@ -167,10 +170,15 @@ export default function ProjectsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-5" style={{ borderColor: "var(--border)" }}>
         <div>
-          <h1 className="text-xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>Product Workspace</h1>
-          <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)" }}>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>Product Workspace</h1>
+            <span className="badge badge-amber text-[10px] font-mono">
+              Enterprise OS
+            </span>
+          </div>
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
             {projects.length > 0
-              ? `${projects.length} product${projects.length !== 1 ? "s" : ""} tracked across launch readiness pipeline`
+              ? `${projects.length} product${projects.length !== 1 ? "s" : ""} tracked across 6-module readiness pipeline`
               : "Manage your product blueprints and launch readiness audits"}
           </p>
         </div>
@@ -194,24 +202,42 @@ export default function ProjectsPage() {
 
       {/* Main Grid */}
       {projects.length === 0 ? (
-        <div className="card p-12 text-center space-y-5 max-w-lg mx-auto my-12">
+        <div className="card p-10 text-center space-y-6 max-w-xl mx-auto my-8" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto" style={{ background: "rgba(217,119,6,0.12)", border: "1px solid rgba(217,119,6,0.2)" }}>
             <FolderGit2 className="w-7 h-7" style={{ color: "var(--accent)" }} />
           </div>
-          <div className="space-y-1.5">
-            <h3 className="text-lg font-semibold" style={{ color: "var(--text)" }}>No products tracked yet</h3>
-            <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
-              Start by creating an AI Blueprint for a new idea (Option A) or running a Launch Audit on an existing product (Option B).
+          <div className="space-y-2">
+            <h3 className="text-base font-semibold" style={{ color: "var(--text)" }}>No Products Tracked Yet</h3>
+            <p className="text-xs leading-relaxed max-w-md mx-auto" style={{ color: "var(--text-muted)" }}>
+              Initialize your first product workspace to analyze code, UX, performance, and business readiness.
             </p>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <Link href="/blueprint/new" className="btn btn-secondary">
-              <Sparkles className="w-4 h-4" style={{ color: "var(--accent)" }} />
-              Option A — New Idea
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left pt-2">
+            <Link
+              href="/blueprint/new"
+              className="p-4 rounded-xl border transition-all hover:border-amber-500/50 group"
+              style={{ background: "var(--bg-elevated)", borderColor: "var(--border)", textDecoration: "none" }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <ArrowRight className="w-3.5 h-3.5 text-zinc-500 group-hover:text-amber-400 group-hover:translate-x-1 transition-all" />
+              </div>
+              <div className="text-xs font-semibold text-zinc-200">Option A — New Idea</div>
+              <div className="text-[11px] text-zinc-500 mt-1">Generate complete product blueprint from an idea</div>
             </Link>
-            <Link href="/projects/new" className="btn btn-primary">
-              <PlusCircle className="w-4 h-4" />
-              Option B — Launch Audit
+
+            <Link
+              href="/projects/new"
+              className="p-4 rounded-xl border transition-all hover:border-amber-500/50 group"
+              style={{ background: "var(--bg-elevated)", borderColor: "var(--border)", textDecoration: "none" }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <ShieldCheck className="w-4 h-4 text-amber-500" />
+                <ArrowRight className="w-3.5 h-3.5 text-zinc-500 group-hover:text-amber-400 group-hover:translate-x-1 transition-all" />
+              </div>
+              <div className="text-xs font-semibold text-zinc-200">Option B — Audit Site</div>
+              <div className="text-[11px] text-zinc-500 mt-1">Run 6-module launch audit on existing URL</div>
             </Link>
           </div>
         </div>
@@ -221,22 +247,25 @@ export default function ProjectsPage() {
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-semibold uppercase tracking-wider font-mono" style={{ color: "var(--text-faint)" }}>
-                Active Projects ({projects.length})
+                Active Products ({projects.length})
               </h2>
             </div>
 
             <div className="space-y-3">
               {projects.map((project, idx) => {
                 const { score: effectiveScore, date: effectiveDate } = getEffectiveProjectScore(project);
+                const hasWebsite = Boolean(project.websiteUrl && !project.websiteUrl.includes("example-landing-page.com"));
+                const hasGithub = Boolean(project.githubRepoUrl && project.githubRepoUrl.trim() !== "");
+
                 return (
                   <div
                     key={project.id}
-                    className="card p-5 space-y-4 anim-fade-up"
+                    className="card p-5 space-y-4 transition-all hover:border-zinc-700/80 anim-fade-up"
                     style={{ animationDelay: `${idx * 40}ms` }}
                   >
                     <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <div className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Link
                             href={`/dashboard/${project.id}`}
                             className="text-base font-semibold transition-colors hover:text-[color:var(--accent)] truncate"
@@ -249,20 +278,23 @@ export default function ProjectsPage() {
                               Blueprint
                             </span>
                           )}
+                          <span className="badge badge-zinc text-[10px] font-mono">
+                            AI Memory v1
+                          </span>
                         </div>
 
-                        {project.websiteUrl && (
-                          <a
-                            href={project.websiteUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-1.5 text-xs font-mono transition-colors"
-                            style={{ color: "var(--text-muted)" }}
-                          >
-                            <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                            <span className="truncate">{project.websiteUrl.replace(/^https?:\/\//, "")}</span>
-                          </a>
-                        )}
+                        {/* Connected Assets Badges */}
+                        <div className="flex items-center gap-3 text-xs font-mono pt-1">
+                          <div className={`flex items-center gap-1.5 ${hasWebsite ? "text-green-400" : "text-zinc-500"}`}>
+                            <Globe className="w-3.5 h-3.5" />
+                            <span>{hasWebsite ? project.websiteUrl?.replace(/^https?:\/\//, "").split("/")[0] : "Website Unconnected"}</span>
+                          </div>
+
+                          <div className={`flex items-center gap-1.5 ${hasGithub ? "text-amber-400" : "text-zinc-500"}`}>
+                            <GitBranch className="w-3.5 h-3.5" />
+                            <span>{hasGithub ? project.githubRepoUrl?.replace("https://github.com/", "") : "Repo Unconnected"}</span>
+                          </div>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2 flex-shrink-0">
@@ -272,43 +304,38 @@ export default function ProjectsPage() {
                       </div>
                     </div>
 
-                    {project.githubRepoUrl && (
-                      <div className="text-xs font-mono truncate" style={{ color: "var(--text-faint)" }}>
-                        GitHub: <span style={{ color: "var(--text-muted)" }}>{project.githubRepoUrl.replace("https://github.com/", "")}</span>
-                      </div>
-                    )}
-
+                    {/* Footer Row */}
                     <div className="flex items-center justify-between pt-3 border-t text-xs" style={{ borderColor: "var(--border)" }}>
                       <div className="flex items-center gap-1.5" style={{ color: "var(--text-muted)" }}>
-                        <Clock className="w-3 h-3" />
+                        <Clock className="w-3.5 h-3.5" />
                         {effectiveDate
-                          ? `Audited ${new Date(effectiveDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                          ? `Audited ${new Date(effectiveDate).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`
                           : "Ready for launch audit"}
                       </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => handleDeleteProject(project.id, e)}
-                        disabled={deletingId === project.id}
-                        className="p-1.5 rounded text-xs transition-colors hover:bg-red-500/20 hover:text-red-400"
-                        style={{ color: "var(--text-faint)", border: "1px solid var(--border)" }}
-                        title="Delete project from workspace"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => handleDeleteProject(project.id, e)}
+                          disabled={deletingId === project.id}
+                          className="p-1.5 rounded-lg text-xs transition-colors hover:bg-red-500/20 hover:text-red-400"
+                          style={{ color: "var(--text-faint)", border: "1px solid var(--border)" }}
+                          title="Delete project from workspace"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
 
-                      <Link
-                        href={`/dashboard/${project.id}`}
-                        className="btn btn-secondary btn-sm"
-                      >
-                        <span>View Report</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </Link>
+                        <Link
+                          href={`/dashboard/${project.id}`}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          <span>Open Workspace</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
             </div>
           </div>
 
