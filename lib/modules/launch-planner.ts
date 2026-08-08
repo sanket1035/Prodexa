@@ -30,31 +30,32 @@ export function runLaunchPlanner(
     ? Math.round(validScores.reduce((a, b) => a + b, 0) / validScores.length)
     : 70;
 
-  // Build prioritized roadmap from identified issues
+  // Build prioritized phased roadmap from identified issues (Week 1 -> Week 2 -> Month 1 -> Month 3)
   const priorityOrder: Record<string, number> = { critical: 1, high: 2, medium: 3, low: 4 };
 
   const sortedIssues = [...allIssues].sort((a, b) => {
     return (priorityOrder[a.severity] || 5) - (priorityOrder[b.severity] || 5);
   });
 
-  const effortMap: Record<string, string> = {
-    critical: "10-15 min",
-    high: "15-30 min",
-    medium: "30-45 min",
-    low: "5-10 min",
+  const timeframeMap: Record<string, string> = {
+    critical: "Week 1 (Immediate Launch Blocker)",
+    high: "Week 2 (High Priority Fix)",
+    medium: "Month 1 (Optimization Loop)",
+    low: "Month 3 (Scale & Hardening)",
   };
 
   const roadmap: RoadmapItem[] = sortedIssues.map((issue) => ({
     priority: issue.severity,
     title: issue.title,
-    estimatedEffort: effortMap[issue.severity] || "15 min",
+    estimatedEffort: timeframeMap[issue.severity] || "Week 1 (Immediate)",
   }));
 
   // Fallback defaults if zero issues found
   if (roadmap.length === 0) {
     roadmap.push(
-      { priority: "low", title: "Conduct final pre-launch live demo rehearsal", estimatedEffort: "15 min" },
-      { priority: "low", title: "Verify OpenGraph social card share preview", estimatedEffort: "5 min" }
+      { priority: "low", title: "Conduct final pre-launch live demo rehearsal", estimatedEffort: "Week 1 (Immediate)" },
+      { priority: "low", title: "Verify OpenGraph social card share preview", estimatedEffort: "Week 2 (Pre-Launch)" },
+      { priority: "low", title: "Setup user feedback widget & analytics tracking", estimatedEffort: "Month 1 (Growth)" }
     );
   }
 

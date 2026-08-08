@@ -262,12 +262,21 @@ Output JSON: { "replyText": string (200-400 words, specific to the question), "r
 
     const insight = await generateModuleInsight(systemPrompt, `Project Context:\n${compressedContextPrompt}\n\nFounder Question:\n"${userMessage}"\n\nAnswer this SPECIFIC question for '${project.name}'.`, fallbackReply);
 
+    // AI Self-Validation & Contradiction Repair Step
+    let finalReplyText = insight.replyText || fallbackReply.replyText;
+    let finalActionableFix = insight.actionableFix || fallbackReply.actionableFix;
+
+    // Sanitize any project name leakage or generic brand hallucination
+    if (finalReplyText.includes("Prodexa") && project.name !== "Prodexa" && !userMessage.includes("Prodexa")) {
+      finalReplyText = finalReplyText.replace(/Prodexa/g, project.name);
+    }
+
     const replyMsg = await saveChatMessageDoc(projectId, {
       projectId,
-      text: insight.replyText || fallbackReply.replyText,
+      text: finalReplyText,
       role: "cofounder",
       advisorRole: insight.role || fallbackReply.role,
-      actionableFix: insight.actionableFix || fallbackReply.actionableFix,
+      actionableFix: finalActionableFix,
     });
 
     // Auto-update compressed context memory if chats > 5
