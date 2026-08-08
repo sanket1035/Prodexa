@@ -57,6 +57,7 @@ function DashboardContent() {
   const [inputWebsite, setInputWebsite] = useState("");
   const [inputGithub, setInputGithub] = useState("");
   const [updatingAssets, setUpdatingAssets] = useState(false);
+  const [issueFilter, setIssueFilter] = useState<"all" | "critical" | "high" | "medium" | "low">("all");
 
   useEffect(() => {
     if (!projectId) return;
@@ -791,20 +792,47 @@ function DashboardContent() {
             </div>
           </div>
 
-          {/* Issues List */}
+          {/* PHASE 2.5: ACTION CENTER & PRIORITY MATRIX */}
           {currentRun && (
-            <div id="gaps-and-fixes-section" className="space-y-3 pt-2">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-                  Prioritized Gaps &amp; Fixes
-                  {currentRun.issues?.length > 0 && (
-                    <span className="ml-2 badge badge-muted font-mono">
-                      {currentRun.issues.length}
-                    </span>
-                  )}
-                </h3>
+            <div id="gaps-and-fixes-section" className="space-y-4 pt-4 border-t" style={{ borderColor: "var(--border)" }}>
+              {/* Action Center Header & Priority Matrix Tabs */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <h3 className="text-sm font-semibold tracking-tight" style={{ color: "var(--text)" }}>
+                    Action Center &amp; Priority Matrix
+                  </h3>
+                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                    Prioritized audit gaps grouped by severity level.
+                  </p>
+                </div>
+
+                {/* Priority Matrix Filter Pills */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[
+                    { id: "all", label: "All Issues", count: currentRun.issues?.length || 0 },
+                    { id: "critical", label: "Critical", count: currentRun.issues?.filter((i) => i.severity === "critical").length || 0, color: "text-red-400" },
+                    { id: "high", label: "High", count: currentRun.issues?.filter((i) => i.severity === "high").length || 0, color: "text-amber-400" },
+                    { id: "medium", label: "Medium", count: currentRun.issues?.filter((i) => i.severity === "medium").length || 0, color: "text-blue-400" },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setIssueFilter(tab.id as any)}
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-mono transition-all flex items-center gap-1.5 ${
+                        issueFilter === tab.id
+                          ? "bg-zinc-800 border-amber-500/50 text-zinc-100 font-bold"
+                          : "bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                      }`}
+                    >
+                      <span>{tab.label}</span>
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] bg-zinc-800 ${tab.color || "text-zinc-300"}`}>
+                        {tab.count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
+              {/* Filtered Issue Rows */}
               {currentRun.issues?.length === 0 ? (
                 <div className="card p-8 text-center space-y-2 border-green-500/20">
                   <CheckCircle2 className="w-8 h-8 text-green-500 mx-auto" />
@@ -812,19 +840,68 @@ function DashboardContent() {
                   <div className="text-xs" style={{ color: "var(--text-muted)" }}>Your product is launch-ready.</div>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {currentRun.issues.map((issue) => (
-                    <IssueRow key={issue.id} issue={issue} />
-                  ))}
+                <div className="space-y-2.5">
+                  {currentRun.issues
+                    .filter((issue) => issueFilter === "all" || issue.severity === issueFilter)
+                    .map((issue) => (
+                      <IssueRow key={issue.id} issue={issue} />
+                    ))}
                 </div>
               )}
             </div>
           )}
 
-          {/* Roadmap */}
+          {/* Roadmap Section */}
           {currentRun?.roadmap && currentRun.roadmap.length > 0 && (
             <RoadmapSection items={currentRun.roadmap} />
           )}
+
+          {/* PHASE 2.5: FOOTER ACTION BAR */}
+          <div className="card p-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-amber-500/20 bg-zinc-900/40">
+            <div className="space-y-1 text-center sm:text-left">
+              <div className="text-sm font-semibold text-zinc-200">
+                Ready to take your launch report to the next level?
+              </div>
+              <div className="text-xs text-zinc-400 font-mono">
+                Re-run audit after applying fixes or export executive PDF deliverable for investors.
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 flex-wrap flex-shrink-0">
+              <button
+                onClick={() => handleRevalidate()}
+                disabled={revalidating}
+                className="btn btn-primary btn-sm"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${revalidating ? "anim-spin" : ""}`} />
+                Re-run Audit
+              </button>
+
+              <button
+                onClick={handleExportPDF}
+                className="btn btn-secondary btn-sm text-amber-400 border-amber-500/30 hover:bg-amber-500/10"
+              >
+                <FileText className="w-3.5 h-3.5 text-amber-500" />
+                Export PDF
+              </button>
+
+              <button
+                onClick={() => setActiveTab("cofounder")}
+                className="btn btn-secondary btn-sm"
+              >
+                <Bot className="w-3.5 h-3.5 text-amber-500" />
+                AI Co-Founder
+              </button>
+
+              <Link
+                href={`/dashboard/${project.id}/history`}
+                className="btn btn-secondary btn-sm"
+              >
+                <History className="w-3.5 h-3.5 text-zinc-400" />
+                Timeline History
+              </Link>
+            </div>
+          </div>
         </div>
       )}
     </div>
