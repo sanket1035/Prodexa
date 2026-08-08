@@ -415,13 +415,13 @@ export default function ProjectsPage() {
                                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                                 <span>📁 BLUEPRINT</span>
                               </div>
-                              {project.blueprintId ? (
+                              {project.blueprintId && project.blueprintId.trim() !== "" ? (
                                 <span className="text-amber-400 font-mono text-[9px] bg-amber-500/10 px-1.5 py-0.5 rounded">CONNECTED</span>
                               ) : (
                                 <span className="text-zinc-500 font-mono text-[9px]">NOT CREATED</span>
                               )}
                             </div>
-                            {project.blueprintId ? (
+                            {project.blueprintId && project.blueprintId.trim() !== "" ? (
                               <Link
                                 href={`/blueprint/${project.blueprintId}`}
                                 className="text-xs text-amber-300 hover:underline flex items-center gap-1 font-medium truncate pt-0.5"

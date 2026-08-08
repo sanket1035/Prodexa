@@ -119,75 +119,7 @@ export async function POST(req: NextRequest) {
 
     const completedAt = new Date().toISOString();
 
-    // Auto-generate AI Blueprint during Launch Audit if project doesn't have one attached!
-    if (!project.blueprintId) {
-      try {
-        const scoreVal = launchResult.overallScore || 85;
-        const bp = await createBlueprint({
-          name: project.name + " Blueprint",
-          idea: `AI Blueprint auto-generated from Launch Audit of ${project.name}`,
-          problem: "Early-stage software builders launch without structured pre-launch audit feedback.",
-          targetUsers: "Software developers, founders, launch teams",
-          sections: [
-            {
-              id: "sec_1",
-              category: "tech",
-              title: "Recommended Tech Stack & Architecture",
-              content: {
-                diagram: "graph TD;\n  A[Landing Page] --> B[API Router]\n  B --> C[Firestore DB]",
-                techStack: { frontend: "Next.js 14, Tailwind", backend: "Next.js API Routes", database: "Firestore", ai: "Gemini / Groq" },
-              },
-              status: "accepted",
-            },
-            {
-              id: "sec_2",
-              category: "features",
-              title: "Core Feature Architecture",
-              content: { mvpFeatures: ["Deterministic Launch Audit", "AI Blueprint Engine", "AI Co-Founder Strategy Advisor"] },
-              status: "accepted",
-            },
-            {
-              id: "sec_3",
-              category: "risks",
-              title: "Launch Risk Mitigation Matrix",
-              content: { risks: ["Unverified license in open source repo", "CTA contrast visibility", "Meta tag completeness"] },
-              status: "accepted",
-            },
-          ],
-          qualityScore: {
-            overall: scoreVal,
-            metrics: {
-              innovation: 85,
-              businessPotential: 88,
-              technicalFeasibility: 92,
-              scalability: 90,
-              aiNecessity: 86,
-              marketReadiness: scoreVal,
-            },
-            strengths: ["Clean modular Next.js architecture", "Deterministic 6-module readiness audit"],
-            weaknesses: ["Requires additional SEO meta tag optimization"],
-            rationale: "Auto-generated from 6-module Launch Readiness Audit.",
-          },
-          contextPackage: {
-            blueprintId: "temp",
-            projectName: project.name,
-            oneLineSummary: `Auto-generated architecture and launch roadmap for ${project.name}`,
-            problemStatement: `Optimizing launch readiness, performance, and user retention for ${project.name}`,
-            targetAudience: `Target users and early adopters of ${project.name}`,
-            coreFeatures: [`${project.name} Core Application`, "User Onboarding & Authentication", "Performance & Analytics Dashboard"],
-            techStack: { frontend: "Next.js 14, Tailwind CSS", backend: "Server API Routes", database: "Production DB", ai: "Multi-Provider AI Engine" },
-            keyCompetitors: ["Alternative Solutions", "Manual Workflows"],
-            generatedAt: new Date().toISOString(),
-          },
-          mermaidDiagram: "graph TD;\n  A[Landing Page] --> B[API Router]\n  B --> C[Firestore DB]",
-          userId,
-          status: "accepted",
-        });
-        project.blueprintId = bp.id;
-      } catch {
-        // Fallback
-      }
-    }
+
 
     // Create Validation Run with 100% completed scores and issues directly
     const completedRun = await createValidationRun({
