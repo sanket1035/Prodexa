@@ -1,6 +1,7 @@
 import { Blueprint, BlueprintSection, ContextPackage } from "@/lib/types/blueprint";
 import { generateModuleInsight } from "@/lib/utils/openai";
 import { calculateHybridQualityScore } from "@/lib/modules/quality-score-engine";
+import { autoRepairBlueprintConsistency } from "@/lib/modules/consistency-engine";
 
 export interface GenerateBlueprintInput {
   userId: string;
@@ -13,81 +14,161 @@ export interface GenerateBlueprintInput {
   optionalConstraints?: string;
 }
 
+export function buildContextAwareMermaidDiagram(industry: string, idea: string, problem: string): string {
+  const combined = (industry + " " + idea + " " + problem).toLowerCase();
+
+  const hasAuth = combined.includes("user") || combined.includes("login") || combined.includes("account") || combined.includes("auth") || combined.includes("patient") || combined.includes("student");
+  const hasPayment = combined.includes("shop") || combined.includes("store") || combined.includes("cart") || combined.includes("pay") || combined.includes("billing") || combined.includes("subscrip") || combined.includes("monetiz");
+  const hasAI = combined.includes("ai") || combined.includes("agent") || combined.includes("llm") || combined.includes("predict") || combined.includes("diagnos") || combined.includes("gpt") || combined.includes("recommend");
+  const hasStorage = combined.includes("file") || combined.includes("pdf") || combined.includes("image") || combined.includes("video") || combined.includes("document") || combined.includes("record") || combined.includes("media");
+  const hasNotify = combined.includes("alert") || combined.includes("notify") || combined.includes("email") || combined.includes("sms") || combined.includes("message");
+
+  let diagram = "graph TD\n";
+
+  if (combined.includes("health") || combined.includes("medical") || combined.includes("patient") || combined.includes("doctor") || combined.includes("clinic")) {
+    diagram += `    Client["Patient & Clinician Portal (Next.js 14)"] --> API["HIPAA Gateway / Edge Router"]\n`;
+    diagram += `    API --> Auth["OAuth2 / BAA Identity Provider"]\n`;
+    if (hasAI) diagram += `    API --> AI["Diagnostic AI & Risk Scoring Engine"]\n`;
+    diagram += `    API --> EHR["Patient EHR & Lab Records DB (Firestore)"]\n`;
+    if (hasStorage) diagram += `    API --> Storage["Encrypted Cloud Storage (DICOM/PDF)"]\n`;
+    if (hasNotify) diagram += `    API --> Notify["Patient SMS / Email Reminder Queue"]\n`;
+  } else if (combined.includes("fintech") || combined.includes("bank") || combined.includes("payment") || combined.includes("crypto") || combined.includes("finance") || combined.includes("tax")) {
+    diagram += `    Client["Financial Dashboard UI (React / Next.js)"] --> API["Secure PCI Gateway Service"]\n`;
+    diagram += `    API --> Auth["JWT / Multi-Factor Auth Service"]\n`;
+    diagram += `    API --> Bank["Open Banking & Plaid Connector"]\n`;
+    if (hasPayment) diagram += `    API --> Payment["Stripe Payments & Settlement Service"]\n`;
+    diagram += `    API --> Ledger["Immutable Transaction Ledger DB"]\n`;
+    if (hasAI) diagram += `    API --> Fraud["AI Fraud Detection & Risk Pipeline"]\n`;
+  } else if (combined.includes("edtech") || combined.includes("course") || combined.includes("learn") || combined.includes("school") || combined.includes("student")) {
+    diagram += `    Client["Interactive Learning App (Next.js 14)"] --> API["Course Management API Router"]\n`;
+    diagram += `    API --> Auth["Clerk / NextAuth User Service"]\n`;
+    diagram += `    API --> CDN["HLS Video & Asset CDN"]\n`;
+    diagram += `    API --> DB["Student Progress & Assessment DB"]\n`;
+    if (hasAI) diagram += `    API --> Tutor["AI Personal Tutor & Quiz Generator"]\n`;
+    if (hasPayment) diagram += `    API --> Payment["Subscription Billing Gateway"]\n`;
+  } else if (combined.includes("agent") || combined.includes("automation") || combined.includes("workflow") || combined.includes("copilot") || combined.includes("ai assistant")) {
+    diagram += `    Client["Agent Operating System Web App"] --> API["Orchestration Engine API Router"]\n`;
+    diagram += `    API --> VectorDB["Pinecone / Weaviate Vector Store"]\n`;
+    diagram += `    API --> LLM["Multi-Model AI Pipeline (OpenAI & Gemini)"]\n`;
+    diagram += `    API --> Memory["Context Memory & History Store"]\n`;
+    diagram += `    API --> Tools["External API Tool Executer"]\n`;
+  } else if (combined.includes("shop") || combined.includes("store") || combined.includes("e-commerce") || combined.includes("cart") || combined.includes("commerce")) {
+    diagram += `    Client["Shopper Storefront UI (Next.js 14)"] --> API["E-Commerce Core API Gateway"]\n`;
+    if (hasAuth) diagram += `    API --> Auth["Customer Identity Service"]\n`;
+    diagram += `    API --> Payment["Stripe Payment Gateway"]\n`;
+    diagram += `    API --> Order["Order Processing & Inventory Queue"]\n`;
+    diagram += `    API --> DB["Product Catalog DB (Firestore)"]\n`;
+    if (hasAI) diagram += `    API --> AI["AI Personalization Engine"]\n`;
+  } else {
+    diagram += `    Client["Client Web App (Next.js 14 / TypeScript)"] --> API["Server API Gateway"]\n`;
+    if (hasAuth) diagram += `    API --> Auth["Identity & Auth Service (Firebase)"]\n`;
+    if (hasPayment) diagram += `    API --> Payment["Stripe Payment Gateway"]\n`;
+    diagram += `    API --> DB["Primary Firestore Database"]\n`;
+    if (hasAI) diagram += `    API --> AI["Gemini / OpenAI Intelligence Pipeline"]\n`;
+    if (hasNotify) diagram += `    API --> Notify["Webhook & Notification Queue"]\n`;
+  }
+
+  return diagram;
+}
+
+export function getDomainCompetitors(industry: string, idea: string, problem: string) {
+  const combined = (industry + " " + idea + " " + problem).toLowerCase();
+
+  if (combined.includes("health") || combined.includes("medical") || combined.includes("patient") || combined.includes("clinic")) {
+    return [
+      { name: "Epic Systems / Cerner", strength: "Dominant EHR market share in enterprise hospital networks", weakness: "Legacy monoliths with complex integration cycles and high cost ($100k+)" },
+      { name: "One Medical / Practo", strength: "Modern consumer clinic UI and direct appointment booking", weakness: "Limited automated diagnostic workflow and lack of AI pre-screening" },
+      { name: "Manual Paper Workflows", strength: "Zero software cost and familiar clinician habit", weakness: "High administrative overhead, missing analytics, and risk of HIPAA compliance errors" }
+    ];
+  }
+
+  if (combined.includes("fintech") || combined.includes("bank") || combined.includes("payment") || combined.includes("crypto") || combined.includes("tax")) {
+    return [
+      { name: "Plaid + Stripe Infrastructure", strength: "Industry-standard developer APIs for banking and payments", weakness: "Complex multi-service integration required to build custom financial workflows" },
+      { name: "Brex / Ramp", strength: "Polished corporate spend management and card issuance", weakness: "Tailored strictly for venture-backed startups rather than custom niche financial workflows" },
+      { name: "Manual Spreadsheets", strength: "Free and fully customizable by finance teams", weakness: "Prone to manual human error, lack of real-time audit trail, and zero fraud detection" }
+    ];
+  }
+
+  if (combined.includes("edtech") || combined.includes("course") || combined.includes("learn") || combined.includes("school")) {
+    return [
+      { name: "Coursera / Udemy", strength: "Massive existing course catalog and global learner audience", weakness: "Passive video consumption with low completion rates (<10%) and zero personalized AI tutoring" },
+      { name: "Canvas LMS / Blackboard", strength: "Established distribution in K-12 and university systems", weakness: "Clunky legacy UI with zero real-time adaptive learning paths" },
+      { name: "Generic Notion / YouTube", strength: "Free and easy to share content", weakness: "No progress tracking, assessment engine, or structured learning feedback loop" }
+    ];
+  }
+
+  if (combined.includes("agent") || combined.includes("automation") || combined.includes("workflow") || combined.includes("copilot")) {
+    return [
+      { name: "AutoGPT / BabyAGI Frameworks", strength: "Open-source developer community and multi-step reasoning models", weakness: "High token cost, infinite loops, and lack of enterprise safety guardrails" },
+      { name: "LangChain / CrewAI", strength: "Flexible agent composition libraries for Python and JS", weakness: "Requires heavy custom coding; lacks out-of-the-box UI/UX for non-technical users" },
+      { name: "Manual Scripting", strength: "Full control over custom business logic", weakness: "High maintenance overhead, brittle API hooks, and zero autonomous reasoning" }
+    ];
+  }
+
+  if (combined.includes("shop") || combined.includes("store") || combined.includes("e-commerce") || combined.includes("cart")) {
+    return [
+      { name: "Shopify / WooCommerce", strength: "Massive plugin ecosystem and easy template setup", weakness: "High recurring app subscription fees and limited custom AI recommendation flexibility" },
+      { name: "Medusa.js / Commerce Layer", strength: "Headless open-source commerce for developers", weakness: "Requires custom engineering setup and dedicated hosting management" },
+      { name: "Manual Marketplace (Etsy/Amazon)", strength: "Built-in marketplace traffic", weakness: "High take-rate fees (15%+) and zero customer relationship ownership" }
+    ];
+  }
+
+  return [
+    { name: "Linear / Vercel Workspace Tools", strength: "Crisp SaaS design and developer adoption", weakness: "Built for general project management rather than specialized product blueprinting" },
+    { name: "Manual Product Consultants", strength: "Custom human review and high-touch guidance", weakness: "High cost ($2,500+ per engagement) and slow 2-week delivery turnaround" },
+    { name: "Generic ChatGPT / LLM Wrappers", strength: "Fast response generation for simple prompts", weakness: "Generic output with zero cross-section consistency or deterministic architecture verification" }
+  ];
+}
+
 export async function generateAIBlueprint(input: GenerateBlueprintInput): Promise<Omit<Blueprint, "id" | "createdAt">> {
   const { name, idea, problem, targetUsers = "Early-stage founders and software teams" } = input;
   const industry = input.optionalIndustry || "SaaS / Software";
 
-  // Build domain-aware dynamic Mermaid Architecture template
-  let dynamicMermaid = `graph TD
-    Client["Client Web App (Next.js 14 / React)"] --> API["Server API Router"]
-    API --> Auth["Firebase Auth"]
-    API --> DB["Firestore Database"]
-    API --> AI["Gemini / OpenAI Engine"]`;
+  const dynamicMermaid = buildContextAwareMermaidDiagram(industry, idea, problem);
+  const domainCompetitors = getDomainCompetitors(industry, idea, problem);
 
-  const lowerInd = (industry + " " + idea + " " + problem).toLowerCase();
-  if (lowerInd.includes("shop") || lowerInd.includes("store") || lowerInd.includes("e-commerce") || lowerInd.includes("cart") || lowerInd.includes("commerce")) {
-    dynamicMermaid = `graph TD
-    Client["Shopper Storefront (Next.js 14)"] --> API["E-Commerce API Service"]
-    API --> Payment["Stripe Payment Gateway"]
-    API --> Inventory["Inventory & Order Queue"]
-    API --> DB["Product Catalog DB"]
-    API --> Analytics["Sales & Recommendation AI"]`;
-  } else if (lowerInd.includes("health") || lowerInd.includes("doctor") || lowerInd.includes("patient") || lowerInd.includes("medical")) {
-    dynamicMermaid = `graph TD
-    Client["Patient & Doctor Portal"] --> API["HIPAA-Compliant API Gateway"]
-    API --> Auth["Encrypted Auth Service"]
-    API --> EHR["Patient EHR Database"]
-    API --> Appt["Appointment Scheduler"]
-    API --> AI["Diagnostic Insights AI"]`;
-  } else if (lowerInd.includes("edtech") || lowerInd.includes("course") || lowerInd.includes("learn") || lowerInd.includes("student") || lowerInd.includes("education")) {
-    dynamicMermaid = `graph TD
-    Client["Student Learning Interface"] --> API["Course Engine API"]
-    API --> Video["HLS Video Streaming CDN"]
-    API --> DB["Student Progress DB"]
-    API --> Quiz["AI Quiz & Assessment Engine"]`;
-  } else if (lowerInd.includes("fintech") || lowerInd.includes("crypto") || lowerInd.includes("bank") || lowerInd.includes("payment")) {
-    dynamicMermaid = `graph TD
-    Client["Financial Dashboard UI"] --> API["Secure Transaction Gateway"]
-    API --> Ledger["Immutable Audit Ledger"]
-    API --> Fraud["AI Fraud Detection Engine"]
-    API --> Banking["Open Banking API Integration"]`;
-  }
+  const systemPrompt = `You are a Senior Principal Product Architect & YC Partner.
+Generate an authoritative, highly specific, and internally consistent Product Blueprint for '${name}' in the domain '${industry}'.
 
-  const systemPrompt = `You are a Principal Technical Architect & Venture Partner. 
-Analyze the startup idea and generate a structured startup blueprint JSON object with:
-1. "qualityScore": { 
-     "overall": number(0-100), 
-     "metrics": { "innovation": number, "businessPotential": number, "technicalFeasibility": number, "scalability": number, "aiNecessity": number, "marketReadiness": number }, 
-     "metricDetails": {
-       "technicalFeasibility": { "value": number, "reason": string, "confidence": number },
-       "businessPotential": { "value": number, "reason": string, "confidence": number },
-       "innovation": { "value": number, "reason": string, "confidence": number },
-       "scalability": { "value": number, "reason": string, "confidence": number },
-       "marketReadiness": { "value": number, "reason": string, "confidence": number },
-       "aiNecessity": { "value": number, "reason": string, "confidence": number }
-     },
-     "strengths": string[], 
-     "weaknesses": string[], 
-     "rationale": string 
-   }
-2. "mermaidDiagram": string (a valid Mermaid 'graph TD' diagram custom-fitted to the industry domain: '${industry}')
-3. "foundation": { "problemStatement": string, "solutionStatement": string, "targetICP": string }
-4. "market": { "competitors": Array<{ name: string, strength: string, weakness: string }>, "marketGaps": string, "investorNotes": string }
-5. "features": { "mvpFeatures": string[], "futureFeatures": string[], "monetization": string }
-6. "tech": { "techStack": { "frontend": string, "backend": string, "database": string, "ai": string }, "riskAnalysis": Array<{ risk: string, mitigation: string }> }
-7. "database": { "collections": Array<{ name: string, fields: string }>, "endpoints": Array<{ method: string, path: string, desc: string }> }
-8. "risks": { "folderTree": string, "developmentPhases": Array<{ phase: string, title: string, effort: string }> }
+CRITICAL ARCHITECTURAL RULES:
+1. Avoid generic startup buzzwords. Every section MUST reference previous sections.
+2. Problem -> Solution -> MVP Features -> Tech Stack -> Architecture Diagram -> Database Collections -> Roadmap MUST be 100% aligned.
+3. Include explicit Explainability Fields (Why, Confidence, Evidence, Trade-offs).
 
-Output strictly JSON.`;
+OUTPUT SCHEMA (Strict JSON):
+{
+  "qualityScore": {
+    "overall": number(0-100),
+    "metrics": { "innovation": number, "businessPotential": number, "technicalFeasibility": number, "scalability": number, "aiNecessity": number, "marketReadiness": number },
+    "metricDetails": {
+      "technicalFeasibility": { "value": number, "reason": string, "confidence": number },
+      "businessPotential": { "value": number, "reason": string, "confidence": number },
+      "innovation": { "value": number, "reason": string, "confidence": number },
+      "scalability": { "value": number, "reason": string, "confidence": number },
+      "marketReadiness": { "value": number, "reason": string, "confidence": number },
+      "aiNecessity": { "value": number, "reason": string, "confidence": number }
+    },
+    "strengths": string[],
+    "weaknesses": string[],
+    "rationale": string
+  },
+  "mermaidDiagram": string (a valid Mermaid 'graph TD' diagram custom-fitted to '${industry}'),
+  "foundation": { "problemStatement": string, "solutionStatement": string, "targetICP": string },
+  "market": { "competitors": Array<{ name: string, strength: string, weakness: string }>, "marketGaps": string, "investorNotes": string },
+  "features": { "mvpFeatures": string[], "futureFeatures": string[], "monetization": string },
+  "tech": { "techStack": { "frontend": string, "backend": string, "database": string, "ai": string }, "riskAnalysis": Array<{ risk: string, mitigation: string }> },
+  "database": { "collections": Array<{ name: string, fields: string }>, "endpoints": Array<{ method: string, path: string, desc: string }> },
+  "risks": { "folderTree": string, "developmentPhases": Array<{ phase: string, title: string, effort: string }> }
+}`;
 
   const userContent = `Project Name: ${name}
 Idea Description: ${idea}
 Problem Statement: ${problem}
 Target Users: ${targetUsers}
-Industry: ${industry}
-Constraints: ${input.optionalConstraints || "24-30h hackathon build scope"}`;
+Industry / Domain: ${industry}
+Optional Constraints: ${input.optionalConstraints || "24-30h hackathon MVP scope"}`;
 
-  // Dynamic Fallback Score computation (50% Deterministic + Fallback Mode)
   const dynamicFallbackScore = calculateHybridQualityScore({
     name,
     idea,
@@ -102,26 +183,23 @@ Constraints: ${input.optionalConstraints || "24-30h hackathon build scope"}`;
     mermaidDiagram: dynamicMermaid,
     foundation: {
       problemStatement: problem,
-      solutionStatement: `${name} provides an automated, structured operating system to validate and launch ${idea}.`,
+      solutionStatement: `${name} provides a domain-specific operating system designed to solve '${problem.substring(0, 100)}' for ${targetUsers}.`,
       targetICP: targetUsers,
     },
     market: {
-      competitors: [
-        { name: "Generic Alternative", strength: "Established brand", weakness: "Lacks specialized automation workflow" },
-        { name: "Manual Consultants", strength: "Custom human review", weakness: "High cost ($2,000+) and days of turnaround latency" },
-      ],
-      marketGaps: `No automated tool connects Day 0 idea planning for ${name} directly with pre-launch verification.`,
-      investorNotes: `${name} addresses a growing market in ${industry} seeking instant automated validation.`,
+      competitors: domainCompetitors,
+      marketGaps: `Existing solutions in ${industry} lack automated cross-section validation for ${name}.`,
+      investorNotes: `${name} captures a critical market gap in ${industry} with scalable ROI and strong unit economics.`,
     },
     features: {
       mvpFeatures: [
         `Core ${name} User Interface & Dashboard`,
-        "Automated AI Blueprint Engine & Dynamic Hybrid Quality Score",
-        "Domain-Aware Mermaid System Architecture Diagram",
-        "One-Click Project Starter Kit Package Download",
+        `Automated AI Blueprint Engine for ${industry}`,
+        "Domain-Aware System Architecture Visualizer",
+        "One-Click Project Starter Kit Bundle Generator",
       ],
-      futureFeatures: ["Slack / Discord Webhook Notifications", "Automated GitHub OAuth Sync"],
-      monetization: "Free tier for open-source builders; $19/mo Pro tier for team collaboration.",
+      futureFeatures: ["Webhook Integrations", "Automated OAuth Sync"],
+      monetization: "Freemium SaaS model with $19/mo Pro tier.",
     },
     tech: {
       techStack: {
@@ -131,8 +209,8 @@ Constraints: ${input.optionalConstraints || "24-30h hackathon build scope"}`;
         ai: "Gemini 1.5 Pro / OpenAI Engine",
       },
       riskAnalysis: [
-        { risk: "Target URL blocks scraping", mitigation: "Graceful fallback DOM status response" },
         { risk: "API rate limits on external services", mitigation: "Caching and read-only token authorization" },
+        { risk: "Domain data isolation", mitigation: "Strict workspace scoping" },
       ],
     },
     database: {
@@ -159,9 +237,11 @@ Constraints: ${input.optionalConstraints || "24-30h hackathon build scope"}`;
     },
   };
 
-  const aiData = await generateModuleInsight(systemPrompt, userContent, fallbackJSON);
+  let aiData = await generateModuleInsight(systemPrompt, userContent, fallbackJSON);
 
-  // Compute final Dynamic Hybrid Quality Score (50% Deterministic + 50% AI metrics)
+  // Auto-Repair Cross-Section Consistency (Auto-Repair Engine)
+  aiData = autoRepairBlueprintConsistency(aiData);
+
   const finalQualityScore = calculateHybridQualityScore({
     name,
     idea,

@@ -80,3 +80,34 @@ export function auditCrossModuleConsistency(
     overallConsistencyScore,
   };
 }
+
+export function autoRepairBlueprintConsistency<T extends {
+  mermaidDiagram?: string;
+  database?: { collections: Array<{ name: string; fields: string }>; endpoints: Array<{ method: string; path: string; desc: string }> };
+  features?: { mvpFeatures: string[]; futureFeatures: string[]; monetization: string };
+}>(blueprintData: T): T {
+  const repaired = { ...blueprintData };
+  const fullText = JSON.stringify(repaired).toLowerCase();
+
+  // 1. Repair missing users collection if auth mentioned
+  if (fullText.includes("user") || fullText.includes("auth") || fullText.includes("login")) {
+    if (repaired.database?.collections) {
+      const hasUserCol = repaired.database.collections.some((c) => c.name.toLowerCase() === "users" || c.name.toLowerCase() === "profiles");
+      if (!hasUserCol) {
+        repaired.database.collections.unshift({
+          name: "users",
+          fields: "uid, email, displayName, photoURL, createdAt",
+        });
+      }
+    }
+  }
+
+  // 2. Repair missing payment gateway node in Mermaid if payments mentioned
+  if (fullText.includes("stripe") || fullText.includes("payment") || fullText.includes("monetiz") || fullText.includes("subscription")) {
+    if (repaired.mermaidDiagram && !repaired.mermaidDiagram.toLowerCase().includes("payment") && !repaired.mermaidDiagram.toLowerCase().includes("stripe")) {
+      repaired.mermaidDiagram += `\n    API --> Payment["Stripe Payment Gateway"]`;
+    }
+  }
+
+  return repaired;
+}
