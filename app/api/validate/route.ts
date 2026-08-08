@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProjectById, createValidationRun, createBlueprint, updateProject } from "@/lib/firebase/db";
+import { getProjectById, createValidationRun, updateProject } from "@/lib/firebase/db";
 import { runEngineeringAnalysis } from "@/lib/modules/engineering-analysis";
 import { runProductUnderstanding } from "@/lib/modules/product-understanding";
 import { runUxValidation } from "@/lib/modules/ux-validation";
@@ -53,73 +53,90 @@ export async function POST(req: NextRequest) {
     project.websiteUrl = webUrl || null;
     project.githubRepoUrl = ghUrl || null;
 
-    // FB-001 FIX: Never fall back to prodexa.ai — skip web modules if no website provided
+    // Skip web modules if no website provided
     const hasWebsite = Boolean(webUrl && webUrl.trim() !== "");
-    const auditWebUrl = webUrl as string; // only used when hasWebsite is true
+    const auditWebUrl = webUrl as string;
 
-    // Execute 6 readiness analysis modules synchronously
+    // Execute readiness analysis modules
     const allIssues: Issue[] = [];
     const engResult = await runEngineeringAnalysis(ghUrl || null);
 
-    // Web modules only execute when a real website URL is present
     const prodResult = hasWebsite
       ? await runProductUnderstanding(auditWebUrl)
       : { status: "skipped" as const, reason: "No website URL connected", score: null, issues: [], summary: "Website audit skipped", targetAudience: "N/A", valueProposition: "N/A" };
 
-    const uxResult = hasWebsite
+    const uxResult = hasWebsite && prodResult.status !== "failed"
       ? await runUxValidation(auditWebUrl)
-      : { status: "skipped" as const, reason: "No website URL connected", score: null, issues: [], details: { hasViewport: false, hasPrimaryCta: false, missingAltCount: 0, h1Count: 0, hasOgTags: false, hasCanonical: false, hasFavicon: false } };
+      : { status: "skipped" as const, reason: "Website offline or not connected", score: null, issues: [], details: { hasViewport: false, hasPrimaryCta: false, missingAltCount: 0, h1Count: 0, hasOgTags: false, hasCanonical: false, hasFavicon: false } };
 
-    const perfResult = hasWebsite
+    const perfResult = hasWebsite && prodResult.status !== "failed"
       ? await runPerformanceAudit(auditWebUrl)
-      : { status: "skipped" as const, reason: "No website URL connected", score: null, issues: [], details: { responseTimeMs: 0, estimatedPageSizeBytes: 0, scriptCount: 0 } };
+      : { status: "skipped" as const, reason: "Website offline or not connected", score: null, issues: [], details: { responseTimeMs: 0, estimatedPageSizeBytes: 0, scriptCount: 0 } };
 
-    const bizResult = hasWebsite
+    const bizResult = hasWebsite && prodResult.status !== "failed"
       ? await runBusinessReview(auditWebUrl, pitchDeckText)
-      : { status: "skipped" as const, reason: "No website URL connected", score: null, issues: [], businessModel: "Unknown", pricingMentioned: false, contactProvided: false };
-
-    if (prodResult.issues) allIssues.push(...prodResult.issues);
-    if (engResult.issues) allIssues.push(...engResult.issues);
-    if (uxResult.issues) allIssues.push(...uxResult.issues);
-    if (perfResult.issues) allIssues.push(...perfResult.issues);
-    if (bizResult.issues) allIssues.push(...bizResult.issues);
+      : { status: "skipped" as const, reason: "Website offline or not connected", score: null, issues: [], businessModel: "Unknown", pricingMentioned: false, contactProvided: false };
 
     const hasGithub = Boolean(ghUrl && ghUrl.trim() !== "" && !ghUrl.includes("example.com"));
     const webReachable = hasWebsite && prodResult.status !== "failed";
     const ghReachable = hasGithub && engResult.status !== "failed";
 
+    if (webReachable) {
+      if (prodResult.issues) allIssues.push(...prodResult.issues);
+      if (uxResult.issues) allIssues.push(...uxResult.issues);
+      if (perfResult.issues) allIssues.push(...perfResult.issues);
+      if (bizResult.issues) allIssues.push(...bizResult.issues);
+    }
+    if (ghReachable && engResult.issues) {
+      allIssues.push(...engResult.issues);
+    }
+
     const urlSeed = (webUrl || "") + project.name;
     const moduleScores = {
-      engineering: hasGithub ? (ghReachable ? getDynamicScore(engResult.score, ghUrl, 1, 65, 95) : 35) : null,
-      productUnderstanding: webReachable ? getDynamicScore(prodResult.score, auditWebUrl, 2, 70, 96) : (hasWebsite ? 30 : null),
-      ux: webReachable ? getDynamicScore(uxResult.score, auditWebUrl, 3, 64, 92) : (hasWebsite ? 25 : null),
-      accessibility: webReachable ? getDynamicScore(uxResult.score ? Math.max(50, uxResult.score - 5) : null, auditWebUrl, 4, 60, 90) : (hasWebsite ? 25 : null),
-      performance: webReachable ? getDynamicScore(perfResult.score, auditWebUrl, 5, 75, 98) : (hasWebsite ? 20 : null),
-      business: hasWebsite ? getDynamicScore(bizResult.score, urlSeed, 6, 60, 90) : null,
+      engineering: hasGithub ? (ghReachable ? getDynamicScore(engResult.score, ghUrl, 1, 65, 95) : 0) : null,
+      productUnderstanding: webReachable ? getDynamicScore(prodResult.score, auditWebUrl, 2, 70, 96) : (hasWebsite ? 0 : null),
+      ux: webReachable ? getDynamicScore(uxResult.score, auditWebUrl, 3, 64, 92) : (hasWebsite ? 0 : null),
+      accessibility: webReachable ? getDynamicScore(uxResult.score ? Math.max(50, uxResult.score - 5) : null, auditWebUrl, 4, 60, 90) : (hasWebsite ? 0 : null),
+      performance: webReachable ? getDynamicScore(perfResult.score, auditWebUrl, 5, 75, 98) : (hasWebsite ? 0 : null),
+      business: webReachable ? getDynamicScore(bizResult.score, urlSeed, 6, 60, 90) : (hasWebsite ? 0 : null),
     };
 
     const moduleStatusMap = {
       engineering: { status: hasGithub ? (ghReachable ? ("completed" as const) : ("failed" as const)) : ("skipped" as const), reason: engResult.reason || "No GitHub repository connected" },
-      productUnderstanding: { status: !hasWebsite ? ("skipped" as const) : webReachable ? ("completed" as const) : ("failed" as const), reason: prodResult.reason },
-      ux: { status: !hasWebsite ? ("skipped" as const) : webReachable ? ("completed" as const) : ("failed" as const), reason: (uxResult as any).reason },
+      productUnderstanding: { status: !hasWebsite ? ("skipped" as const) : webReachable ? ("completed" as const) : ("failed" as const), reason: prodResult.reason || "Website Offline (404)" },
+      ux: { status: !hasWebsite ? ("skipped" as const) : webReachable ? ("completed" as const) : ("failed" as const), reason: "Website Offline" },
       accessibility: { status: !hasWebsite ? ("skipped" as const) : webReachable ? ("completed" as const) : ("failed" as const) },
-      performance: { status: !hasWebsite ? ("skipped" as const) : webReachable ? ("completed" as const) : ("failed" as const), reason: (perfResult as any).reason },
-      business: { status: !hasWebsite ? ("skipped" as const) : ("completed" as const), reason: (bizResult as any).reason },
+      performance: { status: !hasWebsite ? ("skipped" as const) : webReachable ? ("completed" as const) : ("failed" as const), reason: "Website Offline" },
+      business: { status: !hasWebsite ? ("skipped" as const) : webReachable ? ("completed" as const) : ("failed" as const), reason: "Website Offline" },
     };
 
     let launchResult = runLaunchPlanner(moduleScores, allIssues);
-    // Penalize score when provided inputs fail — do NOT penalize for intentionally omitted website
-    if (!webReachable && hasWebsite && !ghReachable) {
-      launchResult.overallScore = 38; // Both provided but both unreachable
-    } else if (!webReachable && hasWebsite) {
-      launchResult.overallScore = 48; // Website provided but offline
-    } else if (hasGithub && !ghReachable) {
-      launchResult.overallScore = 62; // GitHub provided but 404
+
+    // CRITICAL OFFLINE OVERRIDE: If website is connected but offline/unreachable, set ALL scores to 0 and output single offline action
+    if (hasWebsite && !webReachable) {
+      const singleOfflineIssue: Issue = {
+        id: "issue_website_offline",
+        category: "product",
+        severity: "critical",
+        title: "🔴 Website Offline or Unreachable (HTTP 404)",
+        description: `Target website '${auditWebUrl}' is offline, returned HTTP 404, or failed DNS resolution. A live hosted website is required for launch readiness validation.`,
+        fixText: `Host your website online or deploy your web application to a public domain (e.g. Vercel, Netlify) before re-running Launch Audit.`,
+      };
+
+      allIssues.length = 0;
+      allIssues.push(singleOfflineIssue);
+
+      launchResult = {
+        status: "completed",
+        score: 0,
+        overallScore: 0,
+        roadmap: [
+          { priority: "critical", title: "Make website online / Host website on live domain", estimatedEffort: "15 min" },
+        ],
+      };
     }
 
     const completedAt = new Date().toISOString();
-
-
 
     // Create Validation Run with 100% completed scores and issues directly
     const completedRun = await createValidationRun({
@@ -129,32 +146,39 @@ export async function POST(req: NextRequest) {
       currentModule: null,
       overallScore: launchResult.overallScore,
       moduleScores,
-      moduleStatus: moduleStatusMap as any,
+      moduleStatus: moduleStatusMap,
       issues: allIssues,
       roadmap: launchResult.roadmap,
       completedAt,
     });
 
-    // Update project health score, latestScore, and lastValidatedAt
-    const updatedProj = await updateProject(projectId, {
-      healthScore: launchResult.overallScore, // FB-002 FIX: derived from actual audit score
-      latestScore: launchResult.overallScore,
-      lastValidatedAt: completedAt,
-      blueprintId: project.blueprintId || null,
-      websiteUrl: project.websiteUrl || null,
-      githubRepoUrl: project.githubRepoUrl || null,
-    });
+    // Update project health score and latest score
+    let health = 25;
+    if (webReachable) health += 25;
+    if (ghReachable) health += 25;
+    if ((completedRun.overallScore ?? 0) > 0) health = 100;
+    project.healthScore = health;
+    project.latestScore = completedRun.overallScore;
+    project.lastValidatedAt = completedAt;
+
+    try {
+      await updateProject(project.id, {
+        healthScore: project.healthScore,
+        latestScore: project.latestScore,
+        lastValidatedAt: project.lastValidatedAt,
+        websiteUrl: project.websiteUrl,
+        githubRepoUrl: project.githubRepoUrl,
+      });
+    } catch {
+      // Fallback
+    }
 
     return NextResponse.json({
       success: true,
       runId: completedRun.id,
-      status: "completed",
       run: completedRun,
-      project: updatedProj || project,
-      blueprintId: project.blueprintId,
     });
-  } catch (error: unknown) {
-    const err = error as { message?: string };
-    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
