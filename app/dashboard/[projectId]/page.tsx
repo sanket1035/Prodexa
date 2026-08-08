@@ -10,7 +10,7 @@ import CategoryCard from "@/components/dashboard/CategoryCard";
 import IssueRow from "@/components/dashboard/IssueRow";
 import RoadmapSection from "@/components/dashboard/RoadmapSection";
 import AICofounderTab from "@/components/dashboard/AICofounderTab";
-import { generateMarkdownReport, downloadFile } from "@/lib/pdf/exporter";
+import { generateMarkdownReport, exportExecutivePDFReport, downloadFile } from "@/lib/pdf/exporter";
 import { useAuth } from "@/lib/auth/AuthContext";
 
 import {
@@ -257,8 +257,7 @@ function DashboardContent() {
 
   const handleExportPDF = () => {
     if (!project || !currentRun) return;
-    // Trigger browser print/save-to-pdf dialog cleanly
-    window.print();
+    exportExecutivePDFReport(project, currentRun);
   };
 
   const handleExportMarkdown = () => {
