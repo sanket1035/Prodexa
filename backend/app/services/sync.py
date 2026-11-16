@@ -15,6 +15,10 @@ def upsert_issue(db: Session, repository_id, item: dict) -> None:
     stmt = insert(Issue).values(
         repository_id=repository_id,
         github_issue_id=item["id"],
+        number=item.get("number"),
+        html_url=item.get("html_url"),
+        labels=[(label["name"] if isinstance(label, dict) else str(label)) for label in item.get("labels", [])],
+        comments_count=item.get("comments", 0),
         title=item["title"],
         body=item.get("body"),
         state=item["state"],
@@ -24,7 +28,9 @@ def upsert_issue(db: Session, repository_id, item: dict) -> None:
     stmt = stmt.on_conflict_do_update(
         index_elements=["repository_id", "github_issue_id"],
         set_={"title": stmt.excluded.title, "body": stmt.excluded.body,
-              "state": stmt.excluded.state, "closed_at": stmt.excluded.closed_at},
+              "state": stmt.excluded.state, "closed_at": stmt.excluded.closed_at,
+              "labels": stmt.excluded.labels, "comments_count": stmt.excluded.comments_count,
+              "number": stmt.excluded.number, "html_url": stmt.excluded.html_url},
     )
     db.execute(stmt)
 
