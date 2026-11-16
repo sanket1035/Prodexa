@@ -5,6 +5,7 @@ from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     BigInteger,
     DateTime,
+    Integer,
     Float,
     ForeignKey,
     Index,
@@ -13,7 +14,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -91,6 +92,10 @@ class Issue(Base):
         ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
     )
     github_issue_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    number: Mapped[int | None] = mapped_column(Integer)
+    html_url: Mapped[str | None] = mapped_column(Text)
+    labels: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
+    comments_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     title: Mapped[str] = mapped_column(Text, nullable=False)
     body: Mapped[str | None] = mapped_column(Text)
     state: Mapped[str] = mapped_column(String(10), nullable=False)
@@ -127,6 +132,7 @@ class IssueEmbedding(Base):
 
 class IssuePrediction(Base):
     __tablename__ = "issue_predictions"
+    __table_args__ = (UniqueConstraint("issue_id", "model_version", name="uq_issue_predictions_issue_model"),)
     id: Mapped[uuid.UUID] = _uuid_pk()
     issue_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("issues.id", ondelete="CASCADE"), nullable=False

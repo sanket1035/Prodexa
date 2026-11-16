@@ -13,6 +13,10 @@ All routes are under `/api/v1`. Auth is a signed session cookie; the GitHub toke
 | POST | /repositories/{id}/sync | Imports issues and PRs (follows pagination, upserts, safe to repeat). Runs inline for now; moves to a worker later |
 | POST | /webhooks/github | HMAC-SHA256 verified; `X-GitHub-Delivery` is stored as the primary key so replays are ignored |
 
+| GET | /repositories/{id}/issues | Filters: `state` (open/closed), `q` (title/body search, case-insensitive, `%` and `_` literal), `label`; `page`, `page_size` (max 100); newest first |
+| GET | /issues/{id} | Issue with body and latest prediction |
+| POST | /issues/{id}/classify | Returns the stored prediction for the current model, else computes and stores it. 409 if no model is trained |
+
 Other tenants' repositories return 404, not 403.
 
 ## Known limits
