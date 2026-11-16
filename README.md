@@ -2,17 +2,18 @@
 
 A GitHub-integrated engineering intelligence tool: sync repository issues and pull requests, suggest likely duplicate issues with semantic search, recommend issue priority with a visible factor breakdown, and compute engineering metrics from stored data.
 
-> **Status: early rebuild (Week 1 of the roadmap).** Only the project skeleton exists. No GitHub integration, ML or analytics is implemented yet, and no accuracy or performance numbers exist. Claims will be added here only after they are measured.
+> **Status: early rebuild.** GitHub login and issue/PR import exist (public repositories). No ML, priority scoring or analytics is implemented yet, and no accuracy or performance numbers exist. Claims will be added here only after they are measured.
 
 ## What exists today
 - FastAPI backend with a `/health` endpoint
 - PostgreSQL + pgvector schema with an Alembic migration (applied and rolled back against a real Postgres 16)
-- Tests: health check, uniqueness constraints for issues and webhook deliveries
+- GitHub OAuth login, connect a repository, import its issues and pull requests (idempotent), verified webhook receiver that ignores replayed deliveries
+- Tests: 9 passing, including tenant isolation, sync idempotency, webhook signature and replay
 - React + TypeScript (Vite) placeholder page
 - Docker Compose (db, redis, api) and a GitHub Actions workflow
 
 ## Planned (not built)
-GitHub OAuth and repository selection, issue/PR sync with webhooks, issue classification (TF-IDF + logistic regression baseline), duplicate detection (sentence embeddings + pgvector), priority scoring, analytics, Redis/Celery worker, deployment.
+Issue classification (TF-IDF + logistic regression baseline), duplicate detection (sentence embeddings + pgvector), priority scoring, analytics, Redis/Celery worker, deployment.
 
 ## Run locally
 ```bash
@@ -26,7 +27,7 @@ cd ../frontend && npm install && npm run dev
 ```
 
 ## Docs
-[Architecture](docs/architecture.md) · [Database](docs/database.md)
+[API](docs/api.md) · [Architecture](docs/architecture.md) · [Database](docs/database.md)
 
 ## History
 This repository previously held a different product, an AI URL-scraping "launch readiness" scorer built for InnovaHack 2026 (team: Sanket Chaudhari, Purva Chopade, Rahil Shah, Kushagra Vispute). Some of its scores were not based on real measurements, so it was removed. The old code is in git history at commit `a576c4b`.
