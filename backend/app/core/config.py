@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     github_webhook_secret: str = ""
     session_secret: str = "change-me"
     embedder: str = "hashing"  # "hashing" (lexical, no download) or "minilm" (needs requirements-ml.txt)
+    environment: str = "development"  # "production" turns on strict startup checks
+    cookie_secure: bool = False  # forced on in production
+    rate_limit_per_minute: int = 30  # per user (or IP) on expensive endpoints
     model_dir: str = "models"
     frontend_url: str = "http://localhost:5173"
     github_api_url: str = "https://api.github.com"

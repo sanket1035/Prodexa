@@ -6,9 +6,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import current_user, get_github_client, get_repo_for_user, org_ids
+from app.core.ratelimit import rate_limit
 from app.db.session import get_db
 from app.integrations.github import GitHubClient, GitHubError
 from app.models import Repository, User
+from app.services import audit
 from app.services.sync import sync_repository
 
 router = APIRouter(prefix="/api/v1/repositories", tags=["repositories"])
@@ -56,11 +58,13 @@ def connect_repository(
         return _out(existing)
     repo = Repository(organization_id=ids[0], github_repo_id=info["id"], full_name=info["full_name"])
     db.add(repo)
+    db.flush()
+    audit.record(db, user.id, repo.organization_id, "repository.connect", "repository", repo.id)
     db.commit()
     return _out(repo)
 
 
-@router.post("/{repo_id}/sync")
+@router.post("/{repo_id}/sync", dependencies=[Depends(rate_limit("sync"))])
 def sync(
     repo_id: uuid.UUID,
     user: User = Depends(current_user),
@@ -68,6 +72,7 @@ def sync(
     gh: GitHubClient = Depends(get_github_client),
 ):
     repo = get_repo_for_user(repo_id, user, db)
+    audit.record(db, user.id, repo.organization_id, "repository.sync", "repository", repo.id)
     try:
         return sync_repository(db, gh, repo)  # runs inline for now; moves to a background worker later
     except GitHubError as e:

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import current_user, get_repo_for_user
 from app.core.config import settings
+from app.core.ratelimit import rate_limit
 from app.db.session import get_db
 from app.ml import classification
 from app.models import Issue, IssuePrediction, User
@@ -83,7 +84,7 @@ def get_issue(issue_id: uuid.UUID, user: User = Depends(current_user), db: Sessi
     return _issue_out(issue, _latest_prediction(db, issue.id), detail=True)
 
 
-@router.post("/issues/{issue_id}/classify")
+@router.post("/issues/{issue_id}/classify", dependencies=[Depends(rate_limit("classify"))])
 def classify_issue(issue_id: uuid.UUID, user: User = Depends(current_user), db: Session = Depends(get_db)):
     """Return the stored prediction for the current model, or compute and store it."""
     issue = _get_issue_for_user(issue_id, user, db)

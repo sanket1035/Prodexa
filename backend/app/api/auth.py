@@ -11,14 +11,16 @@ from sqlalchemy.orm import Session
 from app.api.deps import current_user
 from app.core.config import settings
 from app.core.crypto import encrypt
+from app.core.ratelimit import rate_limit
 from app.db.session import get_db
 from app.integrations.github import GitHubError, exchange_code_for_token
 from app.models import GithubAccount, Membership, Organization, User
+from app.services import audit
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
-@router.get("/github/login")
+@router.get("/github/login", dependencies=[Depends(rate_limit("login"))])
 def github_login(request: Request):
     state = secrets.token_urlsafe(24)
     request.session["oauth_state"] = state
@@ -33,7 +35,7 @@ def _fetch_github_user(token: str) -> dict:
     return r.json()
 
 
-@router.get("/github/callback")
+@router.get("/github/callback", dependencies=[Depends(rate_limit("login"))])
 def github_callback(request: Request, code: str, state: str, db: Session = Depends(get_db)):
     expected = request.session.pop("oauth_state", None)
     if not expected or not secrets.compare_digest(expected, state):
@@ -59,6 +61,8 @@ def github_callback(request: Request, code: str, state: str, db: Session = Depen
         db.add(GithubAccount(user_id=user.id, access_token_enc=encrypt(token)))
     else:
         acct.access_token_enc = encrypt(token)
+    first_org = db.scalar(select(Membership.organization_id).where(Membership.user_id == user.id))
+    audit.record(db, user.id, first_org, "auth.login", "user", user.id)
     db.commit()
     request.session["user_id"] = str(user.id)
     return RedirectResponse(settings.frontend_url)

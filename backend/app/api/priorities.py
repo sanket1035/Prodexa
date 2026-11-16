@@ -10,6 +10,7 @@ from app.api.deps import current_user, get_repo_for_user
 from app.api.duplicates import get_embedder_dep
 from app.api.issues import _get_issue_for_user
 from app.db.session import get_db
+from app.services import audit
 from app.ml.embeddings import Embedder
 from app.models import Issue, IssuePriorityOverride, User
 from app.services import priority as prio
@@ -50,6 +51,8 @@ def set_override(issue_id: uuid.UUID, body: OverrideIn, user: User = Depends(cur
     stmt = insert(IssuePriorityOverride).values(issue_id=issue.id, user_id=user.id, score=body.score, note=body.note)
     db.execute(stmt.on_conflict_do_update(index_elements=["issue_id"], set_={
         "user_id": user.id, "score": body.score, "note": body.note}))
+    audit.record(db, user.id, get_repo_for_user(issue.repository_id, user, db).organization_id,
+                 "priority.override", "issue", issue.id)
     db.commit()
     return _priority(db, embedder, issue)
 
@@ -61,6 +64,8 @@ def clear_override(issue_id: uuid.UUID, user: User = Depends(current_user), db: 
     ov = db.get(IssuePriorityOverride, issue.id)
     if ov:
         db.delete(ov)
+        audit.record(db, user.id, get_repo_for_user(issue.repository_id, user, db).organization_id,
+                     "priority.override_cleared", "issue", issue.id)
         db.commit()
     return _priority(db, embedder, issue)
 

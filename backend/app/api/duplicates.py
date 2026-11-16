@@ -9,9 +9,11 @@ from sqlalchemy.orm import Session
 from app.api.deps import current_user, get_repo_for_user
 from app.api.issues import _get_issue_for_user
 from app.core.config import settings
+from app.core.ratelimit import rate_limit
 from app.db.session import get_db
 from app.ml.embeddings import Embedder, get_embedder
 from app.models import DuplicateFeedback, Issue, User
+from app.services import audit
 from app.services.duplicates import embed_repository, find_similar
 
 router = APIRouter(prefix="/api/v1", tags=["duplicates"])
@@ -27,10 +29,11 @@ class FeedbackIn(BaseModel):
     is_duplicate: bool
 
 
-@router.post("/repositories/{repo_id}/embed")
+@router.post("/repositories/{repo_id}/embed", dependencies=[Depends(rate_limit("embed"))])
 def embed(repo_id: uuid.UUID, user: User = Depends(current_user), db: Session = Depends(get_db),
           embedder: Embedder = Depends(get_embedder_dep)):
-    get_repo_for_user(repo_id, user, db)
+    repo = get_repo_for_user(repo_id, user, db)
+    audit.record(db, user.id, repo.organization_id, "repository.embed", "repository", repo.id)
     return {"embedded": embed_repository(db, embedder, repo_id), "model": embedder.name, "version": embedder.version}
 
 
@@ -59,5 +62,7 @@ def feedback(issue_id: uuid.UUID, body: FeedbackIn, user: User = Depends(current
                                             user_id=user.id, is_duplicate=body.is_duplicate)
     db.execute(stmt.on_conflict_do_update(constraint="uq_duplicate_feedback",
                                           set_={"is_duplicate": body.is_duplicate}))
+    audit.record(db, user.id, get_repo_for_user(issue.repository_id, user, db).organization_id,
+                 "duplicate.feedback", "issue", issue.id)
     db.commit()
     return {"status": "saved"}

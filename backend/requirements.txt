@@ -12,3 +12,5 @@ itsdangerous==2.2.0
 cryptography==44.0.0
 scikit-learn==1.6.1
 joblib==1.4.2
+celery==5.4.0
+redis==5.2.1
