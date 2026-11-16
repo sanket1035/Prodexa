@@ -1,0 +1,2 @@
+# Optional: real sentence embeddings (large download: PyTorch + model weights)
+sentence-transformers==3.3.1

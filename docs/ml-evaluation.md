@@ -21,3 +21,19 @@ The report contains macro F1, per-class precision/recall/F1 and the confusion ma
 
 ## Safety note
 Models are saved with joblib (pickle). Only load model files written by this application; never load one from an untrusted source.
+
+---
+
+# Duplicate detection
+
+**Default embedder: feature hashing (`hashing-bow-bigram`).** It turns words and word pairs into a 384-dimensional vector. It finds issues that share *words*; it does **not** understand meaning, so "app crashes" and "program dies" will not match. It exists so the feature works offline with no model download.
+
+**Optional embedder: `all-MiniLM-L6-v2`** (set `EMBEDDER=minilm`, install `backend/requirements-ml.txt`). This is the semantic option from the blueprint. **It has not been run or tested in this repository's development environment** (the model host was not reachable), so treat that path as unverified until you run it.
+
+**Search:** cosine distance in PostgreSQL with pgvector (HNSW index), restricted to the same repository. Each candidate comes with its similarity and the words it shares with the query issue. `min_similarity=0.3` is a provisional default, not tuned.
+
+**Definition of duplicate (for scoring):** a pair a person marked "duplicate" via `POST /issues/{id}/duplicates/feedback`. Everything unlabeled counts as not a duplicate, so precision@k is a lower bound.
+
+**Evaluate:** `python -m app.ml.eval_duplicates [k]` prints precision@k and recall@k and how many issues it used.
+
+**Results: none recorded yet.** There are no labeled pairs. Record real numbers here only with the repository, number of labeled pairs, embedder and version.

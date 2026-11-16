@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.api import auth, issues, repositories, webhooks
+from app.api import auth, duplicates, issues, repositories, webhooks
 from app.api.health import router as health_router
 from app.core.config import settings
 
@@ -15,3 +15,4 @@ app.include_router(auth.router)
 app.include_router(repositories.router)
 app.include_router(webhooks.router)
 app.include_router(issues.router)
+app.include_router(duplicates.router)

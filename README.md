@@ -10,12 +10,13 @@ A GitHub-integrated engineering intelligence tool: sync repository issues and pu
 - GitHub OAuth login, connect a repository, import its issues and pull requests (idempotent), verified webhook receiver that ignores replayed deliveries
 - Issue list with search, state and label filters, pagination; issue detail; frontend page to connect a repo, sync and browse issues
 - Issue classification baseline (TF-IDF + logistic regression, trained on GitHub labels as weak labels); **not yet evaluated on a real repository**, see [docs/ml-evaluation.md](docs/ml-evaluation.md)
-- Tests: 18 passing, including tenant isolation, sync idempotency, webhook signature and replay
+- Similar-issue suggestions: pgvector cosine search within a repository, with shared terms as evidence and a human confirm/reject button. Default embedder is lexical (word overlap), not semantic; the MiniLM option is untested here. No precision/recall measured yet, see [docs/ml-evaluation.md](docs/ml-evaluation.md)
+- Tests: 27 passing, including tenant isolation, sync idempotency, webhook signature and replay
 - React + TypeScript (Vite) placeholder page
 - Docker Compose (db, redis, api) and a GitHub Actions workflow
 
 ## Planned (not built)
-duplicate detection (sentence embeddings + pgvector), priority scoring, analytics, Redis/Celery worker, deployment.
+priority scoring, analytics, Redis/Celery worker, deployment.
 
 ## Run locally
 ```bash
