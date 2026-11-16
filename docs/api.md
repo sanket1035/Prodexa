@@ -16,6 +16,9 @@ All routes are under `/api/v1`. Auth is a signed session cookie; the GitHub toke
 | GET | /repositories/{id}/issues | Filters: `state` (open/closed), `q` (title/body search, case-insensitive, `%` and `_` literal), `label`; `page`, `page_size` (max 100); newest first |
 | GET | /issues/{id} | Issue with body and latest prediction |
 | POST | /issues/{id}/classify | Returns the stored prediction for the current model, else computes and stores it. 409 if no model is trained |
+| POST | /repositories/{id}/embed | Embeds issues that have no vector for the current embedder version (idempotent) |
+| GET | /issues/{id}/duplicates | `k` (1-20), `min_similarity`. Ranked candidates with similarity, shared terms, your verdict. 409 if the issue is not embedded yet |
+| POST | /issues/{id}/duplicates/feedback | `{candidate_id, is_duplicate}`; one verdict per user and pair, overwritten on repeat |
 
 Other tenants' repositories return 404, not 403.
 

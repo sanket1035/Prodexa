@@ -4,6 +4,7 @@ from datetime import datetime
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     DateTime,
     Integer,
     Float,
@@ -121,6 +122,12 @@ class PullRequest(Base):
 
 class IssueEmbedding(Base):
     __tablename__ = "issue_embeddings"
+    __table_args__ = (
+        Index(
+            "ix_issue_embeddings_hnsw", "embedding",
+            postgresql_using="hnsw", postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
+    )
     issue_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("issues.id", ondelete="CASCADE"), primary_key=True
     )
@@ -165,4 +172,19 @@ class AuditLog(Base):
     action: Mapped[str] = mapped_column(String(80), nullable=False)
     resource_type: Mapped[str] = mapped_column(String(60), nullable=False)
     resource_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    created_at: Mapped[datetime] = _created()
+
+
+class DuplicateFeedback(Base):
+    """A human verdict on a suggested duplicate pair; kept for evaluation."""
+
+    __tablename__ = "duplicate_feedback"
+    __table_args__ = (UniqueConstraint("issue_id", "candidate_issue_id", "user_id", name="uq_duplicate_feedback"),)
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    issue_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("issues.id", ondelete="CASCADE"), nullable=False)
+    candidate_issue_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("issues.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    is_duplicate: Mapped[bool] = mapped_column(Boolean, nullable=False)
     created_at: Mapped[datetime] = _created()
