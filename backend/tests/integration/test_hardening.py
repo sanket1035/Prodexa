@@ -39,7 +39,10 @@ def test_unhandled_error_is_generic(monkeypatch):
     assert "secret" not in r.text
 
 
-def test_readiness_reports_database(engine):
+def test_readiness_reports_database(engine, monkeypatch):
+    import app.main as main
+
+    monkeypatch.setattr(main, "engine", engine)  # the test database, not whatever DATABASE_URL points at
     r = TestClient(app).get("/health/ready")
     assert r.json()["database"] == "ok"
 

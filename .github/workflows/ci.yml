@@ -26,6 +26,10 @@ jobs:
       - run: pip install -r requirements.txt
       - run: ruff check .
       - run: pytest -q
+        env:
+          DATABASE_URL: postgresql+psycopg://prodexa:prodexa@localhost:5432/prodexa_test
+          TEST_DATABASE_URL: postgresql+psycopg://prodexa:prodexa@localhost:5432/prodexa_test
+          REDIS_URL: redis://localhost:6399/0
       - name: Migrations apply cleanly
         env:
           DATABASE_URL: postgresql+psycopg://prodexa:prodexa@localhost:5432/prodexa_test
