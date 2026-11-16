@@ -9,6 +9,8 @@ type Issue = {
 type Cand = { id: string; number: number | null; title: string; similarity: number; shared_terms: string[]; your_verdict: boolean | null };
 type Prio = { id: string; number: number | null; title: string; score: number; overridden: boolean; top_factor: string };
 type Overview = { open_issues: number; closed_issues: number; median_resolution_days: number | null; median_pr_cycle_days: number | null; avg_open_issue_age_days: number | null };
+type Factor = { name: string; weight: number; value: number; contribution: number; evidence: string[] };
+type Impact = { risk_score: number; factors: Factor[]; affected_modules: { path: string; hops: number; via: string }[]; affected_tests: string[]; note: string };
 type Page = { items: Issue[]; total: number; page: number; page_size: number };
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -30,6 +32,8 @@ function App() {
   const [reload, setReload] = useState(0);
   const [prios, setPrios] = useState<Prio[]>([]);
   const [ov, setOv] = useState<Overview | null>(null);
+  const [prNo, setPrNo] = useState("");
+  const [impact, setImpact] = useState<Impact | null>(null);
   const [dups, setDups] = useState<Record<string, Cand[]>>({});
 
   const loadRepos = useCallback(() => api<Repo[]>("/api/v1/repositories").then((r) => {
@@ -65,6 +69,12 @@ function App() {
     setData((d) => d && { ...d, items: d.items.map((i) => (i.id === id ? { ...i, prediction: p } : i)) });
   });
 
+  const prepareHistory = () => run(async () => {
+    await api(`/api/v1/repositories/${repoId}/jobs`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "history" }) });
+  });
+  const analyzePr = () => run(async () => {
+    setImpact(await api<Impact>(`/api/v1/repositories/${repoId}/impact`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pr_number: Number(prNo) }) }));
+  });
   const findDups = (id: string) => run(async () => {
     const r = await api<{ candidates: Cand[] }>(`/api/v1/issues/${id}/duplicates`);
     setDups((d) => ({ ...d, [id]: r.candidates }));
@@ -103,6 +113,15 @@ function App() {
       {prios.length > 0 && (<div><strong>Top priorities</strong> (provisional weights)<ol>
         {prios.map((p) => <li key={p.id}>#{p.number} {p.title} · {p.score}{p.overridden ? " (overridden)" : ""} · driven by {p.top_factor}</li>)}
       </ol></div>)}
+      <div style={{ margin: "12px 0" }}>
+        <strong>Change impact</strong> (provisional risk heuristic, Python imports only){" "}
+        <button onClick={prepareHistory} disabled={!repoId}>Prepare history</button>{" "}
+        <input placeholder="PR number" value={prNo} onChange={(e) => setPrNo(e.target.value)} size={8} />{" "}
+        <button onClick={analyzePr} disabled={!repoId || !prNo}>Analyze PR</button>
+        {impact && (<div><p>Risk score {impact.risk_score} / 100 · <em>{impact.note}</em></p>
+          <ul>{impact.factors.map((f) => <li key={f.name}>{f.name}: {f.value} (weight {f.weight}) <ul>{f.evidence.map((e, i) => <li key={i}>{e}</li>)}</ul></li>)}</ul>
+          <p>Affected tests: {impact.affected_tests.join(", ") || "none found"}</p></div>)}
+      </div>
       <p>{msg}</p>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead><tr><th align="left">#</th><th align="left">Title</th><th align="left">State</th><th align="left">Labels</th><th align="left">Category</th><th align="left">Similar</th></tr></thead>

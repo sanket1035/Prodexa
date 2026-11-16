@@ -51,6 +51,9 @@ class GitHubClient:
         # This endpoint returns pull requests too; callers must skip items with "pull_request".
         return self._paginate(f"/repos/{full_name}/issues", {"state": "all"})
 
+    def list_pull_files(self, full_name: str, number: int) -> Iterator[dict]:
+        return self._paginate(f"/repos/{full_name}/pulls/{number}/files")
+
     def list_pulls(self, full_name: str) -> Iterator[dict]:
         return self._paginate(f"/repos/{full_name}/pulls", {"state": "all"})
 

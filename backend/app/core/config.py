@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = 30  # per user (or IP) on expensive endpoints
     celery_eager: bool = False  # run tasks inline (tests only)
     job_max_retries: int = 5
+    workspace_dir: str = "workspace"  # where repository history clones are kept
+    history_depth: int = 500
+    git_base_url: str = "https://github.com"
     model_dir: str = "models"
     frontend_url: str = "http://localhost:5173"
     github_api_url: str = "https://api.github.com"

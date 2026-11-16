@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.api import analytics, audit, auth, duplicates, issues, jobs, priorities, repositories, webhooks
+from app.api import analytics, audit, auth, duplicates, impact, issues, jobs, priorities, repositories, webhooks
 from app.core.config import settings
 from app.core.logging import RequestContextMiddleware, configure_logging
 from app.db.session import engine
@@ -86,3 +86,4 @@ app.include_router(priorities.router)
 app.include_router(analytics.router)
 app.include_router(audit.router)
 app.include_router(jobs.router)
+app.include_router(impact.router)

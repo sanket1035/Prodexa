@@ -33,8 +33,8 @@ def _enqueue(db: Session, job: SyncJob) -> None:
 @router.post("/repositories/{repo_id}/jobs", status_code=202, dependencies=[Depends(rate_limit("jobs"))])
 def enqueue(repo_id: uuid.UUID, kind: str = Body(embed=True), user: User = Depends(current_user),
             db: Session = Depends(get_db)):
-    if kind not in ("sync", "embed"):
-        raise HTTPException(status_code=422, detail="kind must be 'sync' or 'embed'")
+    if kind not in ("sync", "embed", "history"):
+        raise HTTPException(status_code=422, detail="kind must be 'sync', 'embed' or 'history'")
     repo = get_repo_for_user(repo_id, user, db)
     job = create_job(db, repo.id, kind)
     audit.record(db, user.id, repo.organization_id, f"job.{kind}.enqueue", "job", job.id)

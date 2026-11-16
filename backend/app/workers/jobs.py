@@ -11,6 +11,7 @@ from app.integrations.github import GitHubClient, GitHubError
 from app.ml.embeddings import Embedder
 from app.models import GithubAccount, Organization, Repository, SyncJob
 from app.services.duplicates import embed_repository
+from app.services.history import ensure_history
 from app.services.sync import sync_repository
 
 
@@ -56,6 +57,8 @@ def execute_job(db: Session, job_id: uuid.UUID, embedder: Embedder, retries_so_f
             job.result = sync_repository(db, client_factory(_owner_token(db, repo)), repo)
         elif job.kind == "embed":
             job.result = {"embedded": embed_repository(db, embedder, repo.id)}
+        elif job.kind == "history":
+            job.result = ensure_history(repo.full_name)
         else:
             raise ValueError(f"Unknown job kind {job.kind!r}")
         job.status, job.error, job.finished_at = "succeeded", None, _now()
