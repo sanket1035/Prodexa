@@ -24,8 +24,13 @@ All routes are under `/api/v1`. Auth is a signed session cookie; the GitHub toke
 | GET | /repositories/{id}/priorities | Open issues ranked by effective score, plus weight sensitivity |
 | GET | /analytics/overview?repo_id= | Counts, ages, median resolution and PR cycle time |
 | GET | /analytics/issues?repo_id=&weeks= | Weekly opened/closed, categories, contributors |
+| POST | /repositories/{id}/jobs | `{kind: sync or embed}`; queues a background job, returns 202 with the job |
+| GET | /repositories/{id}/jobs | Job list with status, attempts, last error; filter `status` (failed jobs stay visible) |
+| POST | /jobs/{id}/retry | Requeue a failed job |
+| GET | /audit-logs | Recent audit entries for organizations where you are owner or admin |
+| GET | /health, /health/ready | Liveness; readiness (database required, redis reported) |
 
-Definitions: [analytics.md](analytics.md).
+Definitions: [analytics.md](analytics.md). Errors are `{detail, request_id}`; rate-limited routes return 429 with `Retry-After`.
 
 Other tenants' repositories return 404, not 403.
 
