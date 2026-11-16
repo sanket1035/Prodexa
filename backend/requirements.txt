@@ -8,9 +8,11 @@ psycopg[binary]==3.2.3
 pgvector==0.3.6
 httpx==0.28.1
 pytest==8.3.4
+ruff==0.8.4
 itsdangerous==2.2.0
 cryptography==44.0.0
 scikit-learn==1.6.1
 joblib==1.4.2
 celery==5.4.0
-redis==5.2.1
+redis==6.2.0
+kombu==5.7.0

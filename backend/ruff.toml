@@ -1,0 +1,8 @@
+line-length = 140
+target-version = "py313"
+[lint]
+select = ["E", "F", "I", "B"]
+ignore = ["B008", "B905"]  # FastAPI uses Depends()/Query() in argument defaults
+[lint.per-file-ignores]
+"migrations/versions/*" = ["E501", "I"]
+"tests/*" = ["F811", "F401", "E501", "E731"]  # fixtures are imported across test modules

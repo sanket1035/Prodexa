@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
@@ -10,9 +10,9 @@ from app.api.deps import current_user, get_repo_for_user
 from app.api.duplicates import get_embedder_dep
 from app.api.issues import _get_issue_for_user
 from app.db.session import get_db
-from app.services import audit
 from app.ml.embeddings import Embedder
 from app.models import Issue, IssuePriorityOverride, User
+from app.services import audit
 from app.services import priority as prio
 
 router = APIRouter(prefix="/api/v1", tags=["priority"])

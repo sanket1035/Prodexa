@@ -23,5 +23,28 @@ services:
     depends_on:
       db: { condition: service_healthy }
     ports: ["8000:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      retries: 5
+  worker:
+    build: ./backend
+    command: celery -A app.workers.celery_app worker -l info --concurrency=2
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://prodexa:prodexa@db:5432/prodexa
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_started }
+  beat:
+    build: ./backend
+    command: celery -A app.workers.celery_app beat -l info
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://prodexa:prodexa@db:5432/prodexa
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis: { condition: service_started }
 volumes:
   pgdata:

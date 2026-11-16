@@ -5,7 +5,6 @@ Revises: 0004
 """
 from alembic import op
 import sqlalchemy as sa
-import pgvector.sqlalchemy
 
 
 revision = '0005'

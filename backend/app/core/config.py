@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     environment: str = "development"  # "production" turns on strict startup checks
     cookie_secure: bool = False  # forced on in production
     rate_limit_per_minute: int = 30  # per user (or IP) on expensive endpoints
+    celery_eager: bool = False  # run tasks inline (tests only)
+    job_max_retries: int = 5
     model_dir: str = "models"
     frontend_url: str = "http://localhost:5173"
     github_api_url: str = "https://api.github.com"

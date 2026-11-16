@@ -88,6 +88,7 @@ def make_user(Local, login):
 def login_as(client, user_id):
     # Sign a session cookie the same way SessionMiddleware does.
     import base64
+
     import itsdangerous
 
     signer = itsdangerous.TimestampSigner(settings.session_secret)

@@ -36,7 +36,7 @@ def available_repositories(_: User = Depends(current_user), gh: GitHubClient = D
     try:
         return [{"github_repo_id": r["id"], "full_name": r["full_name"]} for r in gh.list_user_repos()]
     except GitHubError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise HTTPException(status_code=502, detail=str(e)) from e
 
 
 @router.post("/connect", status_code=201)
@@ -49,7 +49,7 @@ def connect_repository(
     try:
         info = gh.get_repo(body.full_name)
     except GitHubError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     ids = org_ids(user, db)
     existing = db.scalar(select(Repository).where(Repository.github_repo_id == info["id"]))
     if existing:
@@ -76,4 +76,4 @@ def sync(
     try:
         return sync_repository(db, gh, repo)  # runs inline for now; moves to a background worker later
     except GitHubError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise HTTPException(status_code=502, detail=str(e)) from e

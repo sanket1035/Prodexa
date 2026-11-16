@@ -1,5 +1,4 @@
 import secrets
-import uuid
 from urllib.parse import urlencode
 
 import httpx
@@ -44,7 +43,7 @@ def github_callback(request: Request, code: str, state: str, db: Session = Depen
         token = exchange_code_for_token(code)
         profile = _fetch_github_user(token)
     except GitHubError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise HTTPException(status_code=502, detail=str(e)) from e
 
     user = db.scalar(select(User).where(User.github_user_id == profile["id"]))
     if user is None:

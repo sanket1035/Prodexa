@@ -201,3 +201,21 @@ class IssuePriorityOverride(Base):
     score: Mapped[float] = mapped_column(Float, nullable=False)
     note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = _created()
+
+
+class SyncJob(Base):
+    """A background job (repository sync or embedding) with visible status, attempts and last error."""
+
+    __tablename__ = "sync_jobs"
+    __table_args__ = (Index("ix_sync_jobs_repo_status", "repository_id", "status"),)
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    repository_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
+    )
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)  # "sync" | "embed"
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="queued")
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    error: Mapped[str | None] = mapped_column(Text)
+    result: Mapped[dict | None] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = _created()
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
