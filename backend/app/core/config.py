@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     github_client_secret: str = ""
     github_webhook_secret: str = ""
     session_secret: str = "change-me"
+    frontend_url: str = "http://localhost:5173"
+    github_api_url: str = "https://api.github.com"
 
 
 settings = Settings()
