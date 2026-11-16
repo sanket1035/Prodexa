@@ -34,6 +34,19 @@ class User(Base):
     __tablename__ = "users"
     id: Mapped[uuid.UUID] = _uuid_pk()
     email: Mapped[str] = mapped_column(String(320), unique=True, nullable=False)
+    github_user_id: Mapped[int | None] = mapped_column(BigInteger, unique=True)
+    github_login: Mapped[str | None] = mapped_column(String(100))
+    created_at: Mapped[datetime] = _created()
+
+
+class GithubAccount(Base):
+    """OAuth token for a user. Stored encrypted, never sent to the browser."""
+
+    __tablename__ = "github_accounts"
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    access_token_enc: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = _created()
 
 
