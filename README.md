@@ -1,152 +1,35 @@
-<div align="center">
-
 # Prodexa
 
-### AI-Powered Product Readiness Platform
+A GitHub-integrated engineering intelligence tool: sync repository issues and pull requests, suggest likely duplicate issues with semantic search, recommend issue priority with a visible factor breakdown, and compute engineering metrics from stored data.
 
-Analyze. Improve. Launch.
+> **Status: early rebuild (Week 1 of the roadmap).** Only the project skeleton exists. No GitHub integration, ML or analytics is implemented yet, and no accuracy or performance numbers exist. Claims will be added here only after they are measured.
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=next.js&logoColor=white)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Firebase](https://img.shields.io/badge/Firebase-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
-[![Gemini](https://img.shields.io/badge/Gemini-AI-4285F4)](https://ai.google.dev/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](LICENSE)
-[![Hackathon](https://img.shields.io/badge/InnovaHack%202026-Open%20Innovation-orange)]()
+## What exists today
+- FastAPI backend with a `/health` endpoint
+- PostgreSQL + pgvector schema with an Alembic migration (applied and rolled back against a real Postgres 16)
+- Tests: health check, uniqueness constraints for issues and webhook deliveries
+- React + TypeScript (Vite) placeholder page
+- Docker Compose (db, redis, api) and a GitHub Actions workflow
 
-</div>
+## Planned (not built)
+GitHub OAuth and repository selection, issue/PR sync with webhooks, issue classification (TF-IDF + logistic regression baseline), duplicate detection (sentence embeddings + pgvector), priority scoring, analytics, Redis/Celery worker, deployment.
 
----
-
-## Overview
-
-Prodexa is an AI-powered Product Readiness Platform designed to help startups, hackathon teams, and indie builders evaluate their products before launch.
-
-The platform analyzes a project's website, GitHub repository, pitch deck, and supporting assets using specialized AI reviewers to generate a comprehensive launch-readiness report with actionable recommendations.
-
-Instead of generic AI feedback, Prodexa provides structured insights across engineering quality, user experience, accessibility, performance, and business readiness.
-
----
-
-## Key Features
-
-- Website Analysis
-- GitHub Repository Review
-- Product Understanding
-- UX Evaluation
-- Performance Audit
-- Accessibility Review
-- Business & Pitch Analysis
-- AI-generated Launch Roadmap
-- Product Readiness Score
-- Improvement Tracking
-
----
-
-## Architecture
-
-The platform evaluates a product through multiple specialized AI reviewers:
-
-| Reviewer | Responsibility |
-|-----------|----------------|
-| Product Analyst | Understands the product, target users, and value proposition |
-| Engineering Reviewer | Reviews repository quality, documentation, project structure, and best practices |
-| UX Reviewer | Evaluates usability, navigation, clarity, and overall user experience |
-| Performance Reviewer | Analyzes loading performance and optimization opportunities |
-| Accessibility Reviewer | Checks accessibility issues and compliance |
-| Business Reviewer | Reviews market positioning, value proposition, and pitch quality |
-
-These insights are combined into a unified Product Readiness Report with prioritized recommendations.
-
----
-
-## Technology Stack
-
-| Category | Technology |
-|----------|------------|
-| Frontend | Next.js 15, React, TypeScript |
-| Styling | Tailwind CSS |
-| Backend | Firebase |
-| Authentication | Firebase Authentication |
-| Database | Firestore |
-| AI | Gemini API |
-| Repository Analysis | GitHub API |
-| Performance | Lighthouse |
-| Document Processing | PDF Parser |
-
----
-
-## Dashboard
-
-> Dashboard screenshots will be added after implementation.
-
----
-
-## Project Structure
-
-```text
-prodexa/
-│
-├── app/
-├── components/
-├── lib/
-├── agents/
-├── services/
-├── public/
-├── README.md
-└── LICENSE
-```
-
----
-
-## Getting Started
-
-Clone the repository
-
+## Run locally
 ```bash
-git clone https://github.com/sanket1035/prodexa.git
+cp .env.example .env
+docker compose up db redis -d
+cd backend && pip install -r requirements.txt
+alembic upgrade head
+uvicorn app.main:app --reload     # http://localhost:8000/health
+pytest -q
+cd ../frontend && npm install && npm run dev
 ```
 
-Install dependencies
+## Docs
+[Architecture](docs/architecture.md) · [Database](docs/database.md)
 
-```bash
-npm install
-```
-
-Run the development server
-
-```bash
-npm run dev
-```
-
----
-
-## Hackathon
-
-This project is being developed as an official submission for:
-
-**InnovaHack 2026 — Open Innovation Track**
-
----
-
-## Team
-
-| Role | Name |
-|------|------|
-| Team Leader | **Sanket Chaudhari** |
-| Member | Purva Chopade |
-| Member | Rahil Shah |
-| Member | Kushagra Vispute |
-
----
-
-## Repository Ownership
-
-This repository is maintained and led by **Sanket Chaudhari**.
-
-Project ideation, architecture, and development are coordinated by the team leader as part of the InnovaHack 2026 submission.
-
----
+## History
+This repository previously held a different product, an AI URL-scraping "launch readiness" scorer built for InnovaHack 2026 (team: Sanket Chaudhari, Purva Chopade, Rahil Shah, Kushagra Vispute). Some of its scores were not based on real measurements, so it was removed. The old code is in git history at commit `a576c4b`.
 
 ## License
-
-This project is licensed under the MIT License.
+MIT
