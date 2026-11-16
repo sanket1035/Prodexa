@@ -7,6 +7,8 @@ type Issue = {
   html_url: string | null; prediction: { category: string; score: number; uncertain: boolean } | null;
 };
 type Cand = { id: string; number: number | null; title: string; similarity: number; shared_terms: string[]; your_verdict: boolean | null };
+type Prio = { id: string; number: number | null; title: string; score: number; overridden: boolean; top_factor: string };
+type Overview = { open_issues: number; closed_issues: number; median_resolution_days: number | null; median_pr_cycle_days: number | null; avg_open_issue_age_days: number | null };
 type Page = { items: Issue[]; total: number; page: number; page_size: number };
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -26,6 +28,8 @@ function App() {
   const [data, setData] = useState<Page | null>(null);
   const [msg, setMsg] = useState("");
   const [reload, setReload] = useState(0);
+  const [prios, setPrios] = useState<Prio[]>([]);
+  const [ov, setOv] = useState<Overview | null>(null);
   const [dups, setDups] = useState<Record<string, Cand[]>>({});
 
   const loadRepos = useCallback(() => api<Repo[]>("/api/v1/repositories").then((r) => {
@@ -43,6 +47,12 @@ function App() {
     if (q) p.set("q", q);
     api<Page>(`/api/v1/repositories/${repoId}/issues?${p}`).then(setData).catch((e) => setMsg(String(e)));
   }, [repoId, state, q, page, reload]);
+
+  useEffect(() => {
+    if (!repoId) return;
+    api<{ items: Prio[] }>(`/api/v1/repositories/${repoId}/priorities?limit=5`).then((r) => setPrios(r.items)).catch(() => setPrios([]));
+    api<Overview>(`/api/v1/analytics/overview?repo_id=${repoId}`).then(setOv).catch(() => setOv(null));
+  }, [repoId, reload]);
 
   const run = (fn: () => Promise<unknown>) => { setMsg("Working…"); fn().then(() => setMsg("Done")).catch((e) => setMsg(String(e))); };
   const connect = () => run(async () => {
@@ -89,6 +99,10 @@ function App() {
           <option value="">All</option><option value="open">Open</option><option value="closed">Closed</option>
         </select>
       </div>
+      {ov && <p>Open {ov.open_issues} · closed {ov.closed_issues} · median resolution {ov.median_resolution_days ?? "n/a"} days · median PR cycle {ov.median_pr_cycle_days ?? "n/a"} days</p>}
+      {prios.length > 0 && (<div><strong>Top priorities</strong> (provisional weights)<ol>
+        {prios.map((p) => <li key={p.id}>#{p.number} {p.title} · {p.score}{p.overridden ? " (overridden)" : ""} · driven by {p.top_factor}</li>)}
+      </ol></div>)}
       <p>{msg}</p>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead><tr><th align="left">#</th><th align="left">Title</th><th align="left">State</th><th align="left">Labels</th><th align="left">Category</th><th align="left">Similar</th></tr></thead>

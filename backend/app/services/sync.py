@@ -19,6 +19,7 @@ def upsert_issue(db: Session, repository_id, item: dict) -> None:
         html_url=item.get("html_url"),
         labels=[(label["name"] if isinstance(label, dict) else str(label)) for label in item.get("labels", [])],
         comments_count=item.get("comments", 0),
+        author_login=(item.get("user") or {}).get("login"),
         title=item["title"],
         body=item.get("body"),
         state=item["state"],
@@ -30,7 +31,8 @@ def upsert_issue(db: Session, repository_id, item: dict) -> None:
         set_={"title": stmt.excluded.title, "body": stmt.excluded.body,
               "state": stmt.excluded.state, "closed_at": stmt.excluded.closed_at,
               "labels": stmt.excluded.labels, "comments_count": stmt.excluded.comments_count,
-              "number": stmt.excluded.number, "html_url": stmt.excluded.html_url},
+              "number": stmt.excluded.number, "html_url": stmt.excluded.html_url,
+              "author_login": stmt.excluded.author_login},
     )
     db.execute(stmt)
 
@@ -39,13 +41,15 @@ def upsert_pr(db: Session, repository_id, item: dict) -> None:
     stmt = insert(PullRequest).values(
         repository_id=repository_id,
         github_pr_id=item["id"],
+        author_login=(item.get("user") or {}).get("login"),
         state=item["state"],
         created_at=_ts(item["created_at"]),
         merged_at=_ts(item.get("merged_at")),
     )
     stmt = stmt.on_conflict_do_update(
         index_elements=["repository_id", "github_pr_id"],
-        set_={"state": stmt.excluded.state, "merged_at": stmt.excluded.merged_at},
+        set_={"state": stmt.excluded.state, "merged_at": stmt.excluded.merged_at,
+              "author_login": stmt.excluded.author_login},
     )
     db.execute(stmt)
 

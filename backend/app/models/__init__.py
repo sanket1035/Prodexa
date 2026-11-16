@@ -97,6 +97,7 @@ class Issue(Base):
     html_url: Mapped[str | None] = mapped_column(Text)
     labels: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
     comments_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    author_login: Mapped[str | None] = mapped_column(String(100))
     title: Mapped[str] = mapped_column(Text, nullable=False)
     body: Mapped[str | None] = mapped_column(Text)
     state: Mapped[str] = mapped_column(String(10), nullable=False)
@@ -115,6 +116,7 @@ class PullRequest(Base):
         ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
     )
     github_pr_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    author_login: Mapped[str | None] = mapped_column(String(100))
     state: Mapped[str] = mapped_column(String(10), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     merged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -187,4 +189,15 @@ class DuplicateFeedback(Base):
     )
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     is_duplicate: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    created_at: Mapped[datetime] = _created()
+
+
+class IssuePriorityOverride(Base):
+    """A person's decision that replaces the computed priority for one issue."""
+
+    __tablename__ = "issue_priority_overrides"
+    issue_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("issues.id", ondelete="CASCADE"), primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    score: Mapped[float] = mapped_column(Float, nullable=False)
+    note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = _created()
